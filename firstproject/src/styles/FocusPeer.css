@@ -1,0 +1,472 @@
+body {
+    font-family: "Lexend", sans-serif;
+    margin: 0;
+    padding: 0;
+}
+
+.focuspeer-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 40px 20px;
+}
+
+.focuspeer-content {
+    box-sizing: border-box;
+    margin: 0 auto 32px;
+    padding: 32px;
+    
+    background: linear-gradient(135deg, #FFFFFF 0%, rgba(248, 187, 208, 0.2) 100%);
+    box-shadow: 0px 1px 3px rgba(0, 0, 0, 0.1), 0px 1px 2px -1px rgba(0, 0, 0, 0.1);
+    border-radius: 24px;
+}
+
+.focuspeer-content h1 {
+    margin: 0 0 12px 0;
+    font-size: 32px;
+    font-weight: 600;
+    color: #1a202c;
+}
+
+.focuspeer-content p {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 400;
+    color: #4a5568;
+    line-height: 1.6;
+}
+
+.focuspeer-tabs {
+    box-sizing: border-box;
+    display: flex;
+    gap: 18px;
+    margin-bottom: 32px;
+
+    background: #FFFFFF;
+    border: 0.8px solid rgba(179, 157, 219, 0.2);
+    box-shadow: 0px 1px 3px rgba(0, 0, 0, 0.1), 0px 1px 2px -1px rgba(0, 0, 0, 0.1);
+    border-radius: 24px;
+    padding: 8.8px 8.8px 8.8px 8.8px;
+    justify-content: center;
+}
+
+
+
+/* Container */
+
+
+.tab-button {
+    padding: 10px 20px;
+    font-family: "Lexend", sans-serif;
+    font-size: 15px;
+    font-weight: 500;
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    width: 372px;
+    height: 48px;
+}
+
+.tab-button:hover {
+    background: #f7fafc;
+    border-color: #cbd5e0;
+    box-shadow: 0px 1px 3px rgba(0, 0, 0, 0.1), 0px 1px 2px -1px rgba(0, 0, 0, 0.1);
+    border-radius: 16px;
+}
+
+.tab-button.active {
+    background: #B39DDB;
+    color: white;
+    border-color: #9575A3;
+
+    border-radius: 15px;
+
+}
+.tab-button:focus{
+    background: #B39DDB;
+}
+
+.peers-grid{
+    display: grid;
+    grid-template-columns: auto auto auto;
+    padding: 10px;
+    gap:16px;
+}
+.peer-card {
+  
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    padding: 24px;
+    transition: box-shadow 0.2s;
+}
+
+.peer-card:hover {
+    box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.peer-header {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.peer-avatar {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: 600;
+    font-size: 18px;
+    flex-shrink: 0;
+}
+
+.peer-avatar.purple { background: #B39DDB; }
+.peer-avatar.cyan { background: #4DD0E1; }
+.peer-avatar.pink { background: #F48FB1; }
+.peer-avatar.orange { background: #FF7043; }
+
+.peer-details {
+    flex: 1;
+}
+
+.peer-name {
+    margin: 0 0 4px 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: #1a202c;
+}
+
+.peer-specialty {
+    margin: 0 0 4px 0;
+    font-size: 14px;
+    color: #718096;
+}
+
+.peer-rating {
+    font-size: 14px;
+    color: #1a202c;
+}
+
+.view-times-btn {
+    width: 100%;
+    padding: 10px;
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    font-family: "Lexend", sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    color: #4a5568;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.view-times-btn:hover {
+    background: #f7fafc;
+    border-color: #cbd5e0;
+}
+
+
+.peer-card-expansion {
+  /* 1. Sets the initial height to 0, making the container invisible and collapsed */
+  max-height: 0; 
+  
+  /* 2. Hides any content that overflows the max-height (like the time slots) */
+  overflow: hidden; 
+  
+  /* 3. Applies a smooth animation whenever max-height changes */
+  transition: max-height 0.3s ease-in-out; 
+}
+
+.peer-card-expansion.expanded {
+  /* 4. When the 'expanded' class is added, max-height jumps to a large value, */
+  /* and the CSS transition makes it look like it's sliding open. */
+  max-height: 500px; /* Must be larger than the content height! */
+  
+  /* Add padding or margin inside the content div (TimeSlotsContent) 
+     to prevent it from getting cut off by the max-height. */
+}
+
+/* session card css */
+
+.Session-Container {
+  display: flex;
+  flex-direction: column;
+  padding: 20.8px 20.8px 0.8px 20.8px;
+  gap: 16px;
+  background-color: white;
+}
+
+/* Container */
+
+
+
+/* Auto layout */
+
+
+
+.upcoming-session-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.previous-session-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.session-layout-header {
+  font-size: 20px;
+  font-weight: 600;
+  color: #333;
+  margin: 0;
+}
+
+.sessions-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
+}
+
+/* Session Card Styles */
+.session-card {
+  background-color: #B39DDB 0.1;
+  border-radius: 8px;
+  padding: 21px;
+  border: 0.8px solid rgba(179, 157, 219, 0.2);
+  max-width: 100%;
+  gap: 16px;
+  transition: box-shadow 0.3s ease;
+
+  border-radius: 16px;
+}
+
+
+
+.session-card:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.session-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.session-peer-name {
+  font-size: 16px;
+  font-weight: 500;
+  color: #a29b92;
+  margin: 0;
+}
+
+.session-status {
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.session-status.confirmed {
+  background-color: #e8d5f2;
+  color: #8b5ba8;
+}
+
+.session-status.completed {
+  background-color: #d4e8d4;
+  color: #5b8b5b;
+}
+
+
+
+.session-card-details {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.session-detail-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #a29b92;
+  font-size: 14px;
+}
+
+.detail-icon {
+  font-size: 16px;
+}
+
+.detail-text {
+  color: #a29b92;
+}
+
+.Feed-Back-Container {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding: 20px;
+}
+
+.feedback-grid {
+  display: block;
+  /* grid-template-columns: repeat(auto-fill, minmax(500px, 1fr)); */
+ 
+}
+
+.feedback-card {
+  background-color: #f9f7f4;
+  border-radius: 8px;
+  padding: 20px;
+  border: 1px solid #e8e6e1;
+  transition: box-shadow 0.3s ease;
+  margin-top: 20px;
+
+
+}
+
+
+
+.feedback-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 16px;
+}
+
+.feedback-peer-info {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.feedback-avatar {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 600;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.feedback-avatar.cyan {
+  background-color: #17a2b8;
+}
+
+.feedback-avatar.purple {
+  background-color: #a17bc6;
+}
+
+.feedback-avatar.pink {
+  background-color: #f48fb1;
+}
+
+.feedback-avatar.orange {
+  background-color: #ff7043;
+}
+
+.feedback-peer-details {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.feedback-peer-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+  margin: 0;
+}
+
+.feedback-badges {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.feedback-badge {
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  background-color: #e8d5f2;
+  color: #8b5ba8;
+}
+
+.feedback-badge.points {
+  background-color: #d4e8d4;
+  color: #5b8b5b;
+}
+
+.feedback-date {
+  font-size: 13px;
+  color: #a29b92;
+  white-space: nowrap;
+}
+
+.feedback-title {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+  font-size: 14px;
+}
+
+.feedback-title-label {
+  color: #a29b92;
+}
+
+.feedback-title-value {
+  color: #a29b92;
+  font-weight: 500;
+}
+
+.feedback-text {
+  color: #a29b92;
+  font-size: 14px;
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .sessions-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .Session-Container {
+    padding: 16px;
+    gap: 32px;
+  }
+
+  .session-layout-header {
+    font-size: 18px;
+  }
+}
+
+@media (max-width: 480px) {
+  .Session-Container {
+    padding: 12px;
+    gap: 24px;
+  }
+
+  .session-card {
+    padding: 12px;
+  }
+
+  .session-layout-header {
+    font-size: 16px;
+  }
+}
