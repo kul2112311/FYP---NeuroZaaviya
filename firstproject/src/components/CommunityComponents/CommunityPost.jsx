@@ -3,7 +3,24 @@ function CommunityPost({ post }) {
     <div className="community-post">
       <div className="post-header">
         <div className="post-author-info">
-          <div className="post-avatar">{post.initials}</div>
+          {/* If Initials are there so use them if not then use the profile URL */}
+          {post.avatar_url ? (
+            <img 
+              src={post.avatar_url} 
+              alt={post.author} 
+              className="post-avatar-img" 
+              style={{
+                width: '40px', 
+                height: '40px', 
+                borderRadius: '50%', 
+                marginRight: '12px',
+                objectFit: 'cover'
+              }} 
+            />
+          ) : (
+            <div className="post-avatar">{post.initials}</div>
+          )}
+          
           <div className="post-author-details">
             <h4 className="post-author-name">{post.author}</h4>
             <span className="post-timestamp">{post.timeAgo}</span>
@@ -24,4 +41,4 @@ function CommunityPost({ post }) {
   );
 }
 
-export default CommunityPost
+export default CommunityPost;
