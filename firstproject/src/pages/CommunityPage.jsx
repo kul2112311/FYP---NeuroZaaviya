@@ -1,55 +1,86 @@
-
-import { useState } from 'react';
-import CommunityPost from '../components/CommunityComponents/CommunityPost.jsx'
+import { useState, useEffect } from 'react';
+import CommunityPost from '../components/CommunityComponents/CommunityPost.jsx';
 import CreatePostModal from '../components/CommunityComponents/CreatePostModal.jsx';
 
 function Community() {
-  const [posts, setPosts] = useState([
-    {
-      id: 1,
-      author: "Ushna Bansal",
-      initials: "UB",
-      timeAgo: "2 hours ago",
-      content: "I've been struggling with managing my group project deadlines. Does anyone know if OAP offers time management workshops this semester?",
-      tags: ["OAP", "Help"]
-    },
-    {
-      id: 2,
-      author: "Anonymous",
-      initials: "AN",
-      timeAgo: "5 hours ago",
-      content: "I'm experiencing overwhelming with midterms approaching. I have accommodations but I'm anxious about asking my professors for extensions. Any advice?",
-      tags: ["Anxiety", "Exams"]
-    },
-    {
-      id: 3,
-      author: "Sarah M.",
-      initials: "SM",
-      timeAgo: "1 day ago",
-      content: "Just wanted to share - I had my first session with Ensso consulting and it was so helpful! They really understood my concerns about sensory method used in the library.",
-      tags: ["Positive"]
-    },
-    {
-      id: 4,
-      author: "Jordan Lee",
-      initials: "JL",
-      timeAgo: "2 days ago",
-      content: "Looking for study buddies for PSYCH 201. Anyone interested in forming a study group? We could meet at the library or online.",
-      tags: ["Study Group", "PSYCH 201"]
-    }
-  ]);
+  const [posts, setPosts] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const handleCreatePost = (newPost) => {
-    const post = {
-      id: posts.length + 1,
-      author: newPost.isAnonymous ? "Anonymous" : "Current User",
-      initials: newPost.isAnonymous ? "AN" : "CU",
-      timeAgo: "Just now",
-      content: newPost.content,
-      tags: newPost.tags
-    };
-    setPosts([post, ...posts]);
+  // bringin in the posts from backend
+  useEffect(() => {
+    fetchPosts();
+  }, []);
+
+  const fetchPosts = async () => {
+    try {
+      const response = await fetch('http://localhost:5000/api/community-posts');
+      const data = await response.json();
+      
+      const formattedPosts = data.map(post => ({
+        id: post.id,
+        author: post.full_name,
+        // getting initial letters form the name bruh
+        initials: post.full_name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase(),
+        avatar_url: post.avatar_url, // Using data from the backend jo itni mehnat se banai lol
+        timeAgo: calculateTimeAgo(post.created_at),
+        content: post.content,
+        tags: post.tags || []
+      }));
+
+      setPosts(formattedPosts);
+      setIsLoading(false);
+    } catch (error) {
+      console.error("Error fetching posts:", error);
+      setIsLoading(false);
+    }
+  };
+
+  // 2. Create Post function connecting to Z backend
+  const handleCreatePost = async (newPostData) => {
+    try {
+      // hard coded for right now , kuch to karna tha na jab tak ban jae login system
+      const currentUserId = "a1111111-1111-1111-1111-111111111111"; // Ushna's ID here (thank you for letting me use it :prayinghands:)
+
+      const response = await fetch('http://localhost:5000/api/community-posts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          author_id: currentUserId,
+          content: newPostData.content,
+          is_anonymous: newPostData.isAnonymous,
+          tags: newPostData.tags
+        })
+      });
+
+      if (response.ok) {
+        fetchPosts(); // gotta reload to show the new post made
+      }
+    } catch (error) {
+      console.error("Error creating post:", error);
+    }
+  };
+
+  // calculating time ago from date like 2 hours or so
+  const calculateTimeAgo = (dateString) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const seconds = Math.floor((now - date) / 1000);
+    
+    // Handle future dates
+    if (seconds < 0) return "Just now";
+
+    let interval = seconds / 31536000;
+    if (interval > 1) return Math.floor(interval) + " years ago";
+    interval = seconds / 2592000;
+    if (interval > 1) return Math.floor(interval) + " months ago";
+    interval = seconds / 86400;
+    if (interval > 1) return Math.floor(interval) + " days ago";
+    interval = seconds / 3600;
+    if (interval > 1) return Math.floor(interval) + " hours ago";
+    interval = seconds / 60;
+    if (interval > 1) return Math.floor(interval) + " minutes ago";
+    return "Just now";
   };
 
   return (
@@ -73,9 +104,13 @@ function Community() {
       </div>
 
       <div className="posts-list">
-        {posts.map(post => (
-          <CommunityPost key={post.id} post={post} />
-        ))}
+        {isLoading ? (
+          <p style={{textAlign: 'center', padding: '20px'}}>Loading discussions...</p>
+        ) : (
+          posts.map(post => (
+            <CommunityPost key={post.id} post={post} />
+          ))
+        )}
       </div>
 
       <CreatePostModal
