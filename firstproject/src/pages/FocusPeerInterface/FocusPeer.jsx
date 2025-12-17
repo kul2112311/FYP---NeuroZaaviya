@@ -22,8 +22,8 @@ function FocusPeerSide(){
                         My Schedule
                     </button>
                     <button 
-                        className={`tab-button ${activeTab === 'my' ? 'active' : ''}`}
-                        onClick={() => setActiveTab('my')}
+                        className={`tab-button ${activeTab === 'My Sessions' ? 'active' : ''}`}
+                        onClick={() => setActiveTab('My Sessions')}
                     >
                         My Sessions
                     </button>
@@ -38,7 +38,7 @@ function FocusPeerSide(){
                 {activeTab === 'My Schedule' && (
                     <Schedule/>
                 )}
-                {activeTab === 'my' && (
+                {activeTab === 'My Sessions' && (
                     <Session/>
                 )}  
                 {activeTab === 'Pending' && (
@@ -48,4 +48,5 @@ function FocusPeerSide(){
         </>
     )
 }
+
 export default FocusPeerSide;
