@@ -38,7 +38,7 @@ function PendingFeedback() {
           <h2 className="text-xl font-semibold text-gray-800">
             Sessions Awaiting Feedback
           </h2>
-          <span className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm font-medium">
+          <span className="px-3 py-1 bg-[#B39DDB] text-white rounded-full text-sm font-medium">
             {pendingSessions.length} pending
           </span>
         </div>
@@ -47,7 +47,7 @@ function PendingFeedback() {
           {pendingSessions.map((session) => (
             <div 
               key={session.id}
-              className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:border-purple-200 hover:bg-purple-50 transition-all"
+              className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:border-purple-200 transition-all"
             >
               <div className="flex items-center gap-4">
                 <div className={`w-14 h-14 ${session.avatarColor} rounded-full flex items-center justify-center text-white font-semibold text-lg`}>
@@ -77,7 +77,7 @@ function PendingFeedback() {
 
               <button 
                 onClick={() => handleGiveFeedback(session)}
-                className="flex items-center gap-2 px-6 py-2.5 bg-purple-400 hover:bg-purple-500 text-white rounded-lg transition-colors font-medium"
+                className="flex items-center gap-2 px-6 py-2.5 bg-[#B39DDB] hover:bg-[#9575CD] text-white rounded-lg transition-colors font-medium"
               >
                 <Send size={16} />
                 Give Feedback
