@@ -79,7 +79,7 @@ function AppContent() {
   const location = useLocation();
   
   // ========== SWITCH BETWEEN INTERFACES HERE ==========
-  const CURRENT_INTERFACE = 'focuspeer';  // Change to 'focuspeer' to see FocusPeer interface
+  const CURRENT_INTERFACE = 'student';  // Change to 'focuspeer' to see FocusPeer interface or students for Student interface
   // const CURRENT_INTERFACE = 'focuspeer';  // Uncomment this line and comment above
   // ===================================================
   
