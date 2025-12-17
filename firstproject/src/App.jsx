@@ -38,7 +38,7 @@ function AppContent() {
         />
         <SideBarItem 
           icon={<Users size={20}/>} 
-          text={CURRENT_INTERFACE === 'student' ? 'Find FocusPeer' : 'My Students'}
+          text={CURRENT_INTERFACE === 'student' ? 'FocusPeer' : 'My Students'}
           to="/focuspeer"
           active={location.pathname === '/focuspeer'}
         />

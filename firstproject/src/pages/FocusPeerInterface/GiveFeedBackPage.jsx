@@ -1,43 +1,114 @@
-import React, { useState } from 'react';
-import { ArrowLeft, Award, AlertTriangle, Send } from 'lucide-react';
-import { useNavigate, useLocation } from 'react-router-dom'; // Add this import
+import React, { useState, useEffect } from 'react';
+import { ArrowLeft, Award, AlertTriangle, Send, Loader, X } from 'lucide-react';
+import { useNavigate, useLocation } from 'react-router-dom';
 
-function GiveFeedbackForm() {  // Remove props since we're using routing
-  const navigate = useNavigate();  // Add this
-  const location = useLocation();  // Add this
-  const session = location.state?.session;  // Get session from navigation state
+function GiveFeedbackForm() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const session = location.state?.session;
   
   const [feedback, setFeedback] = useState('');
-  const [selectedBadge, setSelectedBadge] = useState('');
+  const [availableBadges, setAvailableBadges] = useState([]);
+  const [selectedBadgeId, setSelectedBadgeId] = useState('');
+  const [awardedBadges, setAwardedBadges] = useState([]);
   const [raiseAlert, setRaiseAlert] = useState(false);
   const [alertDescription, setAlertDescription] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const badges = [
-    { id: 'progress', name: 'Great Progress', emoji: '🌟' },
-    { id: 'collaborative', name: 'Team Player', emoji: '🤝' },
-    { id: 'focused', name: 'Stayed Focused', emoji: '🎯' },
-    { id: 'creative', name: 'Creative Thinker', emoji: '💡' },
-    { id: 'persistent', name: 'Never Gave Up', emoji: '💪' },
-    { id: 'helpful', name: 'Super Helpful', emoji: '🌈' }
-  ];
+  useEffect(() => {
+    fetchBadges();
+  }, []);
 
-  const handleBack = () => {
-    navigate('/focuspeer'); // Go back to FocusPeer page
-  };
-
-  const handleSubmit = () => {
-    if (feedback.trim() || selectedBadge) {
-      console.log({
-        feedback,
-        badge: selectedBadge,
-        raiseAlert,
-        alertDescription: raiseAlert ? alertDescription : '',
-        sessionId: session?.id
-      });
-      // TODO: Submit to backend
-      navigate('/focuspeer'); // Go back after submitting
+  const fetchBadges = async () => {
+    try {
+      const response = await fetch('http://localhost:5000/api/badges');
+      const data = await response.json();
+      console.log('🏆 Available badges:', data);
+      setAvailableBadges(data);
+      setIsLoading(false);
+    } catch (error) {
+      console.error("Error fetching badges:", error);
+      setIsLoading(false);
     }
   };
+
+  const handleAddBadge = () => {
+    if (!selectedBadgeId) return;
+    
+    const badge = availableBadges.find(b => b.id === selectedBadgeId);
+    if (badge && !awardedBadges.find(b => b.id === selectedBadgeId)) {
+      setAwardedBadges([...awardedBadges, badge]);
+      setSelectedBadgeId('');
+    }
+  };
+
+  const handleRemoveBadge = (badgeId) => {
+    setAwardedBadges(awardedBadges.filter(b => b.id !== badgeId));
+  };
+
+  const handleBack = () => {
+    navigate('/focuspeer');
+  };
+
+  const handleSubmit = async () => {
+    if (!feedback.trim() && awardedBadges.length === 0) {
+      alert("Please provide feedback or award at least one badge.");
+      return;
+    }
+
+    if (raiseAlert && !alertDescription.trim()) {
+      alert("Please describe the concern if raising an alert.");
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const response = await fetch('http://localhost:5000/api/session-feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          session_id: session.id,
+          feedback_text: feedback.trim(),
+          badge_ids: awardedBadges.map(b => b.id),
+          raise_alert: raiseAlert,
+          alert_description: raiseAlert ? alertDescription.trim() : ''
+        })
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log('✅ Feedback submitted:', result);
+        alert(`Feedback submitted successfully! ${result.badges_awarded} badge(s) awarded.`);
+        navigate('/focuspeer');
+      } else {
+        const errorData = await response.json();
+        alert(`Failed: ${errorData.error || "Could not submit feedback"}`);
+      }
+    } catch (error) {
+      console.error("Error submitting feedback:", error);
+      alert("An error occurred while submitting feedback.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const getPreviewBadge = () => {
+    if (selectedBadgeId) {
+      return availableBadges.find(b => b.id === selectedBadgeId);
+    }
+    return null;
+  };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <Loader className="animate-spin" size={32} />
+        <span className="ml-2">Loading...</span>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
@@ -58,15 +129,15 @@ function GiveFeedbackForm() {  // Remove props since we're using routing
             {/* Student Info Card */}
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
               <div className="flex items-center gap-4">
-                <div className="w-16 h-16 bg-blue-500 rounded-full flex items-center justify-center text-white font-semibold text-xl">
+                <div className={`w-16 h-16 ${session?.avatarColor || 'bg-blue-500'} rounded-full flex items-center justify-center text-white font-semibold text-xl`}>
                   {session?.avatar || 'UB'}
                 </div>
                 <div>
                   <h2 className="text-xl font-semibold text-gray-800">
-                    {session?.name || 'Ushna Batool'}
+                    {session?.name || 'Student'}
                   </h2>
                   <p className="text-gray-600">
-                    {session?.major || 'Computer Science'} • {session?.date || 'Dec 6, 2025'} • {session?.time || '2:00 PM - 3:00 PM'}
+                    {session?.major || 'Major'} • {session?.date || 'Date'} • {session?.time || 'Time'}
                   </p>
                 </div>
               </div>
@@ -91,27 +162,28 @@ function GiveFeedbackForm() {  // Remove props since we're using routing
                 Award Badges
               </h3>
               <p className="text-sm text-gray-600 mb-4">
-                Select a badge from the dropdown and click Add. Hover over options to preview on the right.
+                Select badges to award from the dropdown. Each badge gives the student +10 XP!
               </p>
               
-              <div className="flex gap-3">
+              {/* Badge Selector */}
+              <div className="flex gap-3 mb-4">
                 <select
-                  value={selectedBadge}
-                  onChange={(e) => setSelectedBadge(e.target.value)}
+                  value={selectedBadgeId}
+                  onChange={(e) => setSelectedBadgeId(e.target.value)}
                   className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-400 focus:border-transparent"
                 >
                   <option value="">Select a badge...</option>
-                  {badges.map(badge => (
+                  {availableBadges.map(badge => (
                     <option key={badge.id} value={badge.id}>
-                      {badge.emoji} {badge.name}
+                      {badge.name}
                     </option>
                   ))}
                 </select>
                 <button 
-                  onClick={() => {/* Add badge logic */}}
-                  disabled={!selectedBadge}
+                  onClick={handleAddBadge}
+                  disabled={!selectedBadgeId}
                   className={`flex items-center gap-2 px-6 py-2 rounded-lg transition-colors ${
-                    selectedBadge 
+                    selectedBadgeId 
                       ? 'bg-purple-400 hover:bg-purple-500 text-white' 
                       : 'bg-gray-200 text-gray-400 cursor-not-allowed'
                   }`}
@@ -120,6 +192,33 @@ function GiveFeedbackForm() {  // Remove props since we're using routing
                   Add Badge
                 </button>
               </div>
+
+              {/* Awarded Badges List */}
+              {awardedBadges.length > 0 && (
+                <div className="mt-4">
+                  <h4 className="text-sm font-medium text-gray-700 mb-2">Badges to Award:</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {awardedBadges.map(badge => (
+                      <div 
+                        key={badge.id}
+                        className="flex items-center gap-2 px-3 py-1.5 bg-purple-50 text-purple-700 rounded-full text-sm border border-purple-200"
+                      >
+                        <Award size={14} />
+                        <span>{badge.name}</span>
+                        <button
+                          onClick={() => handleRemoveBadge(badge.id)}
+                          className="hover:bg-purple-100 rounded-full p-0.5 transition-colors"
+                        >
+                          <X size={14} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-xs text-gray-500 mt-2">
+                    Student will receive +{awardedBadges.length * 10} XP
+                  </p>
+                </div>
+              )}
             </div>
 
             {/* Alert Section */}
@@ -141,7 +240,6 @@ function GiveFeedbackForm() {  // Remove props since we're using routing
                     Check this if the student needs additional support or if you noticed concerning behavior during the session.
                   </p>
                   
-                  {/* Alert Description Box */}
                   {raiseAlert && (
                     <div className="mt-4">
                       <label className="block text-sm font-medium text-amber-800 mb-2">
@@ -164,21 +262,31 @@ function GiveFeedbackForm() {  // Remove props since we're using routing
             <div className="flex gap-4">
               <button
                 onClick={handleBack}
-                className="flex-1 px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium text-gray-700"
+                disabled={isSubmitting}
+                className="flex-1 px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium text-gray-700 disabled:opacity-50"
               >
                 Cancel
               </button>
               <button
                 onClick={handleSubmit}
-                disabled={!feedback.trim() && !selectedBadge}
+                disabled={isSubmitting || (!feedback.trim() && awardedBadges.length === 0)}
                 className={`flex-1 flex items-center justify-center gap-2 px-6 py-3 rounded-lg transition-colors font-medium ${
-                  feedback.trim() || selectedBadge
+                  (feedback.trim() || awardedBadges.length > 0) && !isSubmitting
                     ? 'bg-purple-400 hover:bg-purple-500 text-white'
                     : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                 }`}
               >
-                <Send size={18} />
-                Submit Feedback
+                {isSubmitting ? (
+                  <>
+                    <Loader size={18} className="animate-spin" />
+                    Submitting...
+                  </>
+                ) : (
+                  <>
+                    <Send size={18} />
+                    Submit Feedback
+                  </>
+                )}
               </button>
             </div>
           </div>
@@ -189,14 +297,27 @@ function GiveFeedbackForm() {  // Remove props since we're using routing
               <h3 className="text-lg font-semibold text-gray-800 mb-4">
                 Badge Preview
               </h3>
-              <div className="flex flex-col items-center justify-center py-12 text-gray-400">
-                <Award size={64} strokeWidth={1} />
-                <p className="mt-4 text-sm text-center">
-                  {selectedBadge 
-                    ? `Preview: ${badges.find(b => b.id === selectedBadge)?.emoji} ${badges.find(b => b.id === selectedBadge)?.name}`
-                    : 'Select a badge to preview'
-                  }
-                </p>
+              <div className="flex flex-col items-center justify-center py-8">
+                {getPreviewBadge() ? (
+                  <div className="text-center">
+                    <div className="w-24 h-24 bg-gradient-to-br from-purple-400 to-pink-400 rounded-full flex items-center justify-center mb-4 mx-auto">
+                      <Award size={48} className="text-white" />
+                    </div>
+                    <h4 className="font-semibold text-gray-800 text-lg mb-2">
+                      {getPreviewBadge().name}
+                    </h4>
+                    <p className="text-sm text-gray-600">
+                      {getPreviewBadge().description}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="text-gray-400 text-center">
+                    <Award size={64} strokeWidth={1} />
+                    <p className="mt-4 text-sm">
+                      Select a badge to preview
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
           </div>
