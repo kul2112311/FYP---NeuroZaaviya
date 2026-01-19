@@ -1,4 +1,5 @@
 
+
 // import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom'
 // import Community from './pages/shared/CommunityPage.jsx'
 // import FocusPeerPage from './pages/StudentInterface/FocusPeerPage.jsx'
@@ -158,6 +159,8 @@ import FocusPeer from './pages/FocusPeerInterface/FocusPeer.jsx';
 import GiveFeedbackForm from './pages/FocusPeerInterface/GiveFeedBackPage.jsx';
 import { UserProvider, useUser } from './usercontext';
 import FocuspeerMonitor from './pages/Wellness/FocuspeerMonitor.jsx';
+import Dashboard from './pages/StudentInterface/Dashboard.jsx';
+import DetailedProgress from './pages/StudentInterface/DetailedProgress';
 
 // ========== MENU CONFIGURATION ==========
 // This object defines what menu items each role can see
@@ -226,7 +229,8 @@ function AppContent() {
       <main className="flex-1" style={{ display: 'flex', justifyContent: 'center' }}>
         <div style={{ width: '100%', maxWidth: '1200px' }}>
           <Routes>
-            <Route path="/" element={<div>Dashboard Page</div>} />
+            <Route path="/" element={<Dashboard />} /> 
+            <Route path="/detailed-progress" element={<DetailedProgress />} />
             <Route path="/resources" element={<div>Resources Page</div>} />
             <Route path="/forum" element={<Community />} />
             <Route 
@@ -240,12 +244,11 @@ function AppContent() {
             <Route path="/students" element={<div>Students Page</div>} />
             <Route path="/courses" element={<div>Courses Page</div>} />
             <Route path="/focuspeer-monitor" element={<FocuspeerMonitor />}/>
-            
           </Routes>
         </div>
       </main>
     </div>
-  )
+  );
 }
 
 function App() {
@@ -255,7 +258,7 @@ function App() {
         <AppContent />
       </BrowserRouter>
     </UserProvider>
-  )
+  );
 }
 
-export default App
+export default App;

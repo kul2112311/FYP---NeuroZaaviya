@@ -1,49 +1,95 @@
+/* Overall container for the login page */
 .login-container {
   display: flex;
-  justify-content: center;
+  flex-direction: column;
   align-items: center;
-  min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  justify-content: center;
+  height: 100vh;
+  background: #e6dcf3; /* Lilac background */
+  position: relative;
+  z-index: 0;
 }
 
-.login-form {
-  background: white;
-  padding: 40px;
-  border-radius: 10px;
-  box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+/* Form styling */
+form {
+  background: rgba(255, 255, 255, 0.8); /* Transparent white form */
+  padding: 2rem 3rem;
+  border-radius: 12px;
+  box-shadow: 0px 8px 16px rgba(0, 0, 0, 0.2);
   width: 100%;
   max-width: 400px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
-.login-form h2 {
+/* Logo and Title Container */
+.logo-container {
+  display: flex;
+  align-items: center;
   margin-bottom: 20px;
-  text-align: center;
-  color: #333;
 }
 
-.login-form input {
+.logo {
+  width: 100x; /* Adjust the size of the logo */
+  height: 100px;
+  margin-right: 10px;
+}
+
+.title {
+  color: #4b2ea8; /* Lilac color */
+  font-size: 2.5rem;
+  font-weight: 700;
+}
+
+/* Heading styling */
+h2 {
+  color: #4b2ea8; /* Lilac color */
+  font-size: 2rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+}
+
+/* Input fields */
+input {
   width: 100%;
   padding: 12px;
   margin: 10px 0;
-  border: 1px solid #ddd;
-  border-radius: 5px;
+  border: 2px solid #d8cdee; /* Light lilac border */
+  border-radius: 8px;
   font-size: 16px;
-  box-sizing: border-box;
+  font-family: 'Roboto', sans-serif;
+  background: #f9f9f9;
+  color: #4b2ea8; /* Lilac text */
 }
 
-.login-form button {
+/* Input focus styling */
+input:focus {
+  outline: none;
+  border-color: #6b4eff; /* Lilac focus border */
+  background: #f1eff9;
+}
+
+/* Error message styling */
+p {
+  color: red;
+  font-size: 14px;
+}
+
+/* Submit button */
+button {
   width: 100%;
   padding: 12px;
-  margin-top: 10px;
-  background: #667eea;
-  color: white;
+  background: #6b4eff; /* Purple lilac button */
   border: none;
-  border-radius: 5px;
+  border-radius: 8px;
+  color: white;
   font-size: 16px;
   cursor: pointer;
-  transition: background 0.3s;
+  transition: background 0.3s ease;
 }
 
-.login-form button:hover {
-  background: #5568d3;
+/* Button hover effect */
+button:hover {
+  background: #4b00b7; /* Darker lilac button on hover */
 }
