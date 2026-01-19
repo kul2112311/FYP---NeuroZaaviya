@@ -57,7 +57,7 @@
 //     )
 // }
 // export default NavBar;
-
+// NavBar.jsx (Updated)
 import { createContext, useContext } from "react"
 import { Link } from 'react-router-dom'
 
@@ -93,7 +93,7 @@ function NavBar({children}) {
   );
 }
 
-export function SideBarItem({icon, text, active, to}){
+export function SideBarItem({icon, text, active, to, roles}){
     const {expanded} = useContext(SidebarContext);
     
     return(
