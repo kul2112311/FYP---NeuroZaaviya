@@ -35,7 +35,7 @@ function PeerCard({ peer }) {
         <h4 className="text-sm font-medium text-gray-700 mb-3">Available This Week</h4>
         <div className="grid grid-cols-2 gap-3">
           {peer.availability.map((slot, index) => (
-            <div key={index} className="space-y-1 p-2 bg-white rounded-2xl border border-[#B39DDB]/30 flex flex-col">
+            <div key={index} className="space-y-1 p-2 bg-[#E1BEE7]/20 rounded-2xl border border-[#B39DDB]/30 flex flex-col">
               <div className="flex items-center gap-2 text-sm text-gray-600">
                 <Calendar size={14} className="text-gray-400" />
                 <span>{slot.day}</span>

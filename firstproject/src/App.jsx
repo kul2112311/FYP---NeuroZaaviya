@@ -161,7 +161,9 @@ import { UserProvider, useUser } from './usercontext';
 import FocuspeerMonitor from './pages/Wellness/FocuspeerMonitor.jsx';
 import Dashboard from './pages/StudentInterface/Dashboard.jsx';
 import DetailedProgress from './pages/StudentInterface/DetailedProgress';
-
+import WellnessDashboard from './pages/Wellness/WellnessDashboard.jsx';
+import Student  from './pages/Wellness/Students.jsx';
+import Alert from './pages/shared/Alerts.jsx';
 // ========== MENU CONFIGURATION ==========
 // This object defines what menu items each role can see
 const menuConfig = {
@@ -183,10 +185,11 @@ const menuConfig = {
   'wellness-counsellor': [
     { icon: <LayoutDashboard size={20}/>, text: "Dashboard", to: "/" },
     { icon: <Users size={20}/>, text: "Students", to: "/students" },
-    { icon: <FileText size={20}/>, text: "Reports", to: "/reports" },
+    { icon: <FileText size={20}/>, text: "Alerts", to: "/alerts" },
     { icon: <BookOpen size={20}/>, text: "Resources", to: "/resources" },
     { icon: <Settings size={20}/>, text: "Settings", to: "/settings" },
-    { icon: <Users size={20}/>, text: "Focus Peers", to: "/focuspeer-monitor"}
+    { icon: <Users size={20}/>, text: "Focus Peers", to: "/focuspeer-monitor"},
+    
   ],
   oap: [
     { icon: <LayoutDashboard size={20}/>, text: "Dashboard", to: "/" },
@@ -195,6 +198,7 @@ const menuConfig = {
     { icon: <FileText size={20}/>, text: "Reports", to: "/reports" },
     { icon: <Settings size={20}/>, text: "Settings", to: "/settings" }
   ],
+  //hhhhh
   professor: [
     { icon: <LayoutDashboard size={20}/>, text: "Dashboard", to: "/" },
     { icon: <BookOpen size={20}/>, text: "Courses", to: "/courses" },
@@ -210,6 +214,22 @@ function AppContent() {
   
   // Get the menu items for the current user's role
   const menuItems = menuConfig[user.role] || [];
+  let dashboardToShow;
+  if(user.role === 'student'){
+    dashboardToShow = <Dashboard/>;
+  }
+  else if(user.role === 'focus-peer'){
+    dashboardToShow = <Dashboard/>;
+  }
+  else if(user.role === 'wellness-counsellor'){
+    dashboardToShow = <WellnessDashboard/>;
+  }
+  else if(user.role === 'oap'){
+    dashboardToShow = <OAPDashboard/>;
+  }
+  else if (user.role === 'professor'){
+    dashboardToShow = <ProfessorDashboard/>;
+  }
   
   return (
     <div className="flex">
@@ -226,10 +246,10 @@ function AppContent() {
         ))}
       </NavBar>
       
-      <main className="flex-1" style={{ display: 'flex', justifyContent: 'center' }}>
-        <div style={{ width: '100%', maxWidth: '1200px' }}>
+      <main className="flex-1 flex justify-center" >
+        <div style={{ width: '100%' }}>
           <Routes>
-            <Route path="/" element={<Dashboard />} /> 
+            <Route path="/" element={dashboardToShow} /> 
             <Route path="/detailed-progress" element={<DetailedProgress />} />
             <Route path="/resources" element={<div>Resources Page</div>} />
             <Route path="/forum" element={<Community />} />
@@ -241,9 +261,12 @@ function AppContent() {
             <Route path="/feedback-form" element={<GiveFeedbackForm />} />
             <Route path="/reports" element={<div>Reports Page</div>} />
             <Route path="/files" element={<div>Files Page</div>} />
-            <Route path="/students" element={<div>Students Page</div>} />
+            <Route path="/students" element={<Student />} />
             <Route path="/courses" element={<div>Courses Page</div>} />
             <Route path="/focuspeer-monitor" element={<FocuspeerMonitor />}/>
+            <Route path="/accomodations" element={<Student />}/>
+            <Route path="/alerts" element={<Alert/>} />
+            
           </Routes>
         </div>
       </main>
