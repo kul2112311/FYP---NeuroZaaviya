@@ -696,6 +696,69 @@ app.get('/api/student-feedback/:userId', async (req, res) => {
     }
 });
 
+// 15. GET WEEKLY PROGRESS (Last 7 days)
+app.get('/api/weekly-progress/:userId', async (req, res) => {
+    try {
+        const { userId } = req.params;
+        
+        // Get student profile ID
+        const studentQuery = "SELECT id FROM student_profiles WHERE user_id = $1";
+        const studentResult = await pool.query(studentQuery, [userId]);
+        
+        if (studentResult.rows.length === 0) {
+            return res.status(404).json({ error: "Student profile not found" });
+        }
+        
+        const studentId = studentResult.rows[0].id;
+        
+        // Get last 7 days of progress
+        const progressQuery = `
+            SELECT 
+                TO_CHAR(date, 'YYYY-MM-DD') as date,
+                progress_percentage,
+                tasks_completed,
+                tasks_total,
+                study_time_minutes
+            FROM daily_progress
+            WHERE student_id = $1
+            AND date >= CURRENT_DATE - INTERVAL '6 days'
+            AND date <= CURRENT_DATE
+            ORDER BY date ASC
+        `;
+        
+        const result = await pool.query(progressQuery, [studentId]);
+        
+        // Also get tasks for the week to show details
+        const tasksQuery = `
+            SELECT 
+                id,
+                title,
+                status,
+                priority,
+                due_date
+            FROM tasks
+            WHERE student_id = $1
+            AND due_date >= CURRENT_DATE - INTERVAL '6 days'
+            AND due_date <= CURRENT_DATE + INTERVAL '1 day'
+            ORDER BY due_date, priority DESC
+        `;
+        
+        const tasksResult = await pool.query(tasksQuery, [studentId]);
+        
+        console.log('📊 Weekly progress:', result.rows.length, 'days');
+        console.log('📋 Weekly tasks:', tasksResult.rows.length, 'tasks');
+        
+        res.json({
+            dailyProgress: result.rows,
+            tasks: tasksResult.rows
+        });
+        
+    } catch (err) {
+        console.error("Error fetching weekly progress:", err.message);
+        res.status(500).send("Server Error");
+    }
+});
+
 // Start the Server
 const PORT = 5000;
 app.listen(PORT, () => {
