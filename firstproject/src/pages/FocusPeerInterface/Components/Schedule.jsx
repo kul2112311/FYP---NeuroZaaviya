@@ -171,8 +171,8 @@ function Schedule() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto p-6">
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+    
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 px-[20.8px] pt-[20.8px] pb-[0.8px]">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-semibold text-gray-800">
@@ -218,7 +218,7 @@ function Schedule() {
             </div>
           ))}
         </div>
-      </div>
+     
 
       {/* Modal */}
       {isModalOpen && (
