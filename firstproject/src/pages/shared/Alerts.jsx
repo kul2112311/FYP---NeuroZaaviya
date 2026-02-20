@@ -142,7 +142,7 @@ function Alerts() {
             placeholder='Search by student name, alert title, or focus peer...'
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className='flex-1 outline-none text-gray-700 placeholder-gray-400 bg-transparent'
+            className='flex-1 border border-gray-300 text-gray-700 placeholder-gray-400 bg-transparent rounded-2xl'
           />
         </div>
 

@@ -1,5 +1,6 @@
 {
   "dependencies": {
-    "flowbite": "^4.0.1"
+    "flowbite": "^4.0.1",
+    "react-calendar": "^6.0.0"
   }
 }
