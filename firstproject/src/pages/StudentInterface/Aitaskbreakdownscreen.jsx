@@ -1,13 +1,25 @@
-import { useState } from "react";
-import { ArrowLeft, Brain, Sparkles, Upload, FileText, AlertCircle, Loader2, Lightbulb, Target, Star, CheckCircle2, X } from "lucide-react";
+import { useState, useEffect } from "react";
+import { ArrowLeft, Brain, Sparkles, Upload, FileText, AlertCircle, Loader2, Lightbulb, Target, Star, CheckCircle2, X, Image as ImageIcon } from "lucide-react";
+import { useUser } from "../../usercontext"; // Import user context
 
 export function AITaskBreakdownScreen({ onBack, onAnalyze, savedTaskData }) {
+  const { user } = useUser(); // Get logged in user
   const [taskPrompt, setTaskPrompt] = useState(savedTaskData?.taskPrompt || "");
   const [rubricFile, setRubricFile] = useState(savedTaskData?.rubricFile || null);
-  const [assignmentFiles, setAssignmentFiles] = useState(savedTaskData?.assignmentFiles || []);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const [error, setError] = useState(null);
 
+  const validateFile = (file) => {
+    const validTypes = ['application/pdf', 'image/png', 'image/jpeg', 'image/jpg'];
+    if (!validTypes.includes(file.type)) {
+      setError("Please upload a PDF or Image file (PNG/JPG).");
+      return false;
+    }
+    setError(null);
+    return true;
+  };
+  
   const handleRubricUpload = (e) => {
     if (e.target.files && e.target.files[0]) {
       setRubricFile(e.target.files[0]);
@@ -33,30 +45,92 @@ export function AITaskBreakdownScreen({ onBack, onAnalyze, savedTaskData }) {
   const handleDrop = (e) => {
     e.preventDefault();
     setIsDragging(false);
-    handleFileUpload(e.dataTransfer.files);
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      if (validateFile(e.dataTransfer.files[0])) {
+        setRubricFile(e.dataTransfer.files[0]);
+      }
+    }
+  };
+
+  const handlePaste = (e) => {
+    const items = e.clipboardData.items;
+    for (let item of items) {
+      if (item.type.startsWith('image/')) {
+        const file = item.getAsFile();
+        setRubricFile(file);
+        setError(null); // Clear errors
+        break; 
+      }
+    }
+  };
+
+  const handleGenerate = async () => {
+    console.log("🖱️ Button Clicked!"); 
+    console.log("Current User Object:", user); 
+    console.log("Current Prompt:", taskPrompt);
+    
+    // 1. Validation
+    if (!taskPrompt.trim()) {
+      console.error("❌ Prompt is empty");
+      setError("Please describe your task first.");
+      return;
+    }
+
+    if (!user || !user.id) {
+      console.error("❌ No User ID found in context");
+      setError("You must be logged in to use this feature.");
+      return;
+    }
+
+    setIsProcessing(true);
+    setError(null);
+
+    try {
+      // 2. Create FormData for file upload
+      const formData = new FormData();
+      formData.append("userPrompt", taskPrompt);
+      formData.append("userId", user.id); 
+      if (rubricFile) {
+        formData.append("rubricFile", rubricFile);
+      }
+
+      console.log("🚀 Sending request to AI Agent...");
+
+      // 3. API Call
+      const response = await fetch("http://localhost:5000/api/ai/generate", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "The AI Agent encountered an error while processing.");
+      }
+
+      console.log("✅ AI Response Received:", data);
+      
+      if (onAnalyze) {
+        onAnalyze({
+          originalPrompt: taskPrompt,
+          rubricUsed: !!rubricFile,
+          aiResult: data.data 
+        });
+      }
+
+    } catch (err) {
+      console.error("Agent Error:", err);
+      setError("Connection failed. Check if your backend server is running on port 5000.");
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   const removeFile = () => {
     setRubricFile(null);
   };
 
-  const handleSubmit = () => {
-    if (!taskPrompt.trim()) {
-      alert("Please describe your task before submitting.");
-      return;
-    }
-
-    setIsProcessing(true);
-    
-    setTimeout(() => {
-      onAnalyze({
-        taskPrompt,
-        rubricFile: rubricFile || undefined,
-        assignmentFiles
-      });
-      setIsProcessing(false);
-    }, 2000);
-  };
+  
 
   return (
     <div className="min-h-screen p-8" style={{ background: '#f5eef8' }}>
@@ -303,7 +377,7 @@ You can also drag and drop your rubric or assignment files here! 📄"
               {/* Submit Button */}
               <div className="pt-2">
                 <button
-                  onClick={handleSubmit}
+                  onClick={handleGenerate}
                   disabled={isProcessing || !taskPrompt.trim()}
                   className="w-full h-16 rounded-full text-lg font-medium text-white group relative overflow-hidden transition-all hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
                   style={{ background: isProcessing || !taskPrompt.trim() ? '#e1bee7' : '#b39ddb' }}
@@ -339,7 +413,7 @@ You can also drag and drop your rubric or assignment files here! 📄"
             <div className="w-px h-8" style={{ background: 'rgba(179, 157, 219, 0.2)' }} />
             <div className="flex items-center gap-2">
               <span className="text-2xl">✨</span>
-              <span>AI-Powered Guidance</span>
+              <span>AI-Powered Guidance</span>handleGenerate
             </div>
             <div className="w-px h-8" style={{ background: 'rgba(179, 157, 219, 0.2)' }} />
             <div className="flex items-center gap-2">
