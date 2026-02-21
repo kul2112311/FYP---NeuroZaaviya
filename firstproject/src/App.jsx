@@ -14,7 +14,6 @@ import Resources from './pages/StudentInterface/Resources.jsx';
 import { AITaskBreakdownPage } from './pages/StudentInterface/Aitaskbreakdownpage.jsx';
 import { EisenhowerMatrixPage } from './pages/StudentInterface/Eisenhowermatrixpage.jsx';
 
-import DetailedProgress from './pages/StudentInterface/DetailedProgress';
 import WellnessDashboard from './pages/Wellness/WellnessDashboard.jsx';
 import Student  from './pages/shared/Students.jsx';
 import Alert from './pages/shared/Alerts.jsx';
