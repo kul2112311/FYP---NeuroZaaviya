@@ -3,20 +3,22 @@ import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom'
 import Community from './pages/shared/CommunityPage.jsx'
 import FocusPeerPage from './pages/StudentInterface/FocusPeerPage.jsx'
 import NavBar, { SideBarItem } from './components/navbar/NavBar.jsx'
-import { LayoutDashboard, BookOpen, Newspaper, Users, Settings, FileText, Folder } from "lucide-react";
+import { LayoutDashboard, BookOpen, Newspaper, Users, Settings, FileText, Folder,  CalendarSync , CalendarHeart } from "lucide-react";
 import FocusPeer from './pages/FocusPeerInterface/FocusPeer.jsx';
 import GiveFeedbackForm from './pages/FocusPeerInterface/GiveFeedBackPage.jsx';
 import { UserProvider, useUser } from './usercontext';
 import FocuspeerMonitor from './pages/Wellness/FocuspeerMonitor.jsx';
 import Dashboard from './pages/StudentInterface/Dashboard.jsx';
-import DetailedProgress from './pages/StudentInterface/DetailedProgress.jsx';
+// import DetailedProgress from './pages/StudentInterface/DetailedProgress.jsx';
 import Resources from './pages/StudentInterface/Resources.jsx';
 import { AITaskBreakdownPage } from './pages/StudentInterface/Aitaskbreakdownpage.jsx';
 import { EisenhowerMatrixPage } from './pages/StudentInterface/Eisenhowermatrixpage.jsx';
 
 import WellnessDashboard from './pages/Wellness/WellnessDashboard.jsx';
-import Student  from './pages/Wellness/Students.jsx';
+import Student  from './pages/shared/Students.jsx';
 import Alert from './pages/shared/Alerts.jsx';
+import Scheduling from './pages/shared/Scheduling.jsx';
+import Events from './pages/shared/Events.jsx';
 // ========== MENU CONFIGURATION ==========
 // This object defines what menu items each role can see
 const menuConfig = {
@@ -25,7 +27,7 @@ const menuConfig = {
     { icon: <BookOpen size={20}/>, text: "Resources", to: "/resources" },
     { icon: <Newspaper size={20}/>, text: "Forum", to: "/forum" },
     { icon: <Users size={20}/>, text: "FocusPeer", to: "/focuspeer" },
-    { icon: <Settings size={20}/>, text: "Settings", to: "/settings" }
+    { icon: <CalendarHeart size={20}/>, text: "Events", to: "/events" }
   ],
   'focus-peer': [
     { icon: <LayoutDashboard size={20}/>, text: "Dashboard", to: "/" },
@@ -33,15 +35,17 @@ const menuConfig = {
     { icon: <Newspaper size={20}/>, text: "Forum", to: "/forum" },
     { icon: <Users size={20}/>, text: "My Students", to: "/focuspeer" },
     { icon: <FileText size={20}/>, text: "Reports", to: "/reports" },
-    { icon: <Settings size={20}/>, text: "Settings", to: "/settings" }
+    { icon: <CalendarHeart size={20}/>, text: "Events", to: "/events" }
   ],
   'wellness-counsellor': [
     { icon: <LayoutDashboard size={20}/>, text: "Dashboard", to: "/" },
     { icon: <Users size={20}/>, text: "Students", to: "/students" },
     { icon: <FileText size={20}/>, text: "Alerts", to: "/alerts" },
     { icon: <BookOpen size={20}/>, text: "Resources", to: "/resources" },
-    { icon: <Settings size={20}/>, text: "Settings", to: "/settings" },
+    { icon: <CalendarHeart size={20}/>, text: "Events", to: "/events" },
     { icon: <Users size={20}/>, text: "Focus Peers", to: "/focuspeer-monitor"},
+    { icon: <CalendarSync size={20}/>, text: "Scheduling", to: "/scheduling" },
+    { icon: <Newspaper size={20}/>, text: "Forum", to: "/forum" }
     
   ],
   oap: [
@@ -49,7 +53,10 @@ const menuConfig = {
     { icon: <Users size={20}/>, text: "Students", to: "/students" },
     { icon: <Folder size={20}/>, text: "Files", to: "/files" },
     { icon: <FileText size={20}/>, text: "Reports", to: "/reports" },
-    { icon: <Settings size={20}/>, text: "Settings", to: "/settings" }
+   { icon: <CalendarHeart size={20}/>, text: "Events", to: "/events" },
+   { icon: <Newspaper size={20}/>, text: "Forum", to: "/forum" },
+   { icon: <CalendarSync size={20}/>, text: "Scheduling", to: "/scheduling" },
+   { icon: <FileText size={20}/>, text: "Alerts", to: "/alerts" },
   ],
   //hhhhh
   professor: [
@@ -57,7 +64,8 @@ const menuConfig = {
     { icon: <BookOpen size={20}/>, text: "Courses", to: "/courses" },
     { icon: <Users size={20}/>, text: "Students", to: "/students" },
     { icon: <Folder size={20}/>, text: "Files", to: "/files" },
-    { icon: <Settings size={20}/>, text: "Settings", to: "/settings" }
+    { icon: <CalendarHeart size={20}/>, text: "Events", to: "/events" }
+    // { icon: <Settings size={20}/>, text: "Settings", to: "/settings" }
   ]
 };
 
@@ -78,7 +86,7 @@ function AppContent() {
     dashboardToShow = <WellnessDashboard/>;
   }
   else if(user.role === 'oap'){
-    dashboardToShow = <OAPDashboard/>;
+    dashboardToShow = <WellnessDashboard/>;
   }
   else if (user.role === 'professor'){
     dashboardToShow = <ProfessorDashboard/>;
@@ -112,7 +120,7 @@ function AppContent() {
               path="/focuspeer" 
               element={user.role === 'student' ? <FocusPeerPage /> : <FocusPeer />} 
             />
-            <Route path="/settings" element={<div>Settings Page</div>} />
+            {/* <Route path="/settings" element={<div>Settings Page</div>} /> */}
             <Route path="/feedback-form" element={<GiveFeedbackForm />} />
             <Route path="/reports" element={<div>Reports Page</div>} />
             <Route path="/files" element={<div>Files Page</div>} />
@@ -121,6 +129,8 @@ function AppContent() {
             <Route path="/focuspeer-monitor" element={<FocuspeerMonitor />}/>
             <Route path="/accomodations" element={<Student />}/>
             <Route path="/alerts" element={<Alert/>} />
+            <Route path="/scheduling" element={<Scheduling/>} />
+            <Route path="/events" element={<Events/>} />
             
           </Routes>
         </div>
