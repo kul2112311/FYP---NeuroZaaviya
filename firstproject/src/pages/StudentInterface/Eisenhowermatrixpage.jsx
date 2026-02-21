@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { EisenhowerMatrix } from "./Eisenhowermatrix.jsx";
+import { EisenhowerMatrix } from "./Eisenhowermatrix.jsx"
 
 export function EisenhowerMatrixPage() {
   useEffect(() => {

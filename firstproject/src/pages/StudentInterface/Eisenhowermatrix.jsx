@@ -4,7 +4,7 @@ import {
   Trash2, CheckCircle, AlertCircle, Target,
   Flame, Zap, ListTodo, Check, Edit
 } from "lucide-react";
-import { useUser } from "../../usercontext";
+import { useUser } from "../../usercontext"
 import { useNavigate } from "react-router-dom";
 
 const C = {
