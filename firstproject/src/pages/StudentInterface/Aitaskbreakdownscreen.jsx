@@ -60,12 +60,6 @@ export function AITaskBreakdownScreen({ onBack, onAnalyze, savedTaskData }) {
 
   return (
     <div className="min-h-screen p-8" style={{ background: '#f5eef8' }}>
-      {/* Floating decorative elements */}
-      <div className="absolute top-20 right-16 text-7xl opacity-10 pointer-events-none animate-pulse">🌸</div>
-      <div className="absolute top-40 left-20 text-6xl opacity-10 pointer-events-none animate-pulse" style={{ animationDelay: '500ms' }}>☁️</div>
-      <div className="absolute bottom-40 right-32 text-5xl opacity-10 pointer-events-none animate-pulse" style={{ animationDelay: '1000ms' }}>⭐</div>
-      <div className="absolute bottom-20 left-16 text-6xl opacity-10 pointer-events-none animate-pulse" style={{ animationDelay: '700ms' }}>🍃</div>
-
       <div className="max-w-5xl mx-auto space-y-8 relative">
         {/* Header */}
         <div className="flex items-center gap-4">

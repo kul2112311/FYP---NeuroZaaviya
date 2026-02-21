@@ -18,11 +18,42 @@ function Dashboard() {
   });
   const [weekAssignments, setWeekAssignments] = useState({});
   const [view, setView] = useState("week");
-  const [tasks, setTasks] = useState([
-    { id: 1, text: "Review chapter 5", completed: false },
-    { id: 2, text: "Finish project draft", completed: false },
-    { id: 3, text: "Practice mindfulness", completed: true },
-  ]);
+  const [tasks, setTasks] = useState(() => {
+    // Load from localStorage
+    const savedTasks = localStorage.getItem("upcomingTasks");
+    const eisenhowerTasks = localStorage.getItem("eisenhowerTasks");
+    
+    let allTasks = savedTasks ? JSON.parse(savedTasks) : [
+      { id: 1, text: "Review chapter 5", completed: false },
+      { id: 2, text: "Finish project draft", completed: false },
+      { id: 3, text: "Practice mindfulness", completed: true },
+    ];
+    
+    // Add AI-generated subtasks from Eisenhower Matrix
+    if (eisenhowerTasks) {
+      try {
+        const eisenTasks = JSON.parse(eisenhowerTasks);
+        eisenTasks.forEach(task => {
+          if (task.subtasks && Array.isArray(task.subtasks)) {
+            task.subtasks.forEach(subtask => {
+              if (!allTasks.find(t => t.id === subtask.id)) {
+                allTasks.push({
+                  id: subtask.id,
+                  text: subtask.text,
+                  completed: subtask.completed || false,
+                  parentTaskId: task.id
+                });
+              }
+            });
+          }
+        });
+      } catch (e) {
+        console.error("Error loading Eisenhower tasks:", e);
+      }
+    }
+    
+    return allTasks;
+  });
   const [newTask, setNewTask] = useState("");
   const [currentDate] = useState(new Date(2026, 0, 26));
 
@@ -96,9 +127,28 @@ function Dashboard() {
   };
 
   const handleToggleTask = (id) => {
-    setTasks(tasks.map(task => 
+    const updatedTasks = tasks.map(task => 
       task.id === id ? { ...task, completed: !task.completed } : task
-    ));
+    );
+    setTasks(updatedTasks);
+    localStorage.setItem("upcomingTasks", JSON.stringify(updatedTasks));
+    
+    // Also update in Eisenhower tasks if it's a subtask
+    const eisenhowerTasks = localStorage.getItem("eisenhowerTasks");
+    if (eisenhowerTasks) {
+      try {
+        const eisenTasks = JSON.parse(eisenhowerTasks);
+        const updated = eisenTasks.map(task => ({
+          ...task,
+          subtasks: task.subtasks?.map(st =>
+            st.id === id ? { ...st, completed: !st.completed } : st
+          )
+        }));
+        localStorage.setItem("eisenhowerTasks", JSON.stringify(updated));
+      } catch (e) {
+        console.error("Error updating Eisenhower tasks:", e);
+      }
+    }
   };
 
   const handleDeleteTask = (id) => {
