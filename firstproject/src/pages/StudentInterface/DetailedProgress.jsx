@@ -1,116 +1,130 @@
 import React, { useState, useEffect } from "react";
 import { ArrowLeft, CheckCircle2, Clock, Sparkles, Edit2, Save, X, Trash2, Plus } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 // API Configuration
 const API = "http://127.0.0.1:8000/api";
 
-function DetailedProgress({ onBack, onUpdateProgress }) {
+function DetailedProgress() {
+  const navigate = useNavigate();
   const [weekData, setWeekData] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [editingAssignment, setEditingAssignment] = useState(null);
   const [addingToDay, setAddingToDay] = useState(null);
+  const [currentWeekOffset, setCurrentWeekOffset] = useState(0); // 0 = current week, -1 = last week, 1 = next week, etc.
 
   // Days of the week
   const daysOfWeek = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
   // Mock data structure - day-wise
   const mockWeekData = {
-    Mon: [
-      {
-        id: 1,
-        title: "Calculus 1 HW - Derivatives",
-        course: "MATH 101",
-        status: "Completed",
-        priority: "High Priority",
-        progress: 100,
-        dueDate: "Nov 22",
-        notes: ""
-      },
-      {
-        id: 2,
-        title: "Read Chapter 5 - Biology",
-        course: "BIO 150",
-        status: "In Progress",
-        priority: "Medium Priority",
-        progress: 60,
-        dueDate: "Nov 22",
-        notes: ""
-      }
-    ],
-    Tue: [
-      {
-        id: 3,
-        title: "PAMSA Essay - Cultural Analysis",
-        course: "PAMSA 200",
-        status: "In Progress",
-        priority: "High Priority",
-        progress: 75,
-        dueDate: "Nov 24",
-        notes: "Need to add conclusion"
-      }
-    ],
-    Wed: [
-      {
-        id: 4,
-        title: "Lab Report - Photosynthesis",
-        course: "BIO 150",
-        status: "Completed",
-        priority: "Medium Priority",
-        progress: 100,
-        dueDate: "Nov 23",
-        notes: ""
-      }
-    ],
+    Mon: [],
+    Tue: [],
+    Wed: [],
     Thu: [],
-    Fri: [
-      {
-        id: 5,
-        title: "OOP Project - Library System",
-        course: "CS 201",
-        status: "In Progress",
-        priority: "High Priority",
-        progress: 65,
-        dueDate: "Nov 29",
-        notes: "Working on database integration"
-      }
-    ],
+    Fri: [],
     Sat: [],
-    Sun: [
-      {
-        id: 6,
-        title: "History Presentation - Ottoman Empire",
-        course: "HIST 102",
-        status: "In Progress",
-        priority: "Medium Priority",
-        progress: 40,
-        dueDate: "Dec 1",
-        notes: ""
-      }
-    ]
+    Sun: []
   };
 
   const fetchWeekData = async () => {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      setWeekData(mockWeekData);
-      setLoading(false);
-      return;
-    }
-
     try {
-      const response = await fetch(`${API}/assignments/weekly/`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+      // First, check localStorage for upcoming assignments from Eisenhower Matrix
+      const upcomingAssignments = localStorage.getItem("upcomingAssignments");
+      let assignmentsFromCalendar = [];
+      
+      if (upcomingAssignments) {
+        try {
+          assignmentsFromCalendar = JSON.parse(upcomingAssignments);
+        } catch (e) {
+          console.error("Error parsing assignments from calendar:", e);
+        }
       }
 
-      const data = await response.json();
-      setWeekData(data || mockWeekData);
+      // Try to fetch from API
+      const token = localStorage.getItem("token");
+      let apiData = null;
+
+      if (token) {
+        try {
+          const response = await fetch(`${API}/assignments/weekly/`, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          });
+
+          if (response.ok) {
+            apiData = await response.json();
+          }
+        } catch (err) {
+          console.error("Error fetching from API:", err);
+        }
+      }
+
+      // Create merged week data from calendar assignments
+      let mergedWeekData = { ...mockWeekData };
+      
+      // Calculate the target week's dates
+      const today = new Date();
+      const startOfTargetWeek = new Date(today);
+      startOfTargetWeek.setDate(today.getDate() - today.getDay() + (currentWeekOffset * 7));
+      
+      // Group assignments by due date within this week
+      assignmentsFromCalendar.forEach(assignment => {
+        if (assignment.dueDate) {
+          try {
+            const assignmentDate = new Date(assignment.dueDate);
+            const dayOfWeek = assignmentDate.getDay();
+            
+            // Check if this assignment falls within the target week
+            const diffTime = Math.abs(assignmentDate - startOfTargetWeek);
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            
+            if (diffDays <= 6 && assignmentDate >= startOfTargetWeek && assignmentDate < new Date(startOfTargetWeek.getTime() + 7 * 24 * 60 * 60 * 1000)) {
+              const day = daysOfWeek[dayOfWeek];
+              
+              if (!mergedWeekData[day]) {
+                mergedWeekData[day] = [];
+              }
+              
+              const existingIndex = mergedWeekData[day].findIndex(a => a.id === assignment.id);
+              if (existingIndex === -1) {
+                mergedWeekData[day].push({
+                  id: assignment.id,
+                  title: assignment.title,
+                  course: assignment.course || "Assignment",
+                  status: assignment.status || "In Progress",
+                  priority: assignment.priority || "Medium Priority",
+                  progress: assignment.progress || 0,
+                  dueDate: assignment.dueDate,
+                  notes: assignment.notes || ""
+                });
+              } else {
+                mergedWeekData[day][existingIndex] = {
+                  id: assignment.id,
+                  title: assignment.title,
+                  course: assignment.course || "Assignment",
+                  status: assignment.status || "In Progress",
+                  priority: assignment.priority || "Medium Priority",
+                  progress: assignment.progress || 0,
+                  dueDate: assignment.dueDate,
+                  notes: assignment.notes || ""
+                };
+              }
+            }
+          } catch (e) {
+            console.error("Error processing assignment date:", e);
+          }
+        }
+      });
+
+      // Override with API data if available
+      if (apiData) {
+        mergedWeekData = apiData;
+      }
+
+      setWeekData(mergedWeekData);
       setError(null);
     } catch (err) {
       console.error("Error fetching assignments:", err);
@@ -123,12 +137,28 @@ function DetailedProgress({ onBack, onUpdateProgress }) {
 
   useEffect(() => {
     fetchWeekData();
-  }, []);
+
+    // Listen for updates from Eisenhower Matrix or other sources
+    const handleStorageChange = () => {
+      console.log("Storage changed, updating week data");
+      fetchWeekData();
+    };
+
+    window.addEventListener("storage", handleStorageChange);
+    window.addEventListener("eisenhowerSaved", handleStorageChange);
+    window.addEventListener("weeklyProgressUpdated", handleStorageChange);
+
+    return () => {
+      window.removeEventListener("storage", handleStorageChange);
+      window.removeEventListener("eisenhowerSaved", handleStorageChange);
+      window.removeEventListener("weeklyProgressUpdated", handleStorageChange);
+    };
+  }, [currentWeekOffset]);
 
   // Calculate day progress
   const calculateDayProgress = (assignments) => {
     if (!assignments || assignments.length === 0) return 0;
-    const totalProgress = assignments.reduce((sum, a) => sum + a.progress, 0);
+    const totalProgress = assignments.reduce((sum, a) => sum + (a.progress || 0), 0);
     return Math.round(totalProgress / assignments.length);
   };
 
@@ -139,16 +169,52 @@ function DetailedProgress({ onBack, onUpdateProgress }) {
     return Math.round(total / 7);
   };
 
-  // Update progress and notify parent
+  // Update progress and sync back to localStorage
   const updateWeekData = (newWeekData) => {
     setWeekData(newWeekData);
-    if (onUpdateProgress) {
-      const dayProgress = {};
-      daysOfWeek.forEach(day => {
-        dayProgress[day] = calculateDayProgress(newWeekData[day] || []);
-      });
-      onUpdateProgress(dayProgress, newWeekData);
-    }
+    
+    // Sync back to localStorage
+    const upcomingAssignments = localStorage.getItem("upcomingAssignments");
+    let allAssignments = upcomingAssignments ? JSON.parse(upcomingAssignments) : [];
+    
+    // Flatten all assignments from the week data
+    const updatedAssignments = [];
+    daysOfWeek.forEach(day => {
+      if (newWeekData[day]) {
+        newWeekData[day].forEach(assignment => {
+          updatedAssignments.push({
+            id: assignment.id,
+            title: assignment.title,
+            course: assignment.course,
+            status: assignment.status,
+            priority: assignment.priority,
+            progress: assignment.progress,
+            dueDate: assignment.dueDate,
+            notes: assignment.notes || ""
+          });
+        });
+      }
+    });
+    
+    // Merge with existing (update existing, add new)
+    const finalAssignments = [];
+    const seenIds = new Set();
+    
+    updatedAssignments.forEach(updated => {
+      seenIds.add(updated.id);
+      finalAssignments.push(updated);
+    });
+    
+    allAssignments.forEach(existing => {
+      if (!seenIds.has(existing.id)) {
+        finalAssignments.push(existing);
+      }
+    });
+    
+    localStorage.setItem("upcomingAssignments", JSON.stringify(finalAssignments));
+    
+    // Dispatch event so dashboard updates instantly
+    window.dispatchEvent(new Event("weeklyProgressUpdated"));
   };
 
   // Handle assignment update
@@ -183,7 +249,7 @@ function DetailedProgress({ onBack, onUpdateProgress }) {
     const newWeekData = { ...weekData };
     if (!newWeekData[day]) newWeekData[day] = [];
     newWeekData[day].push({
-      id: Date.now(),
+      id: `manual-${Date.now()}`,
       ...newAssignment,
       progress: 0,
       status: "In Progress"
@@ -222,7 +288,7 @@ function DetailedProgress({ onBack, onUpdateProgress }) {
         {/* Header */}
         <div className="mb-8">
           <button
-            onClick={onBack}
+            onClick={() => navigate("/")}
             className="flex items-center gap-2 px-4 py-2 rounded-xl mb-4 transition-colors hover:opacity-80"
             style={{ background: '#ffffff', border: '1px solid rgba(179, 157, 219, 0.2)', color: '#5a4a61' }}
           >
@@ -235,18 +301,42 @@ function DetailedProgress({ onBack, onUpdateProgress }) {
               <div className="flex items-center gap-2 mb-2">
                 <Sparkles className="h-6 w-6" style={{ color: '#b39ddb' }} />
                 <h1 className="text-3xl font-semibold" style={{ color: '#5a4a61' }}>
-                  Weekly Assignment Tracker
+                  Weekly Progress
                 </h1>
               </div>
               <p className="text-sm" style={{ color: '#9575a3' }}>
-                Track your daily assignments and progress throughout the week
+                Track and manage your assignments across weeks
               </p>
             </div>
-            <div className="text-right">
-              <div className="text-4xl font-bold mb-1" style={{ color: '#b39ddb' }}>
-                {calculateWeeklyProgress()}%
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => setCurrentWeekOffset(currentWeekOffset - 1)}
+                className="px-4 py-2 rounded-lg font-medium text-sm transition-colors"
+                style={{ background: '#e1bee7', color: '#5a4a61' }}
+              >
+                ← Previous Week
+              </button>
+              <div className="text-right">
+                <div className="text-2xl font-bold" style={{ color: '#b39ddb' }}>
+                  Week {currentWeekOffset === 0 ? 'Now' : currentWeekOffset > 0 ? `+${currentWeekOffset}` : currentWeekOffset}
+                </div>
+                <p className="text-sm" style={{ color: '#9575a3' }}>
+                  {(() => {
+                    const startDate = new Date();
+                    startDate.setDate(startDate.getDate() - startDate.getDay() + (currentWeekOffset * 7));
+                    const endDate = new Date(startDate);
+                    endDate.setDate(endDate.getDate() + 6);
+                    return `${startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${endDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
+                  })()}
+                </p>
               </div>
-              <p className="text-sm" style={{ color: '#9575a3' }}>Overall Weekly Progress</p>
+              <button
+                onClick={() => setCurrentWeekOffset(currentWeekOffset + 1)}
+                className="px-4 py-2 rounded-lg font-medium text-sm transition-colors"
+                style={{ background: '#e1bee7', color: '#5a4a61' }}
+              >
+                Next Week →
+              </button>
             </div>
           </div>
         </div>

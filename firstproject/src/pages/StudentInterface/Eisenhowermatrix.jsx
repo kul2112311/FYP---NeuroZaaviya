@@ -1,522 +1,677 @@
-import { useState } from "react";
-import { Plus, ChevronDown, ChevronUp, GripVertical, Calendar as CalendarIcon, Save, X, Trash2, CheckCircle, Sparkles } from "lucide-react";
+import { useState, useEffect } from "react";
+import {
+  Plus, ChevronDown, ChevronUp, GripVertical, Calendar as CalendarIcon,
+  Trash2, CheckCircle, AlertCircle, Target,
+  Flame, Zap, ListTodo, Check, Edit
+} from "lucide-react";
 import { useUser } from "../../usercontext";
+import { useNavigate } from "react-router-dom";
 
-export function EisenhowerMatrix({ onSaveAndAddToCalendar }) {
-  const { addPoints, updateStreak } = useUser();
-  const [tasks, setTasks] = useState(() => {
-    const saved = localStorage.getItem("eisenhowerTasks");
-    return saved ? JSON.parse(saved) : [];
+const C = {
+  bg: "#f5eef8",
+  white: "#ffffff",
+  border: "rgba(179,157,219,0.2)",
+  purple: "#b39ddb",
+  purpleDark: "#5a4a61",
+  purpleMid: "#9575a3",
+  purpleLight: "#f3e5f5",
+  purpleFaint: "#fdf7fd",
+};
+
+const QUADRANTS = [
+  {
+    id: "do-now",
+    title: "Do Now",
+    subtitle: "Urgent & Important",
+    icon: Flame,
+    accent: "#ef4444",
+    bg: "#fff5f5",
+    border: "rgba(239,68,68,0.25)",
+    badge: "#fee2e2",
+    badgeText: "#ef4444",
+  },
+  {
+    id: "schedule",
+    title: "Schedule",
+    subtitle: "Important, Not Urgent",
+    icon: Target,
+    accent: "#3b82f6",
+    bg: "#eff6ff",
+    border: "rgba(59,130,246,0.25)",
+    badge: "#dbeafe",
+    badgeText: "#3b82f6",
+  },
+  {
+    id: "delegate",
+    title: "Delegate",
+    subtitle: "Urgent, Not Important",
+    icon: Zap,
+    accent: "#f59e0b",
+    bg: "#fffbeb",
+    border: "rgba(245,158,11,0.25)",
+    badge: "#fef3c7",
+    badgeText: "#d97706",
+  },
+  {
+    id: "defer",
+    title: "Defer",
+    subtitle: "Not Urgent, Not Important",
+    icon: ListTodo,
+    accent: "#22c55e",
+    bg: "#f0fdf4",
+    border: "rgba(34,197,94,0.25)",
+    badge: "#dcfce7",
+    badgeText: "#16a34a",
+  },
+];
+
+function Toast({ show, message, type = "success", onClose }) {
+  useEffect(() => {
+    if (show) {
+      const timer = setTimeout(onClose, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [show, onClose]);
+
+  if (!show) return null;
+
+  const bgColor = type === "success" ? "#22c55e" : "#ef4444";
+  const icon = type === "success" ? 
+    <CheckCircle className="h-5 w-5" /> : 
+    <AlertCircle className="h-5 w-5" />;
+
+  return (
+    <div className="fixed bottom-8 right-8 z-50 text-white px-6 py-3 rounded-full shadow-lg flex items-center gap-2"
+      style={{ background: bgColor }}>
+      {icon}
+      <span className="text-sm font-medium">{message}</span>
+    </div>
+  );
+}
+
+function TaskCard({ task, quadrant, onDelete, onToggleExpand, onToggleSubtask, onEdit, onMove, onAddSubtask }) {
+  const [addingSubtask, setAddingSubtask] = useState(false);
+  const [subtaskText, setSubtaskText] = useState("");
+  const [isEditing, setIsEditing] = useState(false);
+  const [editData, setEditData] = useState({
+    title: task.title,
+    description: task.description || "",
+    dueDate: task.dueDate || "",
   });
-  const [currentTask, setCurrentTask] = useState({
+
+  const handleSaveEdit = () => {
+    onEdit(task.id, editData);
+    setIsEditing(false);
+  };
+
+  const handleAddSubtask = () => {
+    if (!subtaskText.trim()) return;
+    onAddSubtask(task.id, subtaskText);
+    setSubtaskText("");
+    setAddingSubtask(false);
+  };
+
+  const completedCount = task.subtasks?.filter((s) => s.completed).length ?? 0;
+  const totalCount = task.subtasks?.length ?? 0;
+
+  return (
+    <div
+      draggable={!isEditing}
+      onDragStart={(e) => {
+        e.dataTransfer.effectAllowed = "move";
+        e.dataTransfer.setData("taskId", task.id);
+      }}
+      className="rounded-lg p-3 shadow-sm hover:shadow-md transition-all group"
+      style={{ background: C.white, border: `1px solid ${C.border}`, cursor: isEditing ? "default" : "grab" }}
+    >
+      {isEditing ? (
+        <div className="space-y-2">
+          <input
+            value={editData.title}
+            onChange={(e) => setEditData({ ...editData, title: e.target.value })}
+            className="w-full px-3 py-2 text-sm rounded-lg focus:outline-none"
+            style={{ background: C.purpleFaint, border: `1px solid ${C.border}`, color: C.purpleDark }}
+          />
+          <textarea
+            value={editData.description}
+            onChange={(e) => setEditData({ ...editData, description: e.target.value })}
+            className="w-full px-3 py-2 text-sm rounded-lg resize-none h-14 focus:outline-none"
+            placeholder="Description"
+            style={{ background: C.purpleFaint, border: `1px solid ${C.border}`, color: C.purpleDark }}
+          />
+          <input
+            type="date"
+            value={editData.dueDate}
+            onChange={(e) => setEditData({ ...editData, dueDate: e.target.value })}
+            className="w-full px-3 py-2 text-sm rounded-lg focus:outline-none"
+            style={{ background: C.purpleFaint, border: `1px solid ${C.border}`, color: C.purpleDark }}
+          />
+          <div className="flex gap-2 pt-1">
+            <button
+              onClick={handleSaveEdit}
+              className="flex-1 h-8 rounded-full text-xs font-medium text-white flex items-center justify-center gap-1"
+              style={{ background: C.purple }}
+            >
+              <Check className="h-3 w-3" /> Save
+            </button>
+            <button
+              onClick={() => setIsEditing(false)}
+              className="flex-1 h-8 rounded-full text-xs font-medium flex items-center justify-center gap-1"
+              style={{ background: C.purpleLight, color: C.purpleMid }}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      ) : (
+        <>
+          <div className="flex items-start gap-2">
+            <GripVertical className="h-3.5 w-3.5 flex-shrink-0 mt-0.5 opacity-0 group-hover:opacity-50 transition-opacity" style={{ color: C.purpleMid }} />
+            <div className="flex-1 min-w-0">
+              <div className="flex items-start justify-between gap-1 mb-1">
+                <p className="text-sm font-medium" style={{ color: C.purpleDark }}>
+                  {task.title}
+                </p>
+                <div className="flex gap-0.5 flex-shrink-0">
+                  <button
+                    onClick={() => setIsEditing(true)}
+                    className="w-5 h-5 rounded-full flex items-center justify-center hover:opacity-80"
+                    style={{ background: "#eff6ff" }}
+                  >
+                    <Edit className="h-2.5 w-2.5" style={{ color: "#3b82f6" }} />
+                  </button>
+                  <button
+                    onClick={() => onToggleExpand(task.id)}
+                    className="w-5 h-5 rounded-full flex items-center justify-center hover:opacity-80"
+                    style={{ background: C.purpleLight }}
+                  >
+                    {task.expanded ? (
+                      <ChevronUp className="h-2.5 w-2.5" style={{ color: C.purpleMid }} />
+                    ) : (
+                      <ChevronDown className="h-2.5 w-2.5" style={{ color: C.purpleMid }} />
+                    )}
+                  </button>
+                  <button
+                    onClick={() => onDelete(task.id)}
+                    className="w-5 h-5 rounded-full flex items-center justify-center hover:opacity-80"
+                    style={{ background: "#fee2e2" }}
+                  >
+                    <Trash2 className="h-2.5 w-2.5" style={{ color: "#ef4444" }} />
+                  </button>
+                </div>
+              </div>
+              {task.description && (
+                <p className="text-xs mb-1" style={{ color: C.purpleMid }}>
+                  {task.description}
+                </p>
+              )}
+              <div className="flex items-center gap-2 flex-wrap">
+                {task.dueDate && (
+                  <div className="flex items-center gap-1 text-[10px]" style={{ color: C.purpleMid }}>
+                    <CalendarIcon className="h-3 w-3" />
+                    <span>{new Date(task.dueDate + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>
+                  </div>
+                )}
+                {totalCount > 0 && (
+                  <span className="text-[10px] px-1.5 py-0.5 rounded-full" style={{ background: quadrant.badge, color: quadrant.badgeText }}>
+                    {completedCount}/{totalCount}
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {task.expanded && (
+            <div className="mt-3 pt-3 space-y-2" style={{ borderTop: `1px solid ${C.border}` }}>
+              {task.subtasks?.map((st) => (
+                <label key={st.id} className="flex items-start gap-2 cursor-pointer p-1 rounded hover:bg-gray-50">
+                  <input
+                    type="checkbox"
+                    checked={st.completed}
+                    onChange={() => onToggleSubtask(task.id, st.id)}
+                    className="w-3 h-3 mt-0.5 rounded flex-shrink-0"
+                    style={{ accentColor: quadrant.accent }}
+                  />
+                  <span className="text-xs" style={{ color: st.completed ? C.purpleMid : C.purpleDark, textDecoration: st.completed ? "line-through" : "none" }}>
+                    {st.text}
+                  </span>
+                </label>
+              ))}
+
+              {addingSubtask ? (
+                <div className="flex gap-2 mt-2">
+                  <input
+                    value={subtaskText}
+                    onChange={(e) => setSubtaskText(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && handleAddSubtask()}
+                    autoFocus
+                    placeholder="Subtask..."
+                    className="flex-1 px-2 py-1 text-xs rounded focus:outline-none"
+                    style={{ background: C.purpleFaint, border: `1px solid ${C.border}`, color: C.purpleDark }}
+                  />
+                  <button
+                    onClick={handleAddSubtask}
+                    className="px-2 py-1 rounded text-xs text-white"
+                    style={{ background: C.purple }}
+                  >
+                    Add
+                  </button>
+                  <button
+                    onClick={() => {
+                      setAddingSubtask(false);
+                      setSubtaskText("");
+                    }}
+                    className="px-2 py-1 rounded text-xs"
+                    style={{ background: C.purpleLight, color: C.purpleMid }}
+                  >
+                    ✕
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setAddingSubtask(true)}
+                  className="text-[10px] flex items-center gap-1 hover:opacity-80 mt-1"
+                  style={{ color: quadrant.accent }}
+                >
+                  <Plus className="h-3 w-3" /> Add
+                </button>
+              )}
+
+              <div className="pt-1">
+                <label className="text-[10px] block mb-1" style={{ color: C.purpleMid }}>Move:</label>
+                <select
+                  value={task.quadrant}
+                  onChange={(e) => onMove(task.id, e.target.value)}
+                  className="w-full px-2 py-1 text-xs rounded focus:outline-none"
+                  style={{ background: C.purpleFaint, border: `1px solid ${C.border}`, color: C.purpleDark }}
+                >
+                  {QUADRANTS.map((q) => (
+                    <option key={q.id} value={q.id}>
+                      {q.title}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+export function EisenhowerMatrix() {
+  const { addPoints, updateStreak } = useUser();
+  const navigate = useNavigate();
+
+  const [tasks, setTasks] = useState(() => {
+    try {
+      const s = localStorage.getItem("eisenhowerTasks");
+      return s ? JSON.parse(s) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const [form, setForm] = useState({
     title: "",
     description: "",
     dueDate: "",
-    timeSensitive: false
+    quadrant: "schedule",
   });
-  const [draggedTask, setDraggedTask] = useState(null);
-  const [showInstructions, setShowInstructions] = useState(false);
-  const [addingSubtaskTo, setAddingSubtaskTo] = useState(null);
-  const [newSubtaskText, setNewSubtaskText] = useState("");
-  const [showSuccessToast, setShowSuccessToast] = useState(false);
+  const [toast, setToast] = useState({ show: false, message: "", type: "success" });
+  const [isExiting, setIsExiting] = useState(false);
 
-  const quadrants = [
-    {
-      id: "do-now",
-      title: "Urgent & Important",
-      subtitle: "Do Now",
-      color: "from-red-50 to-pink-50 border-red-200",
-      textColor: "text-red-700",
-      example: "Exam tomorrow, health emergency"
-    },
-    {
-      id: "schedule",
-      title: "Important, Not Urgent",
-      subtitle: "Schedule",
-      color: "from-blue-50 to-indigo-50 border-blue-200",
-      textColor: "text-blue-700",
-      example: "Long-term projects, skill development"
-    },
-    {
-      id: "delegate",
-      title: "Urgent, Not Important",
-      subtitle: "Delegate",
-      color: "from-yellow-50 to-amber-50 border-yellow-200",
-      textColor: "text-yellow-700",
-      example: "Some emails, minor requests"
-    },
-    {
-      id: "defer",
-      title: "Not Urgent, Not Important",
-      subtitle: "Defer",
-      color: "from-green-50 to-emerald-50 border-green-200",
-      textColor: "text-green-700",
-      example: "Busy work, time-wasters"
-    }
-  ];
+  const save = (updated) => {
+    setTasks(updated);
+    localStorage.setItem("eisenhowerTasks", JSON.stringify(updated));
+  };
 
-  const addTaskToQuadrant = (quadrant) => {
-    if (!currentTask.title.trim()) {
-      alert("Please enter a task title");
+  const handleCreate = () => {
+    if (!form.title.trim()) {
+      setToast({ show: true, message: "Please enter a task title", type: "error" });
       return;
     }
-
-    const newTask = {
-      id: Date.now().toString(),
-      title: currentTask.title,
-      description: currentTask.description,
-      dueDate: currentTask.dueDate,
-      timeSensitive: currentTask.timeSensitive,
-      quadrant,
+    const task = {
+      id: `t-${Date.now()}`,
+      title: form.title,
+      description: form.description,
+      dueDate: form.dueDate,
+      quadrant: form.quadrant,
       subtasks: [],
-      expanded: false
+      expanded: false,
     };
-
-    const updatedTasks = [...tasks, newTask];
-    setTasks(updatedTasks);
-    localStorage.setItem("eisenhowerTasks", JSON.stringify(updatedTasks));
-
-    setCurrentTask({
-      title: "",
-      description: "",
-      dueDate: "",
-      timeSensitive: false
-    });
-
-    addPoints(5, "Created task in Eisenhower Matrix");
+    save([...tasks, task]);
+    setForm({ title: "", description: "", dueDate: "", quadrant: "schedule" });
+    addPoints(5, "Created task");
+    setToast({ show: true, message: "Task created! ✨", type: "success" });
   };
 
-  const deleteTask = (taskId) => {
-    const updatedTasks = tasks.filter(t => t.id !== taskId);
-    setTasks(updatedTasks);
-    localStorage.setItem("eisenhowerTasks", JSON.stringify(updatedTasks));
+  const handleDelete = (id) => {
+    save(tasks.filter((t) => t.id !== id));
+    setToast({ show: true, message: "Task deleted", type: "success" });
   };
 
-  const toggleTaskExpanded = (taskId) => {
-    const updatedTasks = tasks.map(t =>
-      t.id === taskId ? { ...t, expanded: !t.expanded } : t
+  const handleToggleExpand = (id) => save(tasks.map((t) => (t.id === id ? { ...t, expanded: !t.expanded } : t)));
+  const handleMove = (id, quadrant) => save(tasks.map((t) => (t.id === id ? { ...t, quadrant } : t)));
+  const handleEdit = (id, data) => save(tasks.map((t) => (t.id === id ? { ...t, ...data } : t)));
+
+  const handleToggleSubtask = (taskId, subId) => {
+    const updated = tasks.map((t) =>
+      t.id !== taskId
+        ? t
+        : {
+            ...t,
+            subtasks: t.subtasks.map((s) => (s.id === subId ? { ...s, completed: !s.completed } : s)),
+          }
     );
-    setTasks(updatedTasks);
-    localStorage.setItem("eisenhowerTasks", JSON.stringify(updatedTasks));
+    save(updated);
+    const task = updated.find((t) => t.id === taskId);
+    if (task?.subtasks.every((s) => s.completed) && task.subtasks.length > 0) {
+      addPoints(10, "Completed all subtasks");
+      updateStreak();
+      setToast({ show: true, message: "All subtasks completed! 🎉", type: "success" });
+    }
   };
 
-  const moveTask = (taskId, newQuadrant) => {
-    const updatedTasks = tasks.map(t =>
-      t.id === taskId ? { ...t, quadrant: newQuadrant } : t
+  const handleAddSubtask = (taskId, text) => {
+    save(
+      tasks.map((t) =>
+        t.id !== taskId
+          ? t
+          : {
+              ...t,
+              subtasks: [...t.subtasks, { id: `s-${Date.now()}`, text, completed: false }],
+            }
+      )
     );
-    setTasks(updatedTasks);
-    localStorage.setItem("eisenhowerTasks", JSON.stringify(updatedTasks));
-  };
-
-  const addSubtask = (taskId) => {
-    if (!newSubtaskText.trim()) return;
-
-    const updatedTasks = tasks.map(t => {
-      if (t.id === taskId) {
-        return {
-          ...t,
-          subtasks: [
-            ...t.subtasks,
-            { id: Date.now().toString(), text: newSubtaskText, completed: false }
-          ]
-        };
-      }
-      return t;
-    });
-
-    setTasks(updatedTasks);
-    localStorage.setItem("eisenhowerTasks", JSON.stringify(updatedTasks));
-    setNewSubtaskText("");
     addPoints(2, "Added subtask");
   };
 
-  const toggleSubtask = (taskId, subtaskId) => {
-    const updatedTasks = tasks.map(t => {
-      if (t.id === taskId) {
-        return {
-          ...t,
-          subtasks: t.subtasks.map(st =>
-            st.id === subtaskId ? { ...st, completed: !st.completed } : st
-          )
-        };
-      }
-      return t;
-    });
-
-    setTasks(updatedTasks);
-    localStorage.setItem("eisenhowerTasks", JSON.stringify(updatedTasks));
-
-    const task = updatedTasks.find(t => t.id === taskId);
-    if (task && task.subtasks.every(st => st.completed) && task.subtasks.length > 0) {
-      addPoints(10, "Completed all subtasks");
-      updateStreak();
-    }
-  };
-
-  const handleDragStart = (taskId) => {
-    setDraggedTask(taskId);
-  };
-
-  const handleDragOver = (e) => {
+  const handleDrop = (e, targetQuadrant) => {
     e.preventDefault();
+    const taskId = e.dataTransfer.getData("taskId");
+    if (taskId) handleMove(taskId, targetQuadrant);
   };
 
-  const handleDrop = (quadrant) => {
-    if (draggedTask) {
-      moveTask(draggedTask, quadrant);
-      setDraggedTask(null);
+  const handleSave = async () => {
+    if (tasks.length === 0) {
+      setToast({ show: true, message: "Add tasks first!", type: "error" });
+      return;
     }
-  };
 
-  const handleSaveAndAddToCalendar = () => {
-    if (onSaveAndAddToCalendar) {
-      onSaveAndAddToCalendar(tasks);
-    }
-    addPoints(15, "Saved Eisenhower Matrix to calendar");
-    updateStreak();
-    setShowSuccessToast(true);
-    setTimeout(() => setShowSuccessToast(false), 3000);
-  };
+    try {
+      const newEntries = tasks.map((t) => ({
+        id: t.id,
+        title: t.title,
+        dueDate: t.dueDate || "",
+        priority: t.quadrant === "do-now" ? "High Priority" : t.quadrant === "schedule" ? "Medium Priority" : "Low Priority",
+        progress: t.subtasks.length > 0 ? Math.round((t.subtasks.filter((s) => s.completed).length / t.subtasks.length) * 100) : 0,
+        status: "In Progress",
+        subtasksTotal: t.subtasks.length,
+        subtasksDone: t.subtasks.filter((s) => s.completed).length,
+        createdAt: new Date().toISOString(),
+      }));
 
-  const handleDiscard = () => {
-    if (window.confirm("Are you sure you want to discard all tasks?")) {
-      setTasks([]);
-      localStorage.removeItem("eisenhowerTasks");
+      const existing = localStorage.getItem("upcomingAssignments");
+      const all = existing ? JSON.parse(existing) : [];
+      const existingIds = new Set(all.map((a) => a.id));
+      const merged = [
+        ...all.map((a) => {
+          const updated = newEntries.find((x) => x.id === a.id);
+          return updated ?? a;
+        }),
+        ...newEntries.filter((e) => !existingIds.has(e.id)),
+      ];
+      
+      localStorage.setItem("upcomingAssignments", JSON.stringify(merged));
+      
+      if (addPoints && typeof addPoints === "function") {
+        addPoints(15, "Saved Matrix");
+      }
+      if (updateStreak && typeof updateStreak === "function") {
+        updateStreak();
+      }
+      window.dispatchEvent(new Event("eisenhowerSaved"));
+
+      const taskCount = tasks.length;
+      const msg = taskCount === 1 ? "1 task saved to your calendar! ✨" : `${taskCount} tasks saved to your calendar! ✨`;
+      setToast({ show: true, message: msg, type: "success" });
+      
+      // Auto-exit after 3 seconds
+      setIsExiting(true);
+      setTimeout(() => {
+        navigate("/");
+      }, 3000);
+    } catch (error) {
+      console.error("Error saving:", error);
+      setToast({ show: true, message: "Tasks saved! (Redirecting...)", type: "success" });
+      
+      // Still exit even if there's an error with points/streak
+      setIsExiting(true);
+      setTimeout(() => {
+        navigate("/");
+      }, 3000);
     }
   };
 
   return (
-    <div className="space-y-6">
-      {/* Instructions Toggle */}
-      <div className="rounded-2xl p-4 shadow-sm" style={{ background: '#f3e5f5', border: '1px solid rgba(179, 157, 219, 0.2)' }}>
-        <button
-          onClick={() => setShowInstructions(!showInstructions)}
-          className="w-full flex items-center justify-between text-left"
-        >
-          <h4 className="font-semibold" style={{ color: '#b39ddb' }}>How this works?</h4>
-          {showInstructions ? <ChevronUp className="h-5 w-5" style={{ color: '#b39ddb' }} /> : <ChevronDown className="h-5 w-5" style={{ color: '#b39ddb' }} />}
-        </button>
-
-        {showInstructions && (
-          <div className="mt-4 space-y-3 text-sm" style={{ color: '#9575a3' }}>
-            <p>
-              The Eisenhower Matrix helps you prioritize tasks by urgency and importance:
-            </p>
-            <ul className="space-y-2 pl-4">
-              <li>• <span style={{ color: '#5a4a61' }}>Do Now:</span> Tasks that are both urgent and important</li>
-              <li>• <span style={{ color: '#5a4a61' }}>Schedule:</span> Important tasks that can be planned for later</li>
-              <li>• <span style={{ color: '#5a4a61' }}>Delegate:</span> Urgent but less important tasks</li>
-              <li>• <span style={{ color: '#5a4a61' }}>Defer:</span> Low-priority tasks that can wait</li>
-            </ul>
-            <p className="text-xs italic">
-              Simple example: "Do coding homework today, plan rest time tomorrow"
-            </p>
-          </div>
-        )}
-      </div>
-
-      {/* Task Input Area */}
-      <div className="rounded-3xl p-6 shadow-sm" style={{ background: '#ffffff', border: '1px solid rgba(179, 157, 219, 0.2)' }}>
-        <h3 className="text-xl font-semibold mb-4" style={{ color: '#b39ddb' }}>Create a Task</h3>
-        
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm mb-2" style={{ color: '#9575a3' }}>Task Title *</label>
-            <input
-              type="text"
-              value={currentTask.title}
-              onChange={(e) => setCurrentTask({ ...currentTask, title: e.target.value })}
-              className="w-full px-4 py-2 rounded-xl focus:outline-none focus:ring-2"
-              style={{ 
-                background: '#fdf7fd',
-                border: '1px solid rgba(179, 157, 219, 0.2)',
-                color: '#5a4a61'
-              }}
-              onFocus={(e) => e.target.style.boxShadow = '0 0 0 2px rgba(179, 157, 219, 0.2)'}
-              onBlur={(e) => e.target.style.boxShadow = 'none'}
-              placeholder="What needs to be done?"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm mb-2" style={{ color: '#9575a3' }}>Description (optional)</label>
-            <textarea
-              value={currentTask.description}
-              onChange={(e) => setCurrentTask({ ...currentTask, description: e.target.value })}
-              className="w-full px-4 py-2 rounded-xl resize-none h-20 focus:outline-none focus:ring-2"
-              style={{ 
-                background: '#fdf7fd',
-                border: '1px solid rgba(179, 157, 219, 0.2)',
-                color: '#5a4a61'
-              }}
-              onFocus={(e) => e.target.style.boxShadow = '0 0 0 2px rgba(179, 157, 219, 0.2)'}
-              onBlur={(e) => e.target.style.boxShadow = 'none'}
-              placeholder="Add more details..."
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm mb-2" style={{ color: '#9575a3' }}>Due Date (optional)</label>
-              <input
-                type="date"
-                value={currentTask.dueDate}
-                onChange={(e) => setCurrentTask({ ...currentTask, dueDate: e.target.value })}
-                className="w-full px-4 py-2 rounded-xl focus:outline-none focus:ring-2"
-                style={{ 
-                  background: '#fdf7fd',
-                  border: '1px solid rgba(179, 157, 219, 0.2)',
-                  color: '#5a4a61'
-                }}
-                onFocus={(e) => e.target.style.boxShadow = '0 0 0 2px rgba(179, 157, 219, 0.2)'}
-                onBlur={(e) => e.target.style.boxShadow = 'none'}
-              />
+    <div className="min-h-screen" style={{ background: C.bg }}>
+      {/* Header */}
+      <div className="sticky top-0 z-40 backdrop-blur-sm" style={{ background: `${C.bg}dd` }}>
+        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between border-b" style={{ borderColor: C.border }}>
+          <button
+            onClick={() => navigate("/")}
+            className="text-sm hover:opacity-80"
+            style={{ color: C.purpleMid }}
+          >
+            ← Back
+          </button>
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: C.purple }}>
+              <Target className="h-5 w-5 text-white" />
             </div>
-
-            <div>
-              <label className="block text-sm mb-2" style={{ color: '#9575a3' }}>Time Sensitivity (optional)</label>
-              <select
-                value={currentTask.timeSensitive ? "time-sensitive" : "flexible"}
-                onChange={(e) => setCurrentTask({ ...currentTask, timeSensitive: e.target.value === "time-sensitive" })}
-                className="w-full px-4 py-2 rounded-xl focus:outline-none focus:ring-2"
-                style={{ 
-                  background: '#fdf7fd',
-                  border: '1px solid rgba(179, 157, 219, 0.2)',
-                  color: '#5a4a61'
-                }}
-                onFocus={(e) => e.target.style.boxShadow = '0 0 0 2px rgba(179, 157, 219, 0.2)'}
-                onBlur={(e) => e.target.style.boxShadow = 'none'}
-              >
-                <option value="flexible">Flexible</option>
-                <option value="time-sensitive">Time-sensitive</option>
-              </select>
-            </div>
+            <h1 className="text-lg font-bold" style={{ color: C.purpleDark }}>Eisenhower Matrix</h1>
           </div>
-
-          <p className="text-xs italic" style={{ color: '#9575a3' }}>
-            Fill in task details, then add it to the appropriate quadrant below
-          </p>
+          <span className="text-xs px-3 py-1 rounded-full" style={{ background: C.purpleLight, color: C.purpleMid }}>
+            {tasks.length} tasks
+          </span>
         </div>
       </div>
 
-      {/* Eisenhower Matrix Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {quadrants.map((quadrant) => (
-          <div
-            key={quadrant.id}
-            className={`bg-gradient-to-br ${quadrant.color} rounded-3xl p-6 border-2 min-h-[400px] max-h-[600px] flex flex-col transition-all ${
-              draggedTask ? "ring-2 ring-primary/30" : ""
-            }`}
-            onDragOver={handleDragOver}
-            onDrop={() => handleDrop(quadrant.id)}
-          >
-            <div className="mb-4">
-              <div className="flex items-center justify-between mb-2">
-                <h3 className={quadrant.textColor}>{quadrant.title}</h3>
-                <span className="text-sm px-3 py-1 rounded-full bg-white/50">
-                  {quadrant.subtitle}
-                </span>
+      {/* Content */}
+      <div className="max-w-7xl mx-auto px-6 py-8 space-y-8">
+        {/* Form and Summary */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Form */}
+          <div className="lg:col-span-2 rounded-xl p-8" style={{ background: C.white, border: `1px solid ${C.border}` }}>
+            <h2 className="text-lg font-bold mb-6" style={{ color: C.purpleDark }}>Add New Task</h2>
+
+            <div className="space-y-5">
+              <div>
+                <label className="text-sm font-medium block mb-2" style={{ color: C.purpleMid }}>Title *</label>
+                <input
+                  value={form.title}
+                  onChange={(e) => setForm({ ...form, title: e.target.value })}
+                  onKeyDown={(e) => e.key === "Enter" && handleCreate()}
+                  placeholder="What to do?"
+                  className="w-full px-4 py-3 rounded-lg text-sm focus:outline-none"
+                  style={{ background: C.purpleFaint, border: `1px solid ${C.border}`, color: C.purpleDark }}
+                />
               </div>
-              <p className="text-xs text-muted-foreground">{quadrant.example}</p>
-            </div>
 
-            <button
-              onClick={() => addTaskToQuadrant(quadrant.id)}
-              className="w-full mb-4 px-4 py-3 rounded-xl bg-white hover:bg-white/80 border border-border transition-all flex items-center justify-center gap-2 group"
-            >
-              <Plus className="h-4 w-4 group-hover:scale-110 transition-transform" />
-              <span className="text-sm">Add Task Here</span>
-            </button>
+              <div>
+                <label className="text-sm font-medium block mb-2" style={{ color: C.purpleMid }}>Description</label>
+                <textarea
+                  value={form.description}
+                  onChange={(e) => setForm({ ...form, description: e.target.value })}
+                  placeholder="Add details..."
+                  className="w-full px-4 py-3 rounded-lg text-sm resize-none focus:outline-none"
+                  style={{ background: C.purpleFaint, border: `1px solid ${C.border}`, color: C.purpleDark, height: "80px" }}
+                />
+              </div>
 
-            <div className="flex-1 space-y-3 overflow-y-auto pr-2">
-              {tasks
-                .filter((task) => task.quadrant === quadrant.id)
-                .map((task) => (
-                  <div
-                    key={task.id}
-                    draggable
-                    onDragStart={() => handleDragStart(task.id)}
-                    className="bg-white rounded-2xl p-4 border border-border shadow-sm hover:shadow-md transition-all cursor-move group"
-                  >
-                    <div className="flex items-start gap-2">
-                      <GripVertical className="h-5 w-5 text-muted-foreground mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
-                      
-                      <div className="flex-1">
-                        <div className="flex items-start justify-between mb-2">
-                          <div className="flex-1">
-                            <p className="text-sm mb-1">{task.title}</p>
-                            {task.description && (
-                              <p className="text-xs text-muted-foreground">{task.description}</p>
-                            )}
-                            {task.dueDate && (
-                              <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
-                                <CalendarIcon className="h-3 w-3" />
-                                <span>{new Date(task.dueDate).toLocaleDateString()}</span>
-                              </div>
+              <div>
+                <label className="text-sm font-medium block mb-2" style={{ color: C.purpleMid }}>Due Date</label>
+                <input
+                  type="date"
+                  value={form.dueDate}
+                  onChange={(e) => setForm({ ...form, dueDate: e.target.value })}
+                  min={new Date().toISOString().split("T")[0]}
+                  className="w-full px-4 py-3 rounded-lg text-sm focus:outline-none"
+                  style={{ background: C.purpleFaint, border: `1px solid ${C.border}`, color: C.purpleDark }}
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-medium block mb-3" style={{ color: C.purpleMid }}>Priority *</label>
+                <div className="grid grid-cols-2 gap-3">
+                  {QUADRANTS.map((q) => {
+                    const Icon = q.icon;
+                    const active = form.quadrant === q.id;
+                    return (
+                      <button
+                        key={q.id}
+                        onClick={() => setForm({ ...form, quadrant: q.id })}
+                        className="p-4 rounded-lg text-left transition-all"
+                        style={{
+                          background: active ? q.bg : C.purpleFaint,
+                          border: active ? `2px solid ${q.accent}` : `1px solid ${C.border}`,
+                        }}
+                      >
+                        <div className="flex items-center gap-2">
+                          <div
+                            className="w-5 h-5 rounded-full flex items-center justify-center"
+                            style={{
+                              background: active ? q.accent : C.white,
+                              border: active ? "none" : `1.5px solid ${C.border}`,
+                            }}
+                          >
+                            {active ? (
+                              <Check className="h-3 w-3 text-white" />
+                            ) : (
+                              <Icon className="h-3 w-3" style={{ color: q.accent }} />
                             )}
                           </div>
-
-                          <div className="flex gap-1">
-                            <button
-                              onClick={() => toggleTaskExpanded(task.id)}
-                              className="p-1 rounded hover:bg-muted/30"
-                            >
-                              {task.expanded ? (
-                                <ChevronUp className="h-4 w-4" />
-                              ) : (
-                                <ChevronDown className="h-4 w-4" />
-                              )}
-                            </button>
-                            <button
-                              onClick={() => deleteTask(task.id)}
-                              className="p-1 rounded hover:bg-red-50 text-red-600"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
-                          </div>
+                          <span className="font-semibold text-sm" style={{ color: active ? q.accent : C.purpleDark }}>
+                            {q.title}
+                          </span>
                         </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
 
-                        <span className={`inline-block text-xs px-2 py-0.5 rounded-full ${quadrant.textColor} bg-white/50 mb-2`}>
-                          {quadrant.subtitle}
-                        </span>
+              <button
+                onClick={handleCreate}
+                disabled={!form.title.trim()}
+                className="w-full h-11 rounded-lg text-white text-sm font-semibold flex items-center justify-center gap-2 transition-all disabled:opacity-40 mt-2"
+                style={{ background: form.title.trim() ? C.purple : "#e1bee7" }}
+              >
+                <Plus className="h-4 w-4" />
+                Add Task
+              </button>
+            </div>
+          </div>
 
-                        {task.expanded && (
-                          <div className="mt-3 pt-3 border-t border-border space-y-3">
-                            <div>
-                              <h5 className="text-xs text-muted-foreground mb-2">Subtasks</h5>
-                              <div className="space-y-2">
-                                {task.subtasks.map((subtask) => (
-                                  <label key={subtask.id} className="flex items-start gap-2 text-sm cursor-pointer hover:bg-gray-50 p-1 rounded transition-colors">
-                                    <input
-                                      type="checkbox"
-                                      checked={subtask.completed}
-                                      onChange={() => toggleSubtask(task.id, subtask.id)}
-                                      className="w-4 h-4 mt-0.5 rounded border-border text-primary focus:ring-primary flex-shrink-0"
-                                    />
-                                    <div className="flex-1">
-                                      <span className={subtask.completed ? "line-through text-muted-foreground" : ""}>
-                                        {subtask.text}
-                                      </span>
-                                      {subtask.aiDetail && !subtask.completed && (
-                                        <div className="mt-1 text-xs text-purple-600 flex items-start gap-1.5 bg-purple-50/50 p-1.5 rounded border border-purple-100">
-                                          <Sparkles className="h-3 w-3 mt-0.5 flex-shrink-0" />
-                                          <span className="opacity-90">{subtask.aiDetail}</span>
-                                        </div>
-                                      )}
-                                    </div>
-                                  </label>
-                                ))}
-                              </div>
+          {/* Summary */}
+          <div className="rounded-xl p-8" style={{ background: C.white, border: `1px solid ${C.border}` }}>
+            <h2 className="text-lg font-bold mb-5" style={{ color: C.purpleDark }}>Summary</h2>
+            <div className="space-y-3">
+              {QUADRANTS.map((q) => {
+                const Icon = q.icon;
+                const count = tasks.filter((t) => t.quadrant === q.id).length;
+                return (
+                  <div key={q.id} className="flex items-center gap-3 p-4 rounded-lg" style={{ background: q.bg, border: `1px solid ${q.border}` }}>
+                    <div className="w-8 h-8 rounded flex items-center justify-center flex-shrink-0" style={{ background: C.white }}>
+                      <Icon className="h-4 w-4" style={{ color: q.accent }} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-bold" style={{ color: q.accent }}>{q.title}</p>
+                      <p className="text-xs" style={{ color: C.purpleMid }}>{q.subtitle}</p>
+                    </div>
+                    <span className="text-lg font-bold" style={{ color: q.accent }}>{count}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
 
-                              {addingSubtaskTo === task.id ? (
-                                <div className="mt-2 flex gap-2">
-                                  <input
-                                    type="text"
-                                    value={newSubtaskText}
-                                    onChange={(e) => setNewSubtaskText(e.target.value)}
-                                    onKeyPress={(e) => e.key === "Enter" && addSubtask(task.id)}
-                                    className="flex-1 px-2 py-1 text-sm rounded border border-border focus:outline-none focus:ring-2 focus:ring-primary/20"
-                                    placeholder="Subtask text..."
-                                    autoFocus
-                                  />
-                                  <button
-                                    onClick={() => addSubtask(task.id)}
-                                    className="px-2 py-1 rounded bg-primary text-white text-xs hover:bg-primary/90"
-                                  >
-                                    Add
-                                  </button>
-                                  <button
-                                    onClick={() => {
-                                      setAddingSubtaskTo(null);
-                                      setNewSubtaskText("");
-                                    }}
-                                    className="px-2 py-1 rounded bg-muted text-xs"
-                                  >
-                                    Cancel
-                                  </button>
-                                </div>
-                              ) : (
-                                <button
-                                  onClick={() => setAddingSubtaskTo(task.id)}
-                                  className="mt-2 text-xs text-primary hover:underline flex items-center gap-1"
-                                >
-                                  <Plus className="h-3 w-3" />
-                                  Break Further
-                                </button>
-                              )}
-                            </div>
-
-                            <div>
-                              <label className="block text-xs text-muted-foreground mb-1">Move to:</label>
-                              <select
-                                value={task.quadrant}
-                                onChange={(e) => moveTask(task.id, e.target.value)}
-                                className="w-full px-2 py-1 text-sm rounded border border-border focus:outline-none focus:ring-2 focus:ring-primary/20"
-                              >
-                                {quadrants.map((q) => (
-                                  <option key={q.id} value={q.id}>
-                                    {q.title}
-                                  </option>
-                                ))}
-                              </select>
-                            </div>
-                          </div>
-                        )}
-                      </div>
+        {/* Matrix */}
+        <div className="grid grid-cols-2 gap-8">
+          {QUADRANTS.map((q) => {
+            const Icon = q.icon;
+            const qTasks = tasks.filter((t) => t.quadrant === q.id);
+            return (
+              <div
+                key={q.id}
+                className="rounded-xl p-5 flex flex-col"
+                style={{
+                  background: q.bg,
+                  border: `2px solid ${q.border}`,
+                  minHeight: "400px",
+                }}
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={(e) => handleDrop(e, q.id)}
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: C.white }}>
+                      <Icon className="h-4 w-4" style={{ color: q.accent }} />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-bold" style={{ color: q.accent }}>{q.title}</h3>
+                      <p className="text-xs" style={{ color: C.purpleMid }}>{q.subtitle}</p>
                     </div>
                   </div>
-                ))}
-            </div>
-          </div>
-        ))}
-      </div>
+                  <span className="text-base font-bold px-2 py-1 rounded-lg" style={{ background: q.badge, color: q.badgeText }}>
+                    {qTasks.length}
+                  </span>
+                </div>
 
-      {/* Save Controls */}
-      <div className="rounded-3xl p-6 shadow-sm flex gap-3" style={{ background: '#ffffff', border: '1px solid rgba(179, 157, 219, 0.2)' }}>
-        <button
-          onClick={() => {
-            localStorage.setItem("eisenhowerTasks", JSON.stringify(tasks));
-            alert("Saved as draft!");
-          }}
-          className="flex-1 rounded-full px-4 py-2 hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
-          style={{ 
-            background: '#fdf7fd',
-            border: '1px solid rgba(179, 157, 219, 0.2)',
-            color: '#5a4a61'
-          }}
-        >
-          <Save className="h-4 w-4" />
-          Save as Draft
-        </button>
+                {qTasks.length === 0 && (
+                  <div className="flex-1 flex items-center justify-center rounded-lg border-2 border-dashed" style={{ borderColor: q.border }}>
+                    <p className="text-xs" style={{ color: C.purpleMid }}>Drop tasks here</p>
+                  </div>
+                )}
 
-        <button
-          onClick={handleSaveAndAddToCalendar}
-          className="flex-1 text-white rounded-full hover:opacity-90 transition-opacity px-4 py-2 flex items-center justify-center gap-2"
-          style={{ background: '#b39ddb' }}
-        >
-          <CalendarIcon className="h-4 w-4" />
-          Save & Add to Calendar
-        </button>
-
-        <button
-          onClick={handleDiscard}
-          className="rounded-full px-4 py-2 transition-opacity hover:opacity-90 flex items-center gap-2"
-          style={{ 
-            background: '#ffebee',
-            color: '#e57373'
-          }}
-        >
-          <X className="h-4 w-4" />
-          Discard
-        </button>
-      </div>
-
-      {showSuccessToast && (
-        <div className="fixed bottom-8 right-8 z-50 bg-green-500 text-white px-6 py-3 rounded-full shadow-lg flex items-center gap-2 animate-in slide-in-from-bottom">
-          <CheckCircle className="h-5 w-5" />
-          <span className="text-sm">Tasks saved to calendar!</span>
+                <div className="flex-1 space-y-2 overflow-y-auto pr-2">
+                  {qTasks.map((task) => (
+                    <TaskCard
+                      key={task.id}
+                      task={task}
+                      quadrant={q}
+                      onDelete={handleDelete}
+                      onToggleExpand={handleToggleExpand}
+                      onToggleSubtask={handleToggleSubtask}
+                      onEdit={handleEdit}
+                      onMove={handleMove}
+                      onAddSubtask={handleAddSubtask}
+                    />
+                  ))}
+                </div>
+              </div>
+            );
+          })}
         </div>
-      )}
+
+        {/* Save Button - Bottom */}
+        <div className="py-6">
+          <button
+            onClick={handleSave}
+            disabled={isExiting}
+            className="w-full h-12 rounded-xl text-white text-base font-bold flex items-center justify-center gap-3 transition-all hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+            style={{ background: C.purple }}
+          >
+            <CalendarIcon className="h-5 w-5" />
+            Save to Calendar
+          </button>
+        </div>
+      </div>
+
+      <Toast show={toast.show} message={toast.message} type={toast.type} onClose={() => setToast({ ...toast, show: false })} />
     </div>
   );
 }
