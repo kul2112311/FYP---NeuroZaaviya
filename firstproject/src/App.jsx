@@ -131,14 +131,6 @@ function AppContent() {
             <Route path="/alerts" element={<Alert/>} />
             <Route path="/scheduling" element={<Scheduling/>} />
             <Route path="/events" element={<Events/>} />
-
-            {/* OAP screens */}
-            <Route path="/oap/accommodations" element={<Accommodations />} />
-            <Route path="/oap/focuspeer" element={<FP />} />
-            <Route path="/oap/sessions" element={<SessionPage />} />
-            <Route path="/oap/calendar" element={<Cal />} />
-            <Route path="/oap/community" element={<Comm />} />
-
             
           </Routes>
         </div>
