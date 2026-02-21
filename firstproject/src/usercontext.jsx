@@ -11,8 +11,8 @@ export function UserProvider({ children }) {
   // This is like a variable that holds our user's info
   // We can change it using setUser
   const [user, setUser] = useState({
-    role: 'wellness-counsellor',  // What type of user? (student, focus-peer, wellness-counsellor, oap, professor)
-    name: 'John Doe'  // Their name
+    role: 'student',  // What type of user? (student, focus-peer, wellness-counsellor, oap, professor)
+    name: 'Ushna'  // Their name
   });
 
   // This wraps our app and makes user info available everywhere
