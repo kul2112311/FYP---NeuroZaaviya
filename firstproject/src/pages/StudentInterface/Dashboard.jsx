@@ -16,6 +16,7 @@ function Dashboard() {
   });
   const [newTask, setNewTask] = useState("");
   const [currentDate] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState(null); // { dateStr, assignments[] }
 
   // ── Single source of truth: upcomingAssignments ───────────────────────────
   const [upcomingAssignments, setUpcomingAssignments] = useState([]);
@@ -84,6 +85,10 @@ function Dashboard() {
   const weeklyProgress = nonZeroDays.length > 0
     ? Math.round(nonZeroDays.reduce((a, b) => a + b, 0) / nonZeroDays.length) : 0;
 
+  // ── Calendar: assignments for a date ─────────────────────────────────────
+  const assignmentsOnDate = (dateStr) =>
+    upcomingAssignments.filter(a => a.dueDate === dateStr);
+
   // ── Calendar dots: count upcomingAssignments by dueDate ───────────────────
   const eventsOnDate = (dateStr) =>
     upcomingAssignments.filter(a => a.dueDate === dateStr).length;
@@ -137,6 +142,7 @@ function Dashboard() {
   const handleEnterKey   = (e) => e.key === "Enter" && handleAddTask();
 
   return (
+    <>
     <div className="min-h-screen p-8" style={{ background: "#f5eef8" }}>
       <div className="max-w-7xl mx-auto space-y-6">
 
@@ -299,17 +305,19 @@ function Dashboard() {
               {view === "week" ? (
                 <div className="grid grid-cols-7 gap-2">
                   {weekDays.map((date, idx) => {
-                    const dateStr = date.toISOString().split("T")[0];
-                    const count = eventsOnDate(dateStr);
-                    const isToday = dateStr === todayStr;
+                    const ds = date.toISOString().split("T")[0];
+                    const list = assignmentsOnDate(ds);
+                    const isToday = ds === todayStr;
                     return (
-                      <div key={idx} className="aspect-square flex flex-col items-center justify-center rounded-lg text-sm cursor-pointer"
-                        style={{ background: isToday ? "#b39ddb" : "#fdf7fd", color: isToday ? "#ffffff" : "#5a4a61", fontWeight: isToday ? "600" : "400" }}>
+                      <div key={idx}
+                        className="aspect-square flex flex-col items-center justify-center rounded-lg text-sm cursor-pointer hover:opacity-90 transition-opacity"
+                        style={{ background: isToday ? "#b39ddb" : "#fdf7fd", color: isToday ? "#ffffff" : "#5a4a61", fontWeight: isToday ? "600" : "400" }}
+                        onClick={() => list.length > 0 && setSelectedDate({ dateStr: ds, date, assignments: list })}>
                         <span>{date.getDate()}</span>
-                        {count > 0 && (
-                          <span className="text-[10px] mt-0.5 px-1 rounded"
+                        {list.length > 0 && (
+                          <span className="text-[10px] mt-0.5 px-1 rounded font-semibold"
                             style={{ background: isToday ? "rgba(255,255,255,0.3)" : "#b39ddb", color: "#fff" }}>
-                            {count}
+                            {list.length}
                           </span>
                         )}
                       </div>
@@ -320,17 +328,19 @@ function Dashboard() {
                 <div className="grid grid-cols-7 gap-2">
                   {Array.from({ length: getDaysInMonth() }, (_, i) => {
                     const d = new Date(currentDate.getFullYear(), currentDate.getMonth(), i + 1);
-                    const dateStr = d.toISOString().split("T")[0];
-                    const count = eventsOnDate(dateStr);
-                    const isToday = dateStr === todayStr;
+                    const ds = d.toISOString().split("T")[0];
+                    const list = assignmentsOnDate(ds);
+                    const isToday = ds === todayStr;
                     return (
-                      <div key={i} className="aspect-square flex flex-col items-center justify-center rounded-lg text-sm cursor-pointer"
-                        style={{ background: isToday ? "#b39ddb" : "#fdf7fd", color: isToday ? "#ffffff" : "#5a4a61", fontWeight: isToday ? "600" : "400" }}>
+                      <div key={i}
+                        className="aspect-square flex flex-col items-center justify-center rounded-lg text-sm cursor-pointer hover:opacity-90 transition-opacity"
+                        style={{ background: isToday ? "#b39ddb" : "#fdf7fd", color: isToday ? "#ffffff" : "#5a4a61", fontWeight: isToday ? "600" : "400" }}
+                        onClick={() => list.length > 0 && setSelectedDate({ dateStr: ds, date: d, assignments: list })}>
                         <span>{i + 1}</span>
-                        {count > 0 && (
-                          <span className="text-[10px] mt-0.5 px-1 rounded"
+                        {list.length > 0 && (
+                          <span className="text-[10px] mt-0.5 px-1 rounded font-semibold"
                             style={{ background: isToday ? "rgba(255,255,255,0.3)" : "#b39ddb", color: "#fff" }}>
-                            {count}
+                            {list.length}
                           </span>
                         )}
                       </div>
@@ -436,6 +446,85 @@ function Dashboard() {
         </div>
       </div>
     </div>
+
+      {/* ── Date popup modal ── */}
+      {selectedDate && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center"
+          style={{ background: "rgba(90,74,97,0.35)" }}
+          onClick={() => setSelectedDate(null)}>
+          <div className="rounded-3xl shadow-2xl w-80 max-w-full mx-4 overflow-hidden"
+            style={{ background: "#fff" }}
+            onClick={e => e.stopPropagation()}>
+
+            {/* Modal header */}
+            <div className="px-5 py-4 flex items-center justify-between"
+              style={{ background: "#f3e5f5", borderBottom: "1px solid rgba(179,157,219,0.2)" }}>
+              <div>
+                <div className="font-semibold" style={{ color: "#5a4a61" }}>
+                  {selectedDate.date.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
+                </div>
+                <div className="text-xs mt-0.5" style={{ color: "#9575a3" }}>
+                  {selectedDate.assignments.length} assignment{selectedDate.assignments.length !== 1 ? "s" : ""}
+                </div>
+              </div>
+              <button onClick={() => setSelectedDate(null)}
+                className="w-7 h-7 rounded-full flex items-center justify-center hover:opacity-80"
+                style={{ background: "#fff" }}>
+                <span style={{ color: "#9575a3", fontSize: 16 }}>✕</span>
+              </button>
+            </div>
+
+            {/* Assignment list */}
+            <div className="p-4 space-y-2 max-h-72 overflow-y-auto">
+              {selectedDate.assignments.map(a => {
+                const pc = a.priority === "High Priority"
+                  ? { bg: "#ffebee", text: "#c62828", bar: "#ef4444" }
+                  : a.priority === "Medium Priority"
+                  ? { bg: "#fff8e1", text: "#f57c00", bar: "#ffa726" }
+                  : { bg: "#e8f5e9", text: "#2e7d32", bar: "#66bb6a" };
+                return (
+                  <button key={a.id}
+                    onClick={() => { setSelectedDate(null); navigate(`/detailed-progress?id=${a.id}`); }}
+                    className="w-full text-left rounded-2xl p-3 hover:shadow-md transition-all"
+                    style={{ background: pc.bg, border: `1px solid ${pc.bar}22` }}>
+                    <div className="flex items-start justify-between gap-2 mb-2">
+                      <span className="text-sm font-semibold leading-snug" style={{ color: pc.text }}>{a.title}</span>
+                      <span className="text-[10px] px-2 py-0.5 rounded-full flex-shrink-0 font-medium"
+                        style={{ background: "rgba(255,255,255,0.7)", color: pc.text }}>
+                        {a.priority?.replace(" Priority","")}
+                      </span>
+                    </div>
+                    {/* Progress bar */}
+                    <div className="w-full h-1.5 rounded-full overflow-hidden mb-1" style={{ background: "rgba(0,0,0,0.08)" }}>
+                      <div className="h-full rounded-full" style={{ width: `${a.progress ?? 0}%`, background: pc.bar }} />
+                    </div>
+                    <div className="text-[10px]" style={{ color: pc.text, opacity: 0.7 }}>
+                      {a.progress ?? 0}% done · tap to update progress
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Footer actions */}
+            <div className="px-4 pb-4 flex gap-2">
+              <button
+                onClick={() => { setSelectedDate(null); navigate("/calendar"); }}
+                className="flex-1 py-2 rounded-xl text-sm font-medium hover:opacity-90 transition-opacity"
+                style={{ background: "#e1bee7", color: "#5a4a61" }}>
+                Full Calendar View
+              </button>
+              <button
+                onClick={() => { setSelectedDate(null); navigate("/detailed-progress"); }}
+                className="flex-1 py-2 rounded-xl text-sm font-medium text-white hover:opacity-90 transition-opacity"
+                style={{ background: "#b39ddb" }}>
+                Weekly Progress
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 
