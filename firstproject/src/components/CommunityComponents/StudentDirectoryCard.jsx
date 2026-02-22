@@ -1,53 +1,66 @@
-import { useState } from "react";
-import { ChevronUp } from "lucide-react";
+import React, { useState } from "react";
+import { ChevronUp, ChevronDown, Mail, Calendar, ClipboardList, User, BookOpen, GraduationCap } from "lucide-react";
 
 function StudentDirectoryCard({ student }) {
   const [showDetails, setShowDetails] = useState(false);
 
+  const getInitial = (name) => (name ? name.charAt(0).toUpperCase() : "?");
+
+  const Avatar = ({ sizeCls }) => {
+    const hasAvatar = student.avatar && student.avatar.trim() !== "" && !student.avatar.includes("placeholder");
+
+    return hasAvatar ? (
+      <img
+        src={student.avatar}
+        alt={student.name}
+        className={`${sizeCls} rounded-full object-cover shadow-sm`}
+      />
+    ) : (
+      <div className={`${sizeCls} rounded-full bg-[#B39DDB]/20 flex items-center justify-center shadow-sm border-2 border-[#B39DDB]/30`}>
+        <span className="text-[#5A4A61] font-bold text-xl">
+          {getInitial(student.name)}
+        </span>
+      </div>
+    );
+  };
+
   if (showDetails) {
     return (
-      <div className="bg-white rounded-2xl p-6 mb-4">
-        {/* Header */}
-        <div className="flex items-start gap-4 mb-6 pb-6 border-b border-gray-200">
-          <img 
-            src={student.avatar || 'https://via.placeholder.com/60'} 
-            alt={student.name} 
-            className='w-16 h-16 rounded-full object-cover'
-          />
+      <div className="bg-white rounded-[2rem] p-8 mb-4 border border-gray-100 shadow-sm transition-all">
+        {/* Header Section */}
+        <div className="flex items-start gap-4 mb-6 pb-6 border-b border-gray-100">
+          <Avatar sizeCls="w-16 h-16" />
           <div className="flex-1">
-            <h3 className="text-xl font-semibold">{student.name}</h3>
-            <p className='text-gray-600 text-sm'>{student.email}</p>
-            <p className='text-gray-500 text-sm'>ID: {student.id} • {student.year}</p>
+            <h3 className="text-xl font-bold text-[#5A4A61]">{student.name}</h3>
+            <p className="text-[#B39DDB] text-sm font-medium">{student.email}</p>
+            <p className="text-gray-400 text-sm">
+              ID: {student.id} • {student.year}
+            </p>
           </div>
-          <button 
+          <button
             onClick={() => setShowDetails(false)}
-            className="text-gray-500 hover:text-gray-700"
+            className="flex items-center gap-2 bg-[#B39DDB] hover:bg-[#9575CD] text-white px-4 py-2 rounded-full transition-colors text-sm font-bold shadow-sm"
           >
-            <ChevronUp size={24} />
+            <ChevronUp size={18} />
+            Details
           </button>
         </div>
 
         {/* Content Grid */}
-        <div className="grid grid-cols-2 gap-8 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
           <div>
-            <h4 className="flex items-center gap-2 text-gray-700 font-semibold mb-4">
-              <span>👤</span> Contact Information
+            <h4 className="flex items-center gap-2 text-[#5A4A61] font-bold mb-4">
+              <User size={18} className="text-[#e91e8c]" /> Contact Information
             </h4>
-            <div className="space-y-3">
-              <div>
-                <p className="text-gray-500 text-sm">Email</p>
-                <p className="text-gray-700">{student.email}</p>
-              </div>
-              <div>
-                <p className="text-gray-500 text-sm">Phone</p>
-                <p className="text-gray-700">+92 300 5678901</p>
-              </div>
+            <div className="space-y-4">
+              <InfoField label="Email" value={student.email} />
+              <InfoField label="Phone" value={student.phone || "+92 300 5678901"} />
             </div>
           </div>
 
           <div>
-            <h4 className="flex items-center gap-2 text-gray-700 font-semibold mb-4">
-              <span>📚</span> Academic Information
+            <h4 className="flex items-center gap-2 text-[#5A4A61] font-bold mb-4">
+              <BookOpen size={18} className="text-[#e91e8c]" /> Academic Information
             </h4>
             <div className="grid grid-cols-2 gap-4">
               <InfoField label="Major" value={student.major} />
@@ -59,90 +72,89 @@ function StudentDirectoryCard({ student }) {
         </div>
 
         {/* Advisor */}
-        <div className="mb-6 pb-6 border-t border-b border-gray-200">
-          <h4 className="flex items-center gap-2 text-gray-700 font-semibold mb-3">
-            <span>👨‍🏫</span> OAP Advisor
+        <div className="mb-8 pt-6 border-t border-gray-100">
+          <h4 className="flex items-center gap-2 text-[#5A4A61] font-bold mb-2">
+            <GraduationCap size={18} className="text-[#e91e8c]" /> OAP Advisor
           </h4>
-          <p className="text-gray-700">{student.advisor}</p>
+          <p className="text-[#5A4A61] opacity-80 font-medium">{student.advisor}</p>
         </div>
 
-        {/* Action Buttons */}
-        <div className="grid grid-cols-3 gap-4">
-          <ActionButton icon="✉️" label="Send Email" />
-          <ActionButton icon="📅" label="Schedule Meeting" />
-          <ActionButton icon="📋" label="View Records" />
+        {/* Actions - Using #B39DDB */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <ActionButton icon={<Mail size={18} />} label="Send Email" />
+          <ActionButton icon={<Calendar size={18} />} label="Schedule" />
+          <ActionButton icon={<ClipboardList size={18} />} label="Records" />
         </div>
       </div>
     );
   }
 
-  // Collapsed view
+  // Collapsed View
   return (
-    <div className="bg-white rounded-2xl p-6 mb-4 flex items-start gap-4 justify-between">
-      <img 
-        src={student.avatar || 'https://via.placeholder.com/60'} 
-        alt={student.name} 
-        className='w-16 h-16 rounded-full object-cover'
-      />
-      
-      <div className="flex-1">
-        <div className='flex items-center gap-2 mb-2 flex-wrap'>
-          <h3 className="text-xl font-semibold">{student.name}</h3>
-          <Badge>{student.major}</Badge>
-          <Badge color="pink">{student.batch}</Badge>
-          {student.accommodations > 0 && (
-            <Badge color="purple">{student.accommodations} accommodations</Badge>
-          )}
+    <div className="bg-white rounded-[2rem] px-8 py-6 mb-4 flex flex-row items-center gap-6 justify-between border border-gray-50 shadow-sm hover:shadow-md transition-shadow">
+      <div className="flex items-center gap-4">
+        <Avatar sizeCls="w-16 h-16 flex-shrink-0" />
+        <div className="flex flex-col justify-center">
+          <div className="flex items-center gap-2 mb-1">
+            <h3 className="text-xl font-bold text-[#5A4A61] leading-tight">{student.name}</h3>
+            <Badge type="major">{student.major}</Badge>
+            <Badge type="batch">
+              {student.batch.includes("Batch") ? student.batch : `Batch ${student.batch}`}
+            </Badge>
+            {student.accommodations > 0 && (
+              <Badge type="acc">{student.accommodations} accommodation</Badge>
+            )}
+          </div>
+          <p className="text-[#B39DDB] text-sm font-semibold mb-0.5">{student.email}</p>
+          <p className="text-gray-400 text-sm font-medium">
+            ID: {student.id} • {student.year}
+          </p>
         </div>
-        <p className='text-gray-600 text-sm mb-2'>{student.email}</p>
-        <p className='text-gray-500 text-sm'>
-          ID: {student.id} • {student.year} • Advisor: {student.advisor}
-        </p>
       </div>
 
-      <button 
+      <button
         onClick={() => setShowDetails(true)}
-        className="bg-purple-100 hover:bg-purple-200 text-purple-700 px-4 py-2 rounded-lg font-medium flex-shrink-0 transition-colors"
+        className="flex items-center gap-2 bg-[#B39DDB] hover:bg-[#9575CD] text-white px-5 py-2.5 rounded-full transition-all text-sm font-bold shadow-md active:scale-95"
       >
-        More Details
+        <ChevronDown size={18} />
+        Details
       </button>
     </div>
   );
 }
 
-// Reusable Badge Component
-function Badge({ children, color = "blue" }) {
-  const colors = {
-    blue: "bg-blue-100 text-blue-800",
-    pink: "bg-pink-100 text-pink-800",
-    purple: "bg-purple-100 text-purple-800"
+// --- Internal Helper Components ---
+
+function Badge({ children, type }) {
+  const styles = {
+    major: "bg-[#7e57c2]/10 text-[#5A4A61]",
+    batch: "bg-[#B39DDB]/50 text-[#5A4A61]",
+    acc: "bg-[#5e35b1]/10 text-[#5e35b1]",
   };
   
   return (
-    <span className={`${colors[color]} text-xs px-2 py-1 rounded`}>
+    <span className={`${styles[type]} text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full`}>
       {children}
     </span>
   );
 }
 
-// Reusable Info Field Component
 function InfoField({ label, value }) {
   return (
     <div>
-      <p className="text-gray-500 text-sm">{label}</p>
-      <p className="text-gray-700 font-medium">{value}</p>
+      <p className="text-[#c2185b] text-[10px] font-bold uppercase tracking-widest opacity-70">{label}</p>
+      <p className="text-[#5A4A61] font-bold">{value}</p>
     </div>
   );
 }
 
-// Reusable Action Button Component
 function ActionButton({ icon, label, onClick }) {
   return (
-    <button 
+    <button
       onClick={onClick}
-      className="flex items-center justify-center gap-2 bg-purple-100 hover:bg-purple-200 text-purple-700 px-4 py-3 rounded-lg font-medium transition-colors"
+      className="flex items-center justify-center gap-2 bg-[#B39DDB] hover:bg-[#9575CD] text-white px-4 py-3 rounded-2xl font-bold text-sm transition-all shadow-sm active:transform active:scale-95"
     >
-      <span className="text-lg">{icon}</span> {label}
+      <span>{icon}</span> {label}
     </button>
   );
 }

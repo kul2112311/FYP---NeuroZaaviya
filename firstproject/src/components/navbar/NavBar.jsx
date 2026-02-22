@@ -60,7 +60,7 @@
 // NavBar.jsx (Updated)
 import { createContext, useContext } from "react"
 import { Link } from 'react-router-dom'
-
+import LogoImg from "../../assets/Container.png";
 const SidebarContext = createContext();
 
 function NavBar({children}) {
@@ -72,7 +72,7 @@ function NavBar({children}) {
                 <nav className="h-full flex flex-col bg-white border-r border-gray-100">
                     <div className="p-4 pb-2 flex justify-between items-center">
                         <img 
-                            src="src/assets/Container.png" 
+                            src={LogoImg} 
                             className="w-32"
                             alt="Logo" 
                         />
