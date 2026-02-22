@@ -184,42 +184,78 @@ function EventsPage({ isAdmin = false }) {
   const availableTags = ["OAP", "Wellness", "Ehsaas", "Workshop", "Mental Health", "Social"];
 
   const [events, setEvents] = useState([
-    {
-      id: 1,
-      tag: "Wellness",
-      title: "Mindfulness & Meditation Session",
-      description: "A calming guided meditation session designed to help students reduce anxiety.",
-      date: "2026-05-28", // Using standard YYYY-MM-DD for date inputs
-      time: "16:00",
-      location: "Wellness Center",
-      requirements: "Yoga mat, Water bottle",
-      attendees: 18,
-      capacity: 25
-    },
-    {
-      id: 2,
-      tag: "Wellness",
-      title: "Mindfulness & Meditation Session",
-      description: "A calming guided meditation session designed to help students reduce anxiety.",
-      date: "2026-08-28", // Using standard YYYY-MM-DD for date inputs
-      time: "16:00",
-      location: "Wellness Center",
-      requirements: "Yoga mat, Water bottle",
-      attendees: 18,
-      capacity: 25
-    },
-    {
-      id: 3,
-      tag: "Wellness",
-      title: "Mindfulness & Meditation Session",
-      description: "A calming guided meditation session designed to help students reduce anxiety.",
-      date: "2026-09-28", // Using standard YYYY-MM-DD for date inputs
-      time: "16:00",
-      location: "Wellness Center",
-      requirements: "Yoga mat, Water bottle",
-      attendees: 18,
-      capacity: 25
-    }
+  {
+    id: 1,
+    tag: "Wellness",
+    title: "Low-Stim Meditation",
+    description: "A sensory-friendly meditation with dimmed lighting and zero background music. Fidget tools welcome.",
+    date: "2026-05-28",
+    time: "16:00",
+    location: "Wellness Center (Room 202)",
+    requirements: "Comfortable clothes, Noise-canceling headphones",
+    attendees: 8,
+    capacity: 12
+  },
+  {
+    id: 2,
+    tag: "Workshop",
+    title: "Executive Functioning Hacks",
+    description: "Practical strategies for breaking down large assignments into dopamine-friendly micro-tasks.",
+    date: "2026-06-05",
+    time: "14:00",
+    location: "Learning Commons",
+    requirements: "A current syllabus or 'to-do' list",
+    attendees: 12,
+    capacity: 20
+  },
+  {
+    id: 3,
+    tag: "OAP",
+    title: "Silent Nature Hike",
+    description: "A guided trail walk with a 'no-talking' rule to enjoy the sensory details of the forest without social pressure.",
+    date: "2026-06-10",
+    time: "09:00",
+    location: "North Trailhead",
+    requirements: "Sturdy shoes, Sunscreen, Water",
+    attendees: 6,
+    capacity: 10
+  },
+  {
+    id: 4,
+    tag: "Wellness",
+    title: "Weighted Blanket Social",
+    description: "A cozy hangout space. We provide weighted blankets and bean bags. Great for regulating your nervous system.",
+    date: "2026-06-15",
+    time: "18:30",
+    location: "Student Union Lounge",
+    requirements: "Your favorite cozy socks",
+    attendees: 15,
+    capacity: 15
+  },
+  {
+    id: 5,
+    tag: "OAP",
+    title: "Intro to Rock Climbing",
+    description: "Focus on the physical 'crunch' and movement of climbing. Great for proprioceptive seekers.",
+    date: "2026-06-22",
+    time: "13:00",
+    location: "Campus Rec Wall",
+    requirements: "Harness provided, Socks required",
+    attendees: 5,
+    capacity: 8
+  },
+  {
+    id: 6,
+    tag: "Workshop",
+    title: "Digital Declutter Party",
+    description: "We sit together and clean out our email inboxes and desktop folders. Body-doubling at its finest.",
+    date: "2026-06-28",
+    time: "11:00",
+    location: "Computer Lab 4",
+    requirements: "Laptop and charger",
+    attendees: 22,
+    capacity: 30
+  }
   ]);
 
   const handleTagToggle = (tag) => {
@@ -253,14 +289,14 @@ function EventsPage({ isAdmin = false }) {
   return (
     <div className="p-6 pl-12 space-y-6" style={{ width: '80vw' }}>
       {/* Header Area */}
-      <div className="rounded-3xl p-6 bg-gradient-to-r from-[#B39DDB] to-[#F8BBD0] flex justify-between items-center gap-5 shadow-sm">
+      <div className="rounded-3xl p-6 bg-[#ce93d8] flex justify-between items-center gap-5 shadow-sm">
         <div className="flex flex-col">
           <h4 className="text-2xl font-semibold text-white">Upcoming Events</h4>
           <p className="text-white">View upcoming university events</p>
         </div>
         {isAdmin && (
           <button 
-            className="bg-[#B39DDB] text-white px-4 py-2 rounded-lg hover:bg-[#9575CD] transition-colors shadow-sm"
+            className="bg-[#E1BEE7] text-[#5A4A61] px-4 py-2 rounded-lg hover:bg-[#9575CD] transition-colors shadow-sm"
             onClick={() => setShowAddModal(true)}
           >
             + Add an Event
