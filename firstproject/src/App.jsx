@@ -9,7 +9,7 @@ import GiveFeedbackForm from './pages/FocusPeerInterface/GiveFeedBackPage.jsx';
 import { UserProvider, useUser } from './usercontext';
 import FocuspeerMonitor from './pages/Wellness/FocuspeerMonitor.jsx';
 import Dashboard from './pages/StudentInterface/Dashboard.jsx';
-// import DetailedProgress from './pages/StudentInterface/DetailedProgress.jsx';
+import DetailedProgress from './pages/StudentInterface/DetailedProgress.jsx';
 import Resources from './pages/StudentInterface/Resources.jsx';
 import { AITaskBreakdownPage } from './pages/StudentInterface/Aitaskbreakdownpage.jsx';
 import { EisenhowerMatrixPage } from './pages/StudentInterface/Eisenhowermatrixpage.jsx';
