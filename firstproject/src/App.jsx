@@ -25,6 +25,7 @@ import Accommodations from './pages/OAP/Accommodations.jsx';
 import Files from './pages/OAP/Files.jsx';
 import FocusPeerDashboard from './pages/OAP/FocusPeer.jsx';
 import FocusPeerManagement from './pages/OAP/FocusPeerManagement.jsx';
+import OapDashboard from './pages/OAP/OAPDashboard.jsx';
 
 // ========== MENU CONFIGURATION ==========
 const menuConfig = {
@@ -84,9 +85,12 @@ function AppContent() {
   let dashboardToShow;
   if (user.role === 'student' || user.role === 'focus-peer') {
     dashboardToShow = <Dashboard />;
-  } else if (user.role === 'wellness-counsellor' || user.role === 'oap') {
+  } else if (user.role === 'wellness-counsellor' ) {
     dashboardToShow = <WellnessDashboard />;
-  } else {
+  } else if (user.role === 'oap') {
+    dashboardToShow = <OapDashboard />;
+  }
+  else {
     dashboardToShow = <Dashboard />;
   }
 
