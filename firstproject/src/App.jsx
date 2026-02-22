@@ -22,8 +22,14 @@ import Scheduling from './pages/shared/Scheduling.jsx';
 import SuperCalendarPage from './pages/StudentInterface/SuperCalendarPage.jsx';
 
 import {AdminInterfaceEvent, StudentInterfaceEvents} from './pages/shared/Events.jsx';
+import Events from './pages/shared/Events.jsx';
+
+import Accommodations from './pages/OAP/Accommodations.jsx';
+import Files from './pages/OAP/Files.jsx';
+import FocusPeerDashboard from './pages/OAP/FocusPeer.jsx';
+import FocusPeerManagement from './pages/OAP/FocusPeerManagement.jsx';
+
 // ========== MENU CONFIGURATION ==========
-// This object defines what menu items each role can see
 const menuConfig = {
   student: [
     { icon: <LayoutDashboard size={20}/>, text: "Dashboard", to: "/" },
@@ -56,7 +62,10 @@ const menuConfig = {
   oap: [
     { icon: <LayoutDashboard size={20}/>, text: "Dashboard", to: "/" },
     { icon: <Users size={20}/>, text: "Students", to: "/students" },
-    { icon: <Folder size={20}/>, text: "Files", to: "/files" },
+    { icon: <Folder size={20}/>, text: "Files", to: "/oap/files" },
+    { icon: <FileText size={20}/>, text: "Accommodations", to: "/oap/accommodations" },
+    { icon: <Users size={20}/>, text: "Focus Peer", to: "/oap/focuspeer" },
+    { icon: <Settings size={20}/>, text: "FP Management", to: "/oap/focuspeer-management" },
     { icon: <FileText size={20}/>, text: "Reports", to: "/reports" },
    { icon: <CalendarHeart size={20}/>, text: "Events", to: "/admin/events" },
    { icon: <Newspaper size={20}/>, text: "Forum", to: "/forum" },
@@ -72,6 +81,18 @@ const menuConfig = {
   //   // { icon: <CalendarHeart size={20}/>, text: "Events", to: "/events" }
   //   // { icon: <Settings size={20}/>, text: "Settings", to: "/settings" }
   // ]
+    { icon: <CalendarHeart size={20}/>, text: "Events", to: "/events" },
+    { icon: <Newspaper size={20}/>, text: "Forum", to: "/forum" },
+    { icon: <CalendarSync size={20}/>, text: "Scheduling", to: "/scheduling" },
+    { icon: <FileText size={20}/>, text: "Alerts", to: "/alerts" },
+  ],
+  professor: [
+    { icon: <LayoutDashboard size={20}/>, text: "Dashboard", to: "/" },
+    { icon: <BookOpen size={20}/>, text: "Courses", to: "/courses" },
+    { icon: <Users size={20}/>, text: "Students", to: "/students" },
+    { icon: <Folder size={20}/>, text: "Files", to: "/files" },
+    { icon: <CalendarHeart size={20}/>, text: "Events", to: "/events" }
+  ]
 };
 
 function AppContent() {
@@ -130,6 +151,12 @@ function AppContent() {
             <Route path="/student-support" element={<StudentSupport/>} />
             <Route path="/calendar" element={<SuperCalendarPage />} />
             
+            <Route path="/events" element={<Events/>} />
+
+            <Route path="/oap/accommodations" element={<Accommodations />} /> 
+            <Route path="/oap/files" element={<Files />} /> 
+            <Route path="/oap/focuspeer" element={<FocusPeerDashboard />} /> 
+            <Route path="/oap/focuspeer-management" element={<FocusPeerManagement />} />
           </Routes>
         </div>
       </main>
