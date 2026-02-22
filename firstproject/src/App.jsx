@@ -19,8 +19,13 @@ import Student  from './pages/shared/Students.jsx';
 import Alert from './pages/shared/Alerts.jsx';
 import Scheduling from './pages/shared/Scheduling.jsx';
 import Events from './pages/shared/Events.jsx';
+
+import Accommodations from './pages/OAP/Accommodations.jsx';
+import Files from './pages/OAP/Files.jsx';
+import FocusPeerDashboard from './pages/OAP/FocusPeer.jsx';
+import FocusPeerManagement from './pages/OAP/FocusPeerManagement.jsx';
+
 // ========== MENU CONFIGURATION ==========
-// This object defines what menu items each role can see
 const menuConfig = {
   student: [
     { icon: <LayoutDashboard size={20}/>, text: "Dashboard", to: "/" },
@@ -46,34 +51,33 @@ const menuConfig = {
     { icon: <Users size={20}/>, text: "Focus Peers", to: "/focuspeer-monitor"},
     { icon: <CalendarSync size={20}/>, text: "Scheduling", to: "/scheduling" },
     { icon: <Newspaper size={20}/>, text: "Forum", to: "/forum" }
-    
   ],
   oap: [
     { icon: <LayoutDashboard size={20}/>, text: "Dashboard", to: "/" },
     { icon: <Users size={20}/>, text: "Students", to: "/students" },
-    { icon: <Folder size={20}/>, text: "Files", to: "/files" },
+    { icon: <Folder size={20}/>, text: "Files", to: "/oap/files" },
+    { icon: <FileText size={20}/>, text: "Accommodations", to: "/oap/accommodations" },
+    { icon: <Users size={20}/>, text: "Focus Peer", to: "/oap/focuspeer" },
+    { icon: <Settings size={20}/>, text: "FP Management", to: "/oap/focuspeer-management" },
     { icon: <FileText size={20}/>, text: "Reports", to: "/reports" },
-   { icon: <CalendarHeart size={20}/>, text: "Events", to: "/events" },
-   { icon: <Newspaper size={20}/>, text: "Forum", to: "/forum" },
-   { icon: <CalendarSync size={20}/>, text: "Scheduling", to: "/scheduling" },
-   { icon: <FileText size={20}/>, text: "Alerts", to: "/alerts" },
+    { icon: <CalendarHeart size={20}/>, text: "Events", to: "/events" },
+    { icon: <Newspaper size={20}/>, text: "Forum", to: "/forum" },
+    { icon: <CalendarSync size={20}/>, text: "Scheduling", to: "/scheduling" },
+    { icon: <FileText size={20}/>, text: "Alerts", to: "/alerts" },
   ],
-  //hhhhh
   professor: [
     { icon: <LayoutDashboard size={20}/>, text: "Dashboard", to: "/" },
     { icon: <BookOpen size={20}/>, text: "Courses", to: "/courses" },
     { icon: <Users size={20}/>, text: "Students", to: "/students" },
     { icon: <Folder size={20}/>, text: "Files", to: "/files" },
     { icon: <CalendarHeart size={20}/>, text: "Events", to: "/events" }
-    // { icon: <Settings size={20}/>, text: "Settings", to: "/settings" }
   ]
 };
 
 function AppContent() {
   const location = useLocation();
-  const { user } = useUser();  // Get the current user's role
+  const { user } = useUser();
   
-  // Get the menu items for the current user's role
   const menuItems = menuConfig[user.role] || [];
   let dashboardToShow;
   if(user.role === 'student'){
@@ -95,7 +99,6 @@ function AppContent() {
   return (
     <div className="flex">
       <NavBar>
-        {/* Loop through menu items and show only the ones for this role */}
         {menuItems.map((item, index) => (
           <SideBarItem 
             key={index}
@@ -107,7 +110,7 @@ function AppContent() {
         ))}
       </NavBar>
       
-      <main className="flex-1 flex justify-center" >
+      <main className="flex-1 flex justify-center">
         <div style={{ width: '100%' }}>
           <Routes>
             <Route path="/" element={dashboardToShow} /> 
@@ -120,7 +123,6 @@ function AppContent() {
               path="/focuspeer" 
               element={user.role === 'student' ? <FocusPeerPage /> : <FocusPeer />} 
             />
-            {/* <Route path="/settings" element={<div>Settings Page</div>} /> */}
             <Route path="/feedback-form" element={<GiveFeedbackForm />} />
             <Route path="/reports" element={<div>Reports Page</div>} />
             <Route path="/files" element={<div>Files Page</div>} />
@@ -131,7 +133,11 @@ function AppContent() {
             <Route path="/alerts" element={<Alert/>} />
             <Route path="/scheduling" element={<Scheduling/>} />
             <Route path="/events" element={<Events/>} />
-            
+
+            <Route path="/oap/accommodations" element={<Accommodations />} /> 
+            <Route path="/oap/files" element={<Files />} /> 
+            <Route path="/oap/focuspeer" element={<FocusPeerDashboard />} /> 
+            <Route path="/oap/focuspeer-management" element={<FocusPeerManagement />} />
           </Routes>
         </div>
       </main>
