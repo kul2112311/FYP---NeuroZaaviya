@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import PendingFeedback from "./Components/PendingFeedback.jsx";
 import Session from "./Components/Session.jsx";
 import Schedule from "./Components/Schedule.jsx";
+import UpcomingCheckups from "./Components/CheckIns.jsx";
 
 function FocusPeerSide(){
     const [activeTab, setActiveTab] = useState('My Schedule');  // Fix initial state
@@ -33,6 +34,12 @@ function FocusPeerSide(){
                     >
                         Pending Feedback
                     </button>
+                     <button 
+                        className={`tab-button ${activeTab === 'Upcoming Checkups' ? 'active' : ''}`}
+                        onClick={() => setActiveTab('Upcoming Checkups')}
+                    >
+                        Upcoming Checkups
+                    </button>
                 </div>
 
                 {activeTab === 'My Schedule' && (
@@ -43,6 +50,9 @@ function FocusPeerSide(){
                 )}  
                 {activeTab === 'Pending' && (
                     <PendingFeedback/>
+                )}
+                {activeTab === 'Upcoming Checkups' && (
+                    <UpcomingCheckups/>
                 )}
             </div>
         </>

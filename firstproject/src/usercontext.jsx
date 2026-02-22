@@ -7,7 +7,7 @@ export function UserProvider({ children }) {
 //     role: 'student',  // What type of user? (student, focus-peer, wellness-counsellor, oap, professor)
 //     name: 'Ushna'  // Their name
     id: 'a1111111-1111-1111-1111-111111111111', // Matches Ushna Batool in your database
-    role: 'student',
+    role: 'oap',
     name: 'Ushna Batool',
   });
 
