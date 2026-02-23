@@ -11,9 +11,9 @@ function Accommodations() {
 
   const [students, setStudents] = useState([
     {
-      id: '04521',
+      id: '07100',
       name: 'Ushna Batool',
-      email: 'ub04521@st.habibuniversity.edu.pk',
+      email: 'ub07100@st.habib.edu.pk',
       accommodations: [
         {
           id: 'a1',
@@ -34,7 +34,7 @@ function Accommodations() {
     {
       id: '03267',
       name: 'Ahmed Hassan',
-      email: 'ah03267@st.habibuniversity.edu.pk',
+      email: 'ah03267@st.habib.edu.pk',
       accommodations: [
         {
           id: 'a3',
@@ -48,7 +48,7 @@ function Accommodations() {
     {
       id: '05892',
       name: 'Zainab Mirza',
-      email: 'zm05892@st.habibuniversity.edu.pk',
+      email: 'zm05892@st.habib.edu.pk',
       accommodations: [
         {
           id: 'a4',
@@ -83,7 +83,7 @@ function Accommodations() {
     {
       id: '06344',
       name: 'Sara Qureshi',
-      email: 'sq06344@st.habibuniversity.edu.pk',
+      email: 'sq06344@st.habib.edu.pk',
       accommodations: [
         {
           id: 'a7',
@@ -104,7 +104,7 @@ function Accommodations() {
     {
       id: '03791',
       name: 'Omar Farooq',
-      email: 'of03791@st.habibuniversity.edu.pk',
+      email: 'of03791@st.habib.edu.pk',
       accommodations: [
         {
           id: 'a9',
