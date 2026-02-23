@@ -24,6 +24,7 @@ import SuperCalendarPage from './pages/StudentInterface/SuperCalendarPage.jsx';
 import Accommodations from './pages/OAP/Accommodations.jsx';
 import Files from './pages/OAP/Files.jsx';
 import FocusPeerManagement from './pages/OAP/FocusPeerManagement.jsx';
+import OapDashboard from './pages/OAP/OAPDashboard.jsx';
 
 const menuConfig = {
   student: [
@@ -84,7 +85,10 @@ function AppContent() {
     dashboardToShow = <FocusPeer />;
   } else if (user.role === 'wellness-counsellor' || user.role === 'oap') {
     dashboardToShow = <WellnessDashboard />;
-  } else {
+  } else if (user.role === 'oap') {
+    dashboardToShow = <OapDashboard />;
+  }
+  else {
     dashboardToShow = <Dashboard />;
   }
 

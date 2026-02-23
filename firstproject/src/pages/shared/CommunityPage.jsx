@@ -84,7 +84,7 @@ function Community() {
   };
 
   return (
-    <div className="container">
+   <div className="p-6 pl-12 space-y-6" style={{ width: '80vw' }}>
       <div className="community-header">
         <div className="community-title-section">
           <h1 className="section-header">💬 Forum</h1>

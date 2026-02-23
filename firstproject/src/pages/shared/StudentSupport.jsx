@@ -1,96 +1,105 @@
 import React, { useState } from "react";
-import { Heart } from "lucide-react";
+import { Heart, Sun } from "lucide-react"; // Swapped to Sun for consistency
 import SupportStaffCard from "../../components/CommunityComponents/StudentSupportCard.jsx";
 import SupportStaffModal from "../../components/CommunityComponents/SupportStaffModal.jsx";
-import { User } from "lucide-react";
-
+import { User, ShieldCheck, HeartPulse, GraduationCap } from "lucide-react";
 function SupportSupport() {
   const [selectedStaff, setSelectedStaff] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const staffData = [
-    {
-      id: 1,
-      name: "Fatima Khan",
-      role: "OAP Advisor",
-      department: "Office of Accessible Programs",
-      image: "https://via.placeholder.com/150?text=Fatima",
-      email: "fatima.khan@university.edu",
-      location: "Student Services Building, Room 205",
-      availability: "Monday-Friday 9:00 AM - 5:00 PM",
-      batches: ["Class of 2022", "Class of 2023", "Class of 2024", "Class of 2025"],
-      bgColor: "bg-[#E0E7FF]",
-      calendlyLink: "https://calendly.com/fatima-khan",
-      about: "Khan has over 15 years of experience in accessible education and student support. She specializes in creating individualized accommodation plans and advocating for neurodivergent students.",
-      expertise: ["ADHD Support", "Executive Function Coaching", "Accommodation Planning", "Academic Advising"]
-    },
-    {
-      id: 2,
-      name: "Sara Ali",
-      role: "Ehsas Counselor",
-      department: "Ehsas Support Services",
-      image: "https://via.placeholder.com/150?text=Sara",
-      email: "sara.ali@university.edu",
-      location: "Ehsas Office, Room 102",
-      availability: "Monday-Friday 10:00 AM - 6:00 PM",
-      batches: ["Class of 2023", "Class of 2024", "Class of 2025"],
-      bgColor: "bg-[#E0E7FF]",
-      calendlyLink: "https://calendly.com/sara-ali",
-      about: "Sara provides compassionate mental health support and counseling services to help students navigate emotional and psychological challenges during their academic journey.",
-      expertise: ["Mental Health Support", "Stress Management", "Crisis Intervention", "Student Wellness"]
-    },
-    {
-      id: 3,
-      name: "Dr. James Wilson",
-      role: "Wellness Counselor",
-      department: "Counseling & Wellness Services",
-      image: "https://via.placeholder.com/150?text=James",
-      email: "james.wilson@university.edu",
-      location: "Wellness Center, Room 3",
-      availability: "Monday-Thursday 8:30 AM - 4:30 PM",
-      batches: ["Class of 2022", "Class of 2023", "Class of 2024", "Class of 2025"],
-      bgColor: "bg-[#E0E7FF]",
-      calendlyLink: "https://calendly.com/james-wilson",
-      about: "Dr. Wilson is dedicated to promoting holistic wellness among students through counseling, lifestyle coaching, and evidence-based therapeutic approaches.",
-      expertise: ["Counseling", "Wellness Planning", "Behavioral Health", "Student Development"]
-    },
-    {
-      id: 4,
-      name: "Prof. Maria Garcia",
-      role: "Associate Professor",
-      department: "Computer Science",
-      image: "https://via.placeholder.com/150?text=Maria",
-      email: "maria.garcia@university.edu",
-      location: "CS Building, Room 401",
-      availability: "Monday, Wednesday, Friday 2:00 PM - 4:00 PM (Office Hours)",
-      batches: ["Class of 2024", "Class of 2025", "Class of 2026"],
-      bgColor: "bg-[#E0E7FF]",
-      calendlyLink: "https://calendly.com/maria-garcia",
-      about: "Prof. Garcia is an experienced educator with expertise in computer science and a passion for mentoring students in their academic and professional development.",
-      expertise: ["Academic Mentoring", "Career Development", "Technical Guidance", "Research Support"]
-    }
-  ];
+  // Theme Colors: 
+  // Primary: #B3DDB9 (Green)
+  // Secondary: #CE93D8 (Purple)
+  // Light: #E1BEE7 (Lavender)
+  // Text: #5A4A61 (Dark Purple)
 
+  const staffData = [
+  {
+    id: 1,
+    name: "Zainab Mansoor",
+    role: "OAP Advisor",
+    icon: ShieldCheck, 
+    department: "Office of Accessible Programs",
+    // calendlyLink: "https://calendly.com/your-link",
+    email: "ZainabMansoor@habib.edu.pk",
+    location: "Student Services, Room 205",
+    availability: "Mon-Fri 9:00 AM - 5:00 PM",
+    bgColor: "#B3DDB9", // Primary Green
+    about: "Zainab focuses on ensuring all students have the necessary accommodations to thrive academically.",
+    expertise: ["ADHD Support", "Executive Functioning"]
+  },
+  {
+    id: 2,
+    name: "Omar Siddiqui",
+    role: "Ehsas Counselor",
+    icon: HeartPulse,
+    department: "Ehsas Support Services",
+    // calendlyLink: "https://calendly.com/your-link",
+    email: "OmarSiddiqui@habib.edu.pk",
+    location: "Ehsas Office, Room 102",
+    availability: "Mon-Fri 10:00 AM - 6:00 PM",
+    bgColor: "#E1BEE7", // Light Lavender
+    about: "Omar provides a safe space for students to discuss mental health and emotional well-being.",
+    expertise: ["Mental Health", "Anxiety Management"]
+  },
+  {
+    id: 3,
+    name: "Dr. Anum Rashid",
+    role: "Wellness Counselor",
+    icon: HeartPulse, 
+    department: "Counseling & Wellness Services",
+    // calendlyLink: "https://calendly.com/your-link",
+    email: "AnumRashid@habib.edu.pk",
+    location: "Wellness Center, Room 3",
+    availability: "Mon-Thu 8:30 AM - 4:30 PM",
+    bgColor: "#CE93D8", // Medium Purple
+    about: "Dr. Anum specializes in holistic wellness and sensory-friendly therapeutic practices.",
+    expertise: ["Wellness Planning", "Sensory Regulation"]
+  },
+  {
+    id: 4,
+    name: "Prof. Bilal Ahmed",
+    role: "Associate Professor",
+    icon: GraduationCap,
+    department: "Computer Science",
+    // calendlyLink: "https://calendly.com/your-link",
+    email: "bilal.ahmed@habib.edu.pk",
+    location: "Information Processing Lab",
+    availability: "Mon & Wed 2:00 PM - 4:00 PM",
+    bgColor: "#B3DDB9", // Primary Green
+    about: "Prof. Bilal is passionate about neuro-inclusive teaching methods in STEM.",
+    expertise: ["Academic Mentoring", "Technical Guidance"]
+  },
+  {
+    id: 5,
+    name: "Mariam Jameel",
+    role: "Student Life Lead",
+    icon: User,
+    department: "Office of Student Life",
+    // calendlyLink: "https://calendly.com/your-link",
+    email: "MariamJameel@habib.edu.pk",
+    location: "Student Life Office 4",
+    availability: "Tue-Fri 11:00 AM - 5:00 PM",
+    bgColor: "#E1BEE7", // Light Lavender
+    about: "Mariam helps organize low-stimulus social events and parallel-play workshops.",
+    expertise: ["Social Integration", "Event Planning"]
+  }
+];
   const handleViewProfile = (staff) => {
     setSelectedStaff(staff);
     setIsModalOpen(true);
   };
 
-  const handleCloseModal = () => {
-    setIsModalOpen(false);
-    setSelectedStaff(null);
-  };
-
   return (
-    <div className="p-6 pl-12 space-y-8" style={{ width: '80vw', margin: '0 auto' }}>
+    <div className="p-6 pl-12 space-y-8" style={{ width: '80vw', margin: '0 auto', color: '#5A4A61' }}>
       
       {/* Header Section */}
-      <div className="bg-purple-50 rounded-2xl p-8 border border-purple-100">
-        <h1 className="text-3xl font-bold text-gray-800 mb-2 flex items-center gap-2">
-          Support Team Directory <span className="text-3xl">☀️</span>
+      <div className="rounded-2xl p-8 border" style={{ backgroundColor: '#E1BEE7', borderColor: '#CE93D8' }}>
+        <h1 className="text-3xl font-bold mb-2 flex items-center gap-2" style={{ color: '#5A4A61' }}>
+          Support Team Directory <Sun size={32} />
         </h1>
-        <p className="text-gray-700">
-          Meet the dedicated professionals here to support you throughout your academic journey. Click on any staff member to view their full profile and contact information.
+        <p style={{ color: '#5A4A61' }}>
+          Meet the dedicated professionals here to support you throughout your academic journey. Click on any staff member to view their full profile.
         </p>
       </div>
 
@@ -106,34 +115,34 @@ function SupportSupport() {
       </div>
 
       {/* Quick Contact Information */}
-      <div className="bg-white rounded-2xl p-8 border border-gray-200">
-        <h2 className="text-lg font-semibold text-gray-800 mb-6 flex items-center gap-2">
-          <Heart size={20} className="text-red-500" /> Quick Contact Information
+      <div className="bg-white rounded-2xl p-8 border" style={{ borderColor: '#E1BEE7' }}>
+        <h2 className="text-lg font-semibold mb-6 flex items-center gap-2" style={{ color: '#5A4A61' }}>
+          <Heart size={20} style={{ color: '#CE93D8' }} /> Quick Contact Information
         </h2>
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-red-50 rounded-xl p-6">
-            <p className="text-gray-600 font-medium mb-2">OAP Office</p>
-            <p className="text-purple-600 font-semibold">oap@university.edu</p>
+          {/* Using a mix of your palette for the contact boxes */}
+          <div className="rounded-xl p-6" style={{ backgroundColor: '#B3DDB9' }}>
+            <p className="font-medium mb-1">OAP Office</p>
+            <p className="font-bold">oap@habib.edu.pk</p>
           </div>
           
-          <div className="bg-green-50 rounded-xl p-6">
-            <p className="text-gray-600 font-medium mb-2">Wellness Services</p>
-            <p className="text-green-600 font-semibold">wellness@university.edu</p>
+          <div className="rounded-xl p-6" style={{ backgroundColor: '#E1BEE7' }}>
+            <p className="font-medium mb-1">Wellness Services</p>
+            <p className="font-bold">wellness@habib.edu.pk</p>
           </div>
           
-          <div className="bg-red-50 rounded-xl p-6">
-            <p className="text-gray-600 font-medium mb-2">Ehsas Support</p>
-            <p className="text-red-600 font-semibold">ehsas@university.edu</p>
+          <div className="rounded-xl p-6" style={{ backgroundColor: '#CE93D8' }}>
+            <p className="font-medium mb-1">Ehsas Support</p>
+            <p className="font-bold">ehsas@habib.edu.pk</p>
           </div>
         </div>
       </div>
 
-      {/* Modal */}
       <SupportStaffModal 
         staff={selectedStaff}
         isOpen={isModalOpen}
-        onClose={handleCloseModal}
+        onClose={() => setIsModalOpen(false)}
       />
     </div>
   );

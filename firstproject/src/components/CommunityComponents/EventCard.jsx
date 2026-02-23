@@ -19,7 +19,7 @@ export function EventCard({ event, onViewDetails, isAdmin }) {
         <span className="bg-[#B39DDB]/10 text-[#5A4A61] px-3 py-1 rounded-full text-sm font-bold">
           {event.tag}
         </span>
-        <span className="text-[#e91e8c] font-semibold text-xs bg-pink-50 px-2 py-1 rounded-lg">
+        <span className="text-[#5A4A61] font-semibold text-xs bg-pink-50 px-2 py-1 rounded-lg">
           {daysLeft === 0 ? "Today" : `In ${daysLeft} days`}
         </span>
       </div>
@@ -60,7 +60,7 @@ export function EventCard({ event, onViewDetails, isAdmin }) {
 
       <button 
         onClick={onViewDetails}
-        className="w-full bg-gradient-to-r from-[#B39DDB] to-[#F8BBD0] text-white py-2.5 rounded-full font-bold hover:shadow-lg transition-all flex items-center justify-center gap-2 active:scale-95"
+        className="w-full bg-[#B39DDB] text-white py-2.5 rounded-full font-bold hover:shadow-lg transition-all flex items-center justify-center gap-2 active:scale-95"
       >
         <Eye size={18} />
         {isAdmin ? "Edit Details" : "View Details"}
@@ -126,7 +126,7 @@ export function EventModal({ event, onClose }) {
           </div>
 
           {/* Footer Contact */}
-          <div className="bg-[#B39DDB]/40 rounded-3xl p-8 text-[]#5A4A61]">
+          <div className="bg-[#E1BEE7]/40 rounded-3xl p-8 text-[#5A4A61]">
             <h3 className="font-bold mb-4  uppercase tracking-widest text-xs">Help & Support</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm font-normal">
               <div>
