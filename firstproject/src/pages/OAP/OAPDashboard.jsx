@@ -41,10 +41,10 @@ function OapDashboard() {
       <div className="rounded-3xl p-6 bg-white border-2" style={{ borderColor: '#E1BEE7' }}>
         <div className='flex flex-col'>
           <h1 className="text-2xl font-bold mb-2" style={{ color: '#5A4A61' }}>
-            Welcome back, Sara Ali! 👋
+            Welcome back, Fatima! 👋
           </h1>
           <p className="text-sm font-semibold mb-1" style={{ color: '#CE93D8' }}>
-            OAP Counselor • OAP Support Services
+            OAP advisor • Office Of Acamid performance
           </p>
           <p className="text-xs opacity-80" style={{ color: '#5A4A61' }}>
             Here's an overview of student support activities

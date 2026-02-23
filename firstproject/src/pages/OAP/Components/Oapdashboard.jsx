@@ -1,6 +1,6 @@
 import { Users, FileText, Bell, AlertCircle, Calendar } from 'lucide-react';
 
-function WellnessDashboard() {
+function OAPDashboard() {
   const recentAlerts = [
     {
       id: 1,
@@ -41,10 +41,10 @@ function WellnessDashboard() {
       <div className="rounded-3xl p-6 bg-white">
         <div className="flex flex-col">
           <h1 className="text-2xl font-bold mb-2" style={{ color: '#2d2d3a' }}>
-            Welcome back, Zainab! 👋
+            Welcome back, Dr. Fatima Khan! 👋
           </h1>
           <p className="text-sm mb-1 font-medium" style={{ color: '#9575cd' }}>
-            Wellness Counselor • Wellness Support Services
+            OAP Advisor • Office of Academic Performance
           </p>
           <p className="text-xs" style={{ color: '#a0a0b0' }}>
             Here's an overview of student support activities
@@ -162,4 +162,4 @@ function WellnessDashboard() {
   );
 }
 
-export default WellnessDashboard;
+export default OAPDashboard;

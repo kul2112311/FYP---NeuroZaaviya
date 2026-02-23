@@ -16,6 +16,8 @@ import Resources from './pages/StudentInterface/Resources.jsx';
 import { AITaskBreakdownPage } from './pages/StudentInterface/Aitaskbreakdownpage.jsx';
 import { EisenhowerMatrixPage } from './pages/StudentInterface/Eisenhowermatrixpage.jsx';
 import WellnessDashboard from './pages/Wellness/WellnessDashboard.jsx';
+import OAPDashboard from './pages/OAP/oapdashboard.jsx';
+import EhsasDashboard from './pages/Wellness/EhsasDashboard.jsx';
 import Student from './pages/shared/Students.jsx';
 import Alert from './pages/shared/Alerts.jsx';
 import Scheduling from './pages/shared/Scheduling.jsx';
@@ -24,7 +26,6 @@ import SuperCalendarPage from './pages/StudentInterface/SuperCalendarPage.jsx';
 import Accommodations from './pages/OAP/Accommodations.jsx';
 import Files from './pages/OAP/Files.jsx';
 import FocusPeerManagement from './pages/OAP/FocusPeerManagement.jsx';
-import OapDashboard from './pages/OAP/OAPDashboard.jsx';
 
 const menuConfig = {
   student: [
@@ -42,6 +43,16 @@ const menuConfig = {
     { icon: <CalendarHeart size={20}/>, text: "Events", to: "/events" }
   ],
   'wellness-counsellor': [
+    { icon: <LayoutDashboard size={20}/>, text: "Dashboard", to: "/" },
+    { icon: <Users size={20}/>, text: "Students", to: "/students" },
+    { icon: <FileText size={20}/>, text: "Alerts", to: "/alerts" },
+    { icon: <BookOpen size={20}/>, text: "Resources", to: "/resources" },
+    { icon: <CalendarHeart size={20}/>, text: "Events", to: "/events" },
+    { icon: <Users size={20}/>, text: "Focus Peers", to: "/focuspeer-monitor" },
+    { icon: <CalendarSync size={20}/>, text: "Scheduling", to: "/scheduling" },
+    { icon: <Newspaper size={20}/>, text: "Forum", to: "/forum" }
+  ],
+  'ehsas-counsellor': [
     { icon: <LayoutDashboard size={20}/>, text: "Dashboard", to: "/" },
     { icon: <Users size={20}/>, text: "Students", to: "/students" },
     { icon: <FileText size={20}/>, text: "Alerts", to: "/alerts" },
@@ -83,12 +94,13 @@ function AppContent() {
     dashboardToShow = <Dashboard />;
   } else if (user.role === 'focus-peer') {
     dashboardToShow = <FocusPeer />;
-  } else if (user.role === 'wellness-counsellor' || user.role === 'oap') {
+  } else if (user.role === 'wellness-counsellor') {
     dashboardToShow = <WellnessDashboard />;
+  } else if (user.role === 'ehsas-counsellor') {
+    dashboardToShow = <EhsasDashboard />;
   } else if (user.role === 'oap') {
-    dashboardToShow = <OapDashboard />;
-  }
-  else {
+    dashboardToShow = <OAPDashboard />;
+  } else {
     dashboardToShow = <Dashboard />;
   }
 
