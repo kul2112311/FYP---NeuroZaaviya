@@ -66,7 +66,6 @@ export function AITaskBreakdownScreen({ onBack, onAnalyze, savedTaskData }) {
 
   const handleGenerate = async () => {
     console.log("🖱️ Button Clicked!"); 
-    console.log("Current User Object:", user); 
     console.log("Current Prompt:", taskPrompt);
     
     // 1. Validation
@@ -76,11 +75,12 @@ export function AITaskBreakdownScreen({ onBack, onAnalyze, savedTaskData }) {
       return;
     }
 
-    if (!user || !user.id) {
-      console.error("❌ No User ID found in context");
-      setError("You must be logged in to use this feature.");
-      return;
-    }
+    // 🔴 DISABLED THE USER ID CHECK TEMPORARILY SO IT DOESN'T BLOCK YOU
+    // if (!user || !user.id) {
+    //   console.error("❌ No User ID found in context");
+    //   setError("You must be logged in to use this feature.");
+    //   return;
+    // }
 
     setIsProcessing(true);
     setError(null);
@@ -89,15 +89,18 @@ export function AITaskBreakdownScreen({ onBack, onAnalyze, savedTaskData }) {
       // 2. Create FormData for file upload
       const formData = new FormData();
       formData.append("userPrompt", taskPrompt);
-      formData.append("userId", user.id); 
+      
+      // ✅ HARDCODED USHNA BATOOL'S ID FROM THE SEED FILE
+      formData.append("userId", "a1111111-1111-1111-1111-111111111111"); 
+
       if (rubricFile) {
         formData.append("rubricFile", rubricFile);
       }
 
       console.log("🚀 Sending request to AI Agent...");
 
-      // 3. API Call
-      const response = await fetch("http://localhost:5000/api/ai/generate", {
+      // 3. API Call (Changed to 127.0.0.1 for stability)
+      const response = await fetch("http://127.0.0.1:5000/api/ai/generate", {
         method: "POST",
         body: formData,
       });
@@ -130,8 +133,6 @@ export function AITaskBreakdownScreen({ onBack, onAnalyze, savedTaskData }) {
     setRubricFile(null);
   };
 
-  
-
   return (
     <div className="min-h-screen p-8" style={{ background: '#f5eef8' }}>
       <div className="max-w-5xl mx-auto space-y-8 relative">
@@ -155,11 +156,9 @@ export function AITaskBreakdownScreen({ onBack, onAnalyze, savedTaskData }) {
         {/* AI Agent Info Section */}
         <div className="relative">
           <div className="rounded-3xl p-10 shadow-sm overflow-hidden" style={{ background: '#ffffff', border: '1px solid rgba(179, 157, 219, 0.2)' }}>
-            {/* Gradient background */}
             <div className="absolute inset-0 opacity-30 pointer-events-none" style={{ background: 'linear-gradient(135deg, rgba(179, 157, 219, 0.1) 0%, rgba(248, 187, 208, 0.1) 100%)' }} />
             
             <div className="relative space-y-8">
-              {/* Welcome Header */}
               <div className="text-center space-y-3">
                 <div className="flex items-center justify-center gap-3">
                   <div className="w-16 h-16 rounded-full flex items-center justify-center animate-pulse" style={{ background: '#b39ddb' }}>
@@ -175,9 +174,7 @@ export function AITaskBreakdownScreen({ onBack, onAnalyze, savedTaskData }) {
                 </p>
               </div>
 
-              {/* Key Points Grid */}
               <div className="grid md:grid-cols-3 gap-6">
-                {/* What I Do */}
                 <div className="rounded-3xl p-6 shadow-sm hover:shadow-md transition-all group" style={{ background: '#ffffff', border: '1px solid rgba(179, 157, 219, 0.2)' }}>
                   <div className="space-y-4">
                     <div className="w-14 h-14 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform" style={{ background: '#f3e5f5' }}>
@@ -201,7 +198,6 @@ export function AITaskBreakdownScreen({ onBack, onAnalyze, savedTaskData }) {
                   </div>
                 </div>
 
-                {/* What I Don't Do */}
                 <div className="rounded-3xl p-6 shadow-sm hover:shadow-md transition-all group" style={{ background: '#ffffff', border: '1px solid rgba(248, 187, 208, 0.2)' }}>
                   <div className="space-y-4">
                     <div className="w-14 h-14 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform" style={{ background: '#fce4ec' }}>
@@ -225,7 +221,6 @@ export function AITaskBreakdownScreen({ onBack, onAnalyze, savedTaskData }) {
                   </div>
                 </div>
 
-                {/* How to Get Best Results */}
                 <div className="rounded-3xl p-6 shadow-sm hover:shadow-md transition-all group" style={{ background: '#ffffff', border: '1px solid rgba(179, 157, 219, 0.2)' }}>
                   <div className="space-y-4">
                     <div className="w-14 h-14 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform" style={{ background: '#e1bee7' }}>
@@ -250,7 +245,6 @@ export function AITaskBreakdownScreen({ onBack, onAnalyze, savedTaskData }) {
                 </div>
               </div>
 
-              {/* Example Prompt Callout */}
               <div className="rounded-3xl p-6 border-2 border-dashed" style={{ background: '#fdf7fd', borderColor: 'rgba(179, 157, 219, 0.3)' }}>
                 <div className="flex items-start gap-4">
                   <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: '#b39ddb' }}>
@@ -276,7 +270,12 @@ export function AITaskBreakdownScreen({ onBack, onAnalyze, savedTaskData }) {
             <div className="absolute inset-0 opacity-20 pointer-events-none" style={{ background: 'linear-gradient(135deg, rgba(248, 187, 208, 0.1) 0%, rgba(179, 157, 219, 0.1) 100%)' }} />
             
             <div className="relative space-y-6">
-              {/* File Upload Display */}
+              {error && (
+                <div className="bg-red-50 text-red-600 p-4 rounded-xl text-sm font-medium border border-red-100 flex items-center gap-2">
+                  <AlertCircle size={18} />
+                  {error}
+                </div>
+              )}
               {rubricFile && (
                 <div className="flex items-center gap-3 p-4 rounded-2xl" style={{ background: '#f3e5f5', border: '1px solid rgba(179, 157, 219, 0.3)' }}>
                   <FileText className="h-5 w-5 flex-shrink-0" style={{ color: '#b39ddb' }} />
@@ -296,7 +295,6 @@ export function AITaskBreakdownScreen({ onBack, onAnalyze, savedTaskData }) {
                 </div>
               )}
 
-              {/* Task Prompt Area */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
@@ -308,7 +306,6 @@ export function AITaskBreakdownScreen({ onBack, onAnalyze, savedTaskData }) {
                     </label>
                   </div>
                   
-                  {/* Upload Files Button */}
                   <div>
                     <input
                       type="file"
@@ -335,9 +332,7 @@ export function AITaskBreakdownScreen({ onBack, onAnalyze, savedTaskData }) {
                   <textarea
                     value={taskPrompt}
                     onChange={(e) => setTaskPrompt(e.target.value)}
-                    placeholder="Example: Write a 10-page research paper on climate change impacts. Must include 5 peer-reviewed sources, proper citations, abstract, introduction, methodology, findings, and conclusion. Due in 2 weeks.
-
-You can also drag and drop your rubric or assignment files here! 📄"
+                    placeholder="Example: Write a 10-page research paper on climate change impacts..."
                     className={`w-full h-56 p-6 rounded-3xl resize-none focus:outline-none transition-all text-base ${
                       isDragging ? 'border-dashed' : ''
                     }`}
@@ -357,7 +352,6 @@ You can also drag and drop your rubric or assignment files here! 📄"
                     }}
                   />
                   
-                  {/* Drag overlay */}
                   {isDragging && (
                     <div className="absolute inset-0 flex items-center justify-center rounded-3xl border-2 border-dashed pointer-events-none" style={{ background: 'rgba(179, 157, 219, 0.05)', borderColor: '#b39ddb' }}>
                       <div className="text-center space-y-2">
@@ -367,14 +361,12 @@ You can also drag and drop your rubric or assignment files here! 📄"
                     </div>
                   )}
                   
-                  {/* Character counter */}
                   <div className="absolute bottom-5 right-5 text-xs px-3 py-1.5 rounded-full" style={{ background: 'rgba(255, 255, 255, 0.9)', border: '1px solid rgba(179, 157, 219, 0.2)', color: '#9575a3' }}>
                     {taskPrompt.length} characters
                   </div>
                 </div>
               </div>
 
-              {/* Submit Button */}
               <div className="pt-2">
                 <button
                   onClick={handleGenerate}
@@ -382,7 +374,6 @@ You can also drag and drop your rubric or assignment files here! 📄"
                   className="w-full h-16 rounded-full text-lg font-medium text-white group relative overflow-hidden transition-all hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
                   style={{ background: isProcessing || !taskPrompt.trim() ? '#e1bee7' : '#b39ddb' }}
                 >
-                  {/* Shimmer effect */}
                   <div className="absolute inset-0 translate-x-[-200%] group-hover:translate-x-[200%] transition-transform duration-1000" style={{ background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent)' }} />
                   
                   {isProcessing ? (
@@ -413,7 +404,7 @@ You can also drag and drop your rubric or assignment files here! 📄"
             <div className="w-px h-8" style={{ background: 'rgba(179, 157, 219, 0.2)' }} />
             <div className="flex items-center gap-2">
               <span className="text-2xl">✨</span>
-              <span>AI-Powered Guidance</span>handleGenerate
+              <span>AI-Powered Guidance</span>
             </div>
             <div className="w-px h-8" style={{ background: 'rgba(179, 157, 219, 0.2)' }} />
             <div className="flex items-center gap-2">

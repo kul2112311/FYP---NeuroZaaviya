@@ -4,7 +4,7 @@ const UserContext = createContext();
 
 export function UserProvider({ children }) {
   const [user, setUser] = useState({
-    role: 'student',  // What type of user? (student, focus-peer, wellness-counsellor, oap, professor)
+    role: 'focus-peer',  // What type of user? (student, focus-peer, wellness-counsellor, oap, professor)
     name: 'John Doe'  // Their name
   });
 
