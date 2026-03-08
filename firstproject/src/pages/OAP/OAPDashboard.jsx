@@ -1,7 +1,6 @@
 import { Users, FileText, Bell, AlertCircle, Calendar } from 'lucide-react';
 
-function OapDashboard() {
-  // Dummy data for alerts
+function OAPDashboard() {
   const recentAlerts = [
     {
       id: 1,
@@ -36,17 +35,18 @@ function OapDashboard() {
   const openAlerts = recentAlerts.length;
 
   return (
-    <div className="p-6 pl-12 space-y-6 w-full" style={{ width: '80vw' }}>
+    <div className="p-6 pl-12 space-y-6" style={{ width: '80vw', minHeight: '100vh', background: '#f3eeff' }}>
+
       {/* Welcome Header */}
-      <div className="rounded-3xl p-6 bg-white border-2" style={{ borderColor: '#E1BEE7' }}>
-        <div className='flex flex-col'>
-          <h1 className="text-2xl font-bold mb-2" style={{ color: '#5A4A61' }}>
-            Welcome back, Fatima! 👋
+      <div className="rounded-3xl p-6 bg-white">
+        <div className="flex flex-col">
+          <h1 className="text-2xl font-bold mb-2" style={{ color: '#2d2d3a' }}>
+            Welcome back, Dr. Fatima Khan! 👋
           </h1>
-          <p className="text-sm font-semibold mb-1" style={{ color: '#CE93D8' }}>
-            OAP advisor • Office Of Acamid performance
+          <p className="text-sm mb-1 font-medium" style={{ color: '#9575cd' }}>
+            OAP Advisor • Office of Academic Performance
           </p>
-          <p className="text-xs opacity-80" style={{ color: '#5A4A61' }}>
+          <p className="text-xs" style={{ color: '#a0a0b0' }}>
             Here's an overview of student support activities
           </p>
         </div>
@@ -54,71 +54,78 @@ function OapDashboard() {
 
       {/* Quick Action Cards */}
       <div className="grid grid-cols-3 gap-4">
+
         {/* Active Students */}
-        <div className="rounded-2xl p-5 bg-white border-2" style={{ borderColor: '#B3DDB9' }}>
-          <div className="flex items-center justify-between">
-            <Users size={24} style={{ color: '#B3DDB9' }} />
-            <span className="text-3xl font-bold" style={{ color: '#5A4A61' }}>8</span>
+        <div className="rounded-2xl p-5 bg-white border border-gray-100 shadow-sm">
+          <div className="flex items-center justify-between mb-3">
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: '#ede7f6' }}>
+              <Users size={20} style={{ color: '#9575cd' }} />
+            </div>
+            <span className="text-3xl font-bold" style={{ color: '#2d2d3a' }}>8</span>
           </div>
-          <p className="text-sm mt-3 font-bold" style={{ color: '#5A4A61' }}>Active Students</p>
+          <p className="text-sm font-medium" style={{ color: '#a0a0b0' }}>Active Students</p>
         </div>
 
         {/* Active Accommodations */}
-        <div className="rounded-2xl p-5 bg-white border-2" style={{ borderColor: '#CE93D8' }}>
-          <div className="flex items-center justify-between">
-            <FileText size={24} style={{ color: '#CE93D8' }} />
-            <span className="text-3xl font-bold" style={{ color: '#5A4A61' }}>11</span>
+        <div className="rounded-2xl p-5 bg-white border border-gray-100 shadow-sm">
+          <div className="flex items-center justify-between mb-3">
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: '#fce4ec' }}>
+              <FileText size={20} style={{ color: '#e91e8c' }} />
+            </div>
+            <span className="text-3xl font-bold" style={{ color: '#2d2d3a' }}>11</span>
           </div>
-          <p className="text-sm mt-3 font-bold" style={{ color: '#5A4A61' }}>Active Accommodations</p>
+          <p className="text-sm font-medium" style={{ color: '#a0a0b0' }}>Active Accommodations</p>
         </div>
 
         {/* Open Alerts */}
-        <div className="rounded-2xl p-5 bg-white border-2" style={{ borderColor: '#E1BEE7' }}>
-          <div className="flex items-center justify-between">
-            <Bell size={24} style={{ color: '#E1BEE7' }} />
-            <span className="text-3xl font-bold" style={{ color: '#5A4A61' }}>4</span>
+        <div className="rounded-2xl p-5 bg-white border border-gray-100 shadow-sm">
+          <div className="flex items-center justify-between mb-3">
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: '#fff3e0' }}>
+              <Bell size={20} style={{ color: '#fb8c00' }} />
+            </div>
+            <span className="text-3xl font-bold" style={{ color: '#2d2d3a' }}>4</span>
           </div>
-          <p className="text-sm mt-3 font-bold" style={{ color: '#5A4A61' }}>Open Alerts</p>
+          <p className="text-sm font-medium" style={{ color: '#a0a0b0' }}>Open Alerts</p>
         </div>
+
       </div>
 
-      {/* Bottom Row - Alerts and Meetings */}
+      {/* Bottom Row */}
       <div className="grid grid-cols-2 gap-6">
+
         {/* Recent Alerts */}
-        <div className="bg-white rounded-3xl p-6 border-2 shadow-sm" style={{ borderColor: '#E1BEE7' }}>
+        <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
-              <Bell size={20} style={{ color: '#CE93D8' }} />
-              <h2 className="text-lg font-bold" style={{ color: '#5A4A61' }}>Recent Alerts</h2>
+              <Bell size={18} style={{ color: '#fb8c00' }} />
+              <h2 className="text-base font-semibold" style={{ color: '#2d2d3a' }}>Recent Alerts</h2>
             </div>
-            <span className="text-xs font-bold px-3 py-1 rounded-full" style={{ backgroundColor: '#E1BEE7', color: '#5A4A61' }}>
+            <span className="text-xs font-semibold px-3 py-1 rounded-full" style={{ background: '#fff3e0', color: '#fb8c00' }}>
               {openAlerts} Open
             </span>
           </div>
 
           <div className="space-y-3">
             {recentAlerts.map((alert) => (
-              <div 
-                key={alert.id} 
-                className="rounded-2xl p-4 flex items-start gap-3 border transition-colors hover:border-[#B3DDB9]"
-                style={{ backgroundColor: '#FDFCFD', borderColor: '#F5F5F5' }}
+              <div
+                key={alert.id}
+                className="rounded-2xl p-4 flex items-start gap-3"
+                style={{ backgroundColor: '#fdf6ff', border: '1px solid #f0e6ff' }}
               >
-                <div 
-                  className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
-                  style={{ backgroundColor: '#E1BEE730' }}
+                <div
+                  className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
+                  style={{ backgroundColor: '#fff3e0' }}
                 >
-                  <AlertCircle size={20} style={{ color: '#CE93D8' }} />
+                  <AlertCircle size={18} style={{ color: '#fb8c00' }} />
                 </div>
                 <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="font-bold text-sm" style={{ color: '#5A4A61' }}>
-                      {alert.studentName}
-                    </span>
-                  </div>
-                  <p className="text-xs mb-1 font-medium" style={{ color: '#5A4A61' }}>
+                  <span className="font-semibold text-sm" style={{ color: '#2d2d3a' }}>
+                    {alert.studentName}
+                  </span>
+                  <p className="text-xs mt-0.5 mb-1" style={{ color: '#5a5a72' }}>
                     {alert.issue}
                   </p>
-                  <p className="text-[10px] font-semibold opacity-60" style={{ color: '#CE93D8' }}>
+                  <p className="text-xs" style={{ color: '#a0a0b0' }}>
                     by {alert.reportedBy} • {alert.date}
                   </p>
                 </div>
@@ -128,28 +135,31 @@ function OapDashboard() {
         </div>
 
         {/* Upcoming Meetings */}
-        <div className="bg-white rounded-3xl p-6 border-2 shadow-sm" style={{ borderColor: '#B3DDB9' }}>
+        <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
-              <Calendar size={20} style={{ color: '#B3DDB9' }} />
-              <h2 className="text-lg font-bold" style={{ color: '#5A4A61' }}>Upcoming Meetings</h2>
+              <Calendar size={18} style={{ color: '#9575cd' }} />
+              <h2 className="text-base font-semibold" style={{ color: '#2d2d3a' }}>Upcoming Meetings</h2>
             </div>
-            <span className="text-sm font-medium" style={{ color: '#5A4A61' }}>0 Scheduled</span>
+            <span className="text-xs font-semibold px-3 py-1 rounded-full" style={{ background: '#ede7f6', color: '#9575cd' }}>
+              0 Scheduled
+            </span>
           </div>
 
           <div className="flex flex-col items-center justify-center py-12">
-            <div 
-              className="w-16 h-16 rounded-full flex items-center justify-center mb-4"
-              style={{ backgroundColor: '#B3DDB920' }}
+            <div
+              className="w-16 h-16 rounded-full flex items-center justify-center mb-3"
+              style={{ backgroundColor: '#ede7f6' }}
             >
-              <Calendar size={32} style={{ color: '#B3DDB9' }} />
+              <Calendar size={28} style={{ color: '#b39ddb' }} />
             </div>
-            <p className="text-sm font-medium" style={{ color: '#5A4A61' }}>No upcoming meetings scheduled</p>
+            <p className="text-sm font-medium" style={{ color: '#a0a0b0' }}>No upcoming meetings scheduled</p>
           </div>
         </div>
+
       </div>
     </div>
   );
 }
 
-export default OapDashboard;
+export default OAPDashboard;

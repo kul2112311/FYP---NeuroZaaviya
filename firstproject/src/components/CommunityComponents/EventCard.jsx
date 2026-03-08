@@ -46,16 +46,16 @@ export function EventCard({ event, onViewDetails, isAdmin }) {
 
       {/* Capacity Bar */}
       <div className="mb-4">
-        <div className="flex items-center justify-between mb-1 text-xs font-bold text-gray-400 uppercase">
+        {/* <div className="flex items-center justify-between mb-1 text-xs font-bold text-gray-400 uppercase">
           <span>Capacity</span>
           <span>{Math.round((event.attendees / event.capacity) * 100)}%</span>
-        </div>
-        <div className="w-full bg-gray-100 h-1.5 rounded-full">
+        </div> */}
+        {/* <div className="w-full bg-gray-100 h-1.5 rounded-full">
           <div 
             className="bg-[#B39DDB] h-1.5 rounded-full" 
             style={{ width: `${(event.attendees / event.capacity) * 100}%` }}
           ></div>
-        </div>
+        </div> */}
       </div>
 
       <button 
@@ -98,13 +98,13 @@ export function EventModal({ event, onClose }) {
             <InfoBox icon={<Calendar />} label="Date" value={event.date} />
             <InfoBox icon={<Clock />} label="Time" value={event.time} />
             <InfoBox icon={<MapPin />} label="Location" value={event.location} />
-            <InfoBox 
+            {/* <InfoBox 
               icon={<Users />} 
               label="Capacity" 
               value={`${event.attendees} / ${event.capacity} Registered`} 
               showProgress 
               percent={(event.attendees / event.capacity) * 100} 
-            />
+            /> */}
           </div>
 
           {/* Requirements Section - Labels are bold, content is regular */}
