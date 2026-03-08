@@ -16,7 +16,7 @@ import Resources from './pages/StudentInterface/Resources.jsx';
 import { AITaskBreakdownPage } from './pages/StudentInterface/Aitaskbreakdownpage.jsx';
 import { EisenhowerMatrixPage } from './pages/StudentInterface/Eisenhowermatrixpage.jsx';
 import WellnessDashboard from './pages/Wellness/WellnessDashboard.jsx';
-import OAPDashboard from './pages/OAP/oapdashboard.jsx';
+import OAPDashboard from './pages/OAP/OAPDashboard.jsx';
 import EhsasDashboard from './pages/Wellness/EhsasDashboard.jsx';
 import Student from './pages/shared/Students.jsx';
 import Alert from './pages/shared/Alerts.jsx';
@@ -25,7 +25,9 @@ import Events from './pages/shared/Events.jsx';
 import SuperCalendarPage from './pages/StudentInterface/SuperCalendarPage.jsx';
 import Accommodations from './pages/OAP/Accommodations.jsx';
 import Files from './pages/OAP/Files.jsx';
-import FocusPeerManagement from './pages/OAP/FocusPeerManagement.jsx';
+import FocusPeerManagement from './pages/OAP/Focuspeermanagement.jsx';
+import DeepWorkSession from "./pages/StudentInterface/Deepworksession.jsx";
+
 
 const menuConfig = {
   student: [
@@ -147,6 +149,7 @@ function AppContent() {
             <Route path="/scheduling" element={<Scheduling />} />
             <Route path="/events" element={<Events />} />
             <Route path="/calendar" element={<SuperCalendarPage />} />
+            <Route path="/deep-work" element={<DeepWorkSession />} />
           </Routes>
         </div>
       </main>
