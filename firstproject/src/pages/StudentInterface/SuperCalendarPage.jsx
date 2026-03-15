@@ -31,17 +31,24 @@ function SuperCalendarPage() {
   const scrollRef = useRef(null);
 
   // Load from localStorage — same key as Dashboard, DetailedProgress, AI breakdown
-  const load = () => {
+// Load directly from PostgreSQL Database
+  const load = async () => {
     try {
-      const raw = localStorage.getItem("upcomingAssignments");
-      setAssignments(raw ? JSON.parse(raw) : []);
-    } catch { setAssignments([]); }
+      const userId = "a1111111-1111-1111-1111-111111111111"; // Ushna's ID
+      const response = await fetch(`http://127.0.0.1:5000/api/calendar/${userId}`);
+      if (response.ok) {
+        const data = await response.json();
+        setAssignments(data);
+      }
+    } catch (error) {
+      console.error("Failed to load calendar data:", error);
+    }
   };
 
   useEffect(() => {
     load();
     window.addEventListener("eisenhowerSaved", load);
-    const t = setInterval(load, 800);
+    const t = setInterval(load, 2000); // Poll every 2 seconds to stay synced
     return () => { window.removeEventListener("eisenhowerSaved", load); clearInterval(t); };
   }, []);
 
