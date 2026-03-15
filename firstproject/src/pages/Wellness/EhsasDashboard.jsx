@@ -1,6 +1,6 @@
 import { Users, FileText, Bell, AlertCircle, Calendar } from 'lucide-react';
 
-function OAPDashboard() {
+function EhsasDashboard() {
   const recentAlerts = [
     {
       id: 1,
@@ -41,10 +41,10 @@ function OAPDashboard() {
       <div className="rounded-3xl p-6 bg-white">
         <div className="flex flex-col">
           <h1 className="text-2xl font-bold mb-2" style={{ color: '#2d2d3a' }}>
-            Welcome back, Dr. Fatima Khan! 👋
+            Welcome back, Sara Ali! 👋
           </h1>
           <p className="text-sm mb-1 font-medium" style={{ color: '#9575cd' }}>
-            OAP Advisor • Office of Academic Performance
+            Ehsas Counselor • Ehsas Support Services
           </p>
           <p className="text-xs" style={{ color: '#a0a0b0' }}>
             Here's an overview of student support activities
@@ -54,8 +54,6 @@ function OAPDashboard() {
 
       {/* Quick Action Cards */}
       <div className="grid grid-cols-3 gap-4">
-
-        {/* Active Students */}
         <div className="rounded-2xl p-5 bg-white border border-gray-100 shadow-sm">
           <div className="flex items-center justify-between mb-3">
             <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: '#ede7f6' }}>
@@ -66,7 +64,6 @@ function OAPDashboard() {
           <p className="text-sm font-medium" style={{ color: '#a0a0b0' }}>Active Students</p>
         </div>
 
-        {/* Active Accommodations */}
         <div className="rounded-2xl p-5 bg-white border border-gray-100 shadow-sm">
           <div className="flex items-center justify-between mb-3">
             <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: '#fce4ec' }}>
@@ -77,7 +74,6 @@ function OAPDashboard() {
           <p className="text-sm font-medium" style={{ color: '#a0a0b0' }}>Active Accommodations</p>
         </div>
 
-        {/* Open Alerts */}
         <div className="rounded-2xl p-5 bg-white border border-gray-100 shadow-sm">
           <div className="flex items-center justify-between mb-3">
             <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: '#fff3e0' }}>
@@ -87,13 +83,10 @@ function OAPDashboard() {
           </div>
           <p className="text-sm font-medium" style={{ color: '#a0a0b0' }}>Open Alerts</p>
         </div>
-
       </div>
 
       {/* Bottom Row */}
       <div className="grid grid-cols-2 gap-6">
-
-        {/* Recent Alerts */}
         <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
@@ -104,37 +97,24 @@ function OAPDashboard() {
               {openAlerts} Open
             </span>
           </div>
-
           <div className="space-y-3">
             {recentAlerts.map((alert) => (
-              <div
-                key={alert.id}
-                className="rounded-2xl p-4 flex items-start gap-3"
-                style={{ backgroundColor: '#fdf6ff', border: '1px solid #f0e6ff' }}
-              >
-                <div
-                  className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
-                  style={{ backgroundColor: '#fff3e0' }}
-                >
+              <div key={alert.id} className="rounded-2xl p-4 flex items-start gap-3"
+                style={{ backgroundColor: '#fdf6ff', border: '1px solid #f0e6ff' }}>
+                <div className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
+                  style={{ backgroundColor: '#fff3e0' }}>
                   <AlertCircle size={18} style={{ color: '#fb8c00' }} />
                 </div>
                 <div className="flex-1">
-                  <span className="font-semibold text-sm" style={{ color: '#2d2d3a' }}>
-                    {alert.studentName}
-                  </span>
-                  <p className="text-xs mt-0.5 mb-1" style={{ color: '#5a5a72' }}>
-                    {alert.issue}
-                  </p>
-                  <p className="text-xs" style={{ color: '#a0a0b0' }}>
-                    by {alert.reportedBy} • {alert.date}
-                  </p>
+                  <span className="font-semibold text-sm" style={{ color: '#2d2d3a' }}>{alert.studentName}</span>
+                  <p className="text-xs mt-0.5 mb-1" style={{ color: '#5a5a72' }}>{alert.issue}</p>
+                  <p className="text-xs" style={{ color: '#a0a0b0' }}>by {alert.reportedBy} • {alert.date}</p>
                 </div>
               </div>
             ))}
           </div>
         </div>
 
-        {/* Upcoming Meetings */}
         <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
@@ -145,21 +125,16 @@ function OAPDashboard() {
               0 Scheduled
             </span>
           </div>
-
           <div className="flex flex-col items-center justify-center py-12">
-            <div
-              className="w-16 h-16 rounded-full flex items-center justify-center mb-3"
-              style={{ backgroundColor: '#ede7f6' }}
-            >
+            <div className="w-16 h-16 rounded-full flex items-center justify-center mb-3" style={{ backgroundColor: '#ede7f6' }}>
               <Calendar size={28} style={{ color: '#b39ddb' }} />
             </div>
             <p className="text-sm font-medium" style={{ color: '#a0a0b0' }}>No upcoming meetings scheduled</p>
           </div>
         </div>
-
       </div>
     </div>
   );
 }
 
-export default OAPDashboard;
+export default EhsasDashboard;
