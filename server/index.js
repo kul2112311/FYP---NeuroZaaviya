@@ -13,6 +13,8 @@ app.use(cors());
 app.use(express.json());
 
 const upload = multer({ storage: multer.memoryStorage() });
+const kulsoom_index = require('./kulsoom_index');
+app.use('/api', kulsoom_index);
 
 // ==========================================
 // AI AGENT ROUTE (Gemini)

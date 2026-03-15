@@ -2,120 +2,127 @@ import { useState } from "react";
 import { Search, FileText, Users, CheckCircle2, AlertTriangle } from "lucide-react";
 import GrantAccommodationModal from "./Components/AccommodationMod.jsx";
 import StudentAccommodationCard from "./Components/StudentAccommodationCard.jsx";
-
+import { useEffect } from "react";
 function Accommodations() {
   const [query, setQuery] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [cardFilter, setCardFilter] = useState(null);
-
-  const [students, setStudents] = useState([
-    {
-      id: '04521',
-      name: 'Ushna Batool',
-      email: 'ub04521@st.habibuniversity.edu.pk',
-      accommodations: [
-        {
-          id: 'a1',
-          type: 'Extra Time on Exams',
-          details: '1.5x time on all exams',
-          granted: '2024-09-01',
-          expires: '2026-05-31' // active
-        },
-        {
-          id: 'a2',
-          type: 'Additional Absences',
-          details: '3 additional absences per semester',
-          granted: '2024-09-01',
-          expires: '2026-05-31' // active
-        }
-      ]
-    },
-    {
-      id: '03267',
-      name: 'Ahmed Hassan',
-      email: 'ah03267@st.habibuniversity.edu.pk',
-      accommodations: [
-        {
-          id: 'a3',
-          type: 'Quiet Testing Room',
-          details: 'Quiet testing environment',
-          granted: '2023-09-01',
-          expires: '2024-01-15' // expired
-        }
-      ]
-    },
-    {
-      id: '05892',
-      name: 'Zainab Mirza',
-      email: 'zm05892@st.habibuniversity.edu.pk',
-      accommodations: [
-        {
-          id: 'a4',
-          type: 'Note-Taker Support',
-          details: 'Assigned note-taker for all lectures',
-          granted: '2024-09-01',
-          expires: '2026-05-31' // active
-        },
-        {
-          id: 'a5',
-          type: 'Flexible Deadlines',
-          details: '48-hour extension on assignments',
-          granted: '2023-09-01',
-          expires: '2024-03-10' // expired
-        }
-      ]
-    },
-    {
-      id: '04108',
-      name: 'Ali Raza',
-      email: 'ar04108@st.habibuniversity.edu.pk',
-      accommodations: [
-        {
-          id: 'a6',
-          type: 'Extra Time on Exams',
-          details: '2x time on all exams',
-          granted: '2024-09-01',
-          expires: '2026-05-31' // active
-        }
-      ]
-    },
-    {
-      id: '06344',
-      name: 'Sara Qureshi',
-      email: 'sq06344@st.habibuniversity.edu.pk',
-      accommodations: [
-        {
-          id: 'a7',
-          type: 'Audio Recording Permission',
-          details: 'Permitted to record all lectures',
-          granted: '2023-02-01',
-          expires: '2024-02-01' // expired
-        },
-        {
-          id: 'a8',
-          type: 'Additional Absences',
-          details: '5 additional absences per semester',
-          granted: '2023-02-01',
-          expires: '2024-02-01' // expired
-        }
-      ]
-    },
-    {
-      id: '03791',
-      name: 'Omar Farooq',
-      email: 'of03791@st.habibuniversity.edu.pk',
-      accommodations: [
-        {
-          id: 'a9',
-          type: 'Quiet Testing Room',
-          details: 'Separate quiet room for all assessments',
-          granted: '2024-09-01',
-          expires: '2026-05-31' // active
-        }
-      ]
-    }
-  ]);
+  const [students, setStudents] = useState([]);
+  // const [students, setStudents] = useState([
+  //   {
+  //     id: '04521',
+  //     name: 'Ushna Batool',
+  //     email: 'ub04521@st.habibuniversity.edu.pk',
+  //     accommodations: [
+  //       {
+  //         id: 'a1',
+  //         type: 'Extra Time on Exams',
+  //         details: '1.5x time on all exams',
+  //         granted: '2024-09-01',
+  //         expires: '2026-05-31' // active
+  //       },
+  //       {
+  //         id: 'a2',
+  //         type: 'Additional Absences',
+  //         details: '3 additional absences per semester',
+  //         granted: '2024-09-01',
+  //         expires: '2026-05-31' // active
+  //       }
+  //     ]
+  //   },
+  //   {
+  //     id: '03267',
+  //     name: 'Ahmed Hassan',
+  //     email: 'ah03267@st.habibuniversity.edu.pk',
+  //     accommodations: [
+  //       {
+  //         id: 'a3',
+  //         type: 'Quiet Testing Room',
+  //         details: 'Quiet testing environment',
+  //         granted: '2023-09-01',
+  //         expires: '2024-01-15' // expired
+  //       }
+  //     ]
+  //   },
+  //   {
+  //     id: '05892',
+  //     name: 'Zainab Mirza',
+  //     email: 'zm05892@st.habibuniversity.edu.pk',
+  //     accommodations: [
+  //       {
+  //         id: 'a4',
+  //         type: 'Note-Taker Support',
+  //         details: 'Assigned note-taker for all lectures',
+  //         granted: '2024-09-01',
+  //         expires: '2026-05-31' // active
+  //       },
+  //       {
+  //         id: 'a5',
+  //         type: 'Flexible Deadlines',
+  //         details: '48-hour extension on assignments',
+  //         granted: '2023-09-01',
+  //         expires: '2024-03-10' // expired
+  //       }
+  //     ]
+  //   },
+  //   {
+  //     id: '04108',
+  //     name: 'Ali Raza',
+  //     email: 'ar04108@st.habibuniversity.edu.pk',
+  //     accommodations: [
+  //       {
+  //         id: 'a6',
+  //         type: 'Extra Time on Exams',
+  //         details: '2x time on all exams',
+  //         granted: '2024-09-01',
+  //         expires: '2026-05-31' // active
+  //       }
+  //     ]
+  //   },
+  //   {
+  //     id: '06344',
+  //     name: 'Sara Qureshi',
+  //     email: 'sq06344@st.habibuniversity.edu.pk',
+  //     accommodations: [
+  //       {
+  //         id: 'a7',
+  //         type: 'Audio Recording Permission',
+  //         details: 'Permitted to record all lectures',
+  //         granted: '2023-02-01',
+  //         expires: '2024-02-01' // expired
+  //       },
+  //       {
+  //         id: 'a8',
+  //         type: 'Additional Absences',
+  //         details: '5 additional absences per semester',
+  //         granted: '2023-02-01',
+  //         expires: '2024-02-01' // expired
+  //       }
+  //     ]
+  //   },
+  //   {
+  //     id: '03791',
+  //     name: 'Omar Farooq',
+  //     email: 'of03791@st.habibuniversity.edu.pk',
+  //     accommodations: [
+  //       {
+  //         id: 'a9',
+  //         type: 'Quiet Testing Room',
+  //         details: 'Separate quiet room for all assessments',
+  //         granted: '2024-09-01',
+  //         expires: '2026-05-31' // active
+  //       }
+  //     ]
+  //   }
+  // ]);
+    useEffect(() => {
+    // Now fetching from the specialized route
+    fetch('http://localhost:5000/api/student-accommodations')
+      .then(res => res.json())
+      .then(data => setStudents(data))
+      .catch(err => console.error("Error:", err));
+  }, []);
 
   const now = new Date();
 

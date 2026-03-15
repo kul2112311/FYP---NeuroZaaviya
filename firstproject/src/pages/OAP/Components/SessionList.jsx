@@ -19,6 +19,7 @@ function formatDate(dateStr) {
 }
 
 function formatTime(timeStr) {
+  if (!timeStr) return 'N/A';
   const [h, m] = timeStr.split(':').map(Number);
   const ampm = h >= 12 ? 'PM' : 'AM';
   const hour = h % 12 || 12;
