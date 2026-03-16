@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo,useEffect } from "react";
 import { Search, Heart, CalendarDays, CheckCircle2, Clock, AlertCircle, UserPlus, FileText, CheckCheck, X } from "lucide-react";
 import SessionDetailModal from "./Components/SessionModal.jsx";
 import SessionListItem from "./Components/SessionList.jsx";
@@ -10,95 +10,46 @@ export default function FocusPeerDashboard() {
   const [selectedSession, setSelectedSession] = useState(null);
   const [cardFilter, setCardFilter] = useState(null);
   const [appCardFilter, setAppCardFilter] = useState(null);
+  
+  // remove the useMemo sessions block and replace with:
+const [sessions, setSessions] = useState([]);
 
-  const sessions = useMemo(() => ([
-    {
-      id: 's1',
-      studentName: 'Ushna Batool',
-      studentEmail: 'ub04521@st.habibuniversity.edu.pk',
-      studentId: '04521',
-      type: 'General Check-In',
-      status: 'Scheduled',
-      focusPeer: 'Marcus Chen',
-      date: '2024-12-22',
-      time: '15:00',
-      duration: '1 hour',
-      location: 'Online',
-      rating: null,
-      points: null,
-      alertCreated: false,
-      notes: ''
-    },
-    {
-      id: 's2',
-      studentName: 'Hassan Malik',
-      studentEmail: 'hm03812@st.habibuniversity.edu.pk',
-      studentId: '03812',
-      type: 'Study Support',
-      status: 'Scheduled',
-      focusPeer: 'Layla Hassan',
-      date: '2024-12-21',
-      time: '11:00',
-      duration: '1 hour',
-      location: 'Student Center',
-      rating: null,
-      points: null,
-      alertCreated: false,
-      notes: ''
-    },
-    {
-      id: 's3',
-      studentName: 'Omar Ali',
-      studentEmail: 'oa05234@st.habibuniversity.edu.pk',
-      studentId: '05234',
-      type: 'Task Planning',
-      status: 'Completed',
-      focusPeer: 'Marcus Chen',
-      date: '2024-12-11',
-      time: '16:00',
-      duration: '1 hour',
-      location: 'Student Lounge',
-      rating: 4,
-      points: 3,
-      alertCreated: false,
-      notes: 'Good progress; set next steps.'
-    },
-    {
-      id: 's4',
-      studentName: 'Zainab Ahmed',
-      studentEmail: 'za04103@st.habibuniversity.edu.pk',
-      studentId: '04103',
-      type: 'General Check-In',
-      status: 'Completed',
-      focusPeer: 'Asad Ali',
-      date: '2024-12-10',
-      time: '09:00',
-      duration: '1 hour',
-      location: 'Student Lounge',
-      rating: 3,
-      points: 2,
-      alertCreated: true,
-      notes: 'Student expressed overwhelm and attendance issues. Monitoring needed.'
-    },
-    {
-      id: 's5',
-      studentName: 'Hassan Malik',
-      studentEmail: 'hm03812@st.habibuniversity.edu.pk',
-      studentId: '03812',
-      type: 'Study Support',
-      status: 'Completed',
-      focusPeer: 'Layla Hassan',
-      date: '2024-12-09',
-      time: '14:00',
-      duration: '1 hour',
-      location: 'Online',
-      rating: 5,
-      points: 4,
-      alertCreated: false,
-      notes: 'Excellent engagement.'
-    }
-  ]), []);
-
+useEffect(() => {
+    fetch('http://localhost:5000/api/focus-peers-oap')
+        .then(res => res.json())
+        .then(data => {
+            console.log('RAW DATA FROM API:', data); // ← add this
+            console.log('FIRST ROW:', data[0]);       // ← and this
+            const mapped = data.map(s => {
+                const calcDuration = (start, end) => {
+                    if (!start || !end) return '1 hour';
+                    const [sh, sm] = start.split(':').map(Number);
+                    const [eh, em] = end.split(':').map(Number);
+                    const mins = (eh * 60 + em) - (sh * 60 + sm);
+                    return mins === 60 ? '1 hour' : `${mins} mins`;
+                };
+                return {
+                    id: s.id,
+                    studentName: s.studentName,
+                    studentEmail: s.studentEmail,
+                    studentId: s.studentId,
+                    focusPeer: s.focusPeer,
+                    date: s.date,
+                    time: s.time,
+                    duration: calcDuration(s.time, s.endTime),
+                    status: s.status === 'completed' ? 'Completed' : 'Scheduled',
+                    notes: s.notes || '',
+                    type: 'General Check-In',
+                    alertCreated: false,
+                    rating: null,
+                    points: null,
+                };
+            });
+            console.log('MAPPED:', mapped[0]); // ← and this
+            setSessions(mapped);
+        })
+        .catch(err => console.error("Fetch error:", err));
+}, []);
   const [applications, setApplications] = useState([
     {
       id: 'app1',

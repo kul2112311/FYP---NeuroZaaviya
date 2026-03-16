@@ -18,8 +18,9 @@ app.use(cors());
 app.use(express.json());
 
 const upload = multer({ storage: multer.memoryStorage() });
-// const friendRoutes = require('./friendRoutes');
-// app.use('/api', friendRoutes);
+const kulsoom_index = require('./kulsoom_index');
+app.use('/api', kulsoom_index);
+
 // ==========================================
 // AI AGENT ROUTE (Gemini)
 // ==========================================
@@ -1043,7 +1044,8 @@ app.get('/api/tasks/upcoming/:userId', async (req, res) => {
                     ), 0
                 ) as progress
             FROM tasks t
-            WHERE t.student_id = $1 AND t.status != 'completed'
+            -- 🔥 FIX: Changed to capital 'Completed' to match the new DB logic!
+            WHERE t.student_id = $1 AND t.status != 'Completed'
             ORDER BY t.due_date ASC
         `;
         
@@ -1124,6 +1126,149 @@ app.get('/api/calendar/:userId', async (req, res) => {
     }
 });
 
+// ==========================================
+// GET DEEP WORK SESSION DATA
+// ==========================================
+app.get('/api/session/:id', async (req, res) => {
+    try {
+        let { id } = req.params;
+        let taskId = id;
+
+        // If clicked from a subtask slot (e.g., "sub-12"), extract the parent task ID
+        if (id.startsWith('sub-')) {
+            const subId = id.replace('sub-', '');
+            const subRes = await pool.query("SELECT task_id FROM subtasks WHERE id = $1", [subId]);
+            if (subRes.rows.length === 0) return res.status(404).json({ error: "Subtask not found" });
+            taskId = subRes.rows[0].task_id;
+        }
+
+        // 1. Get Parent Task
+        const taskQuery = `
+            SELECT 
+                id, title, description as notes, 
+                LEFT(due_date::text, 10) as "dueDate", 
+                CASE 
+                    WHEN quadrant = 'do_now' THEN 'High Priority'
+                    WHEN quadrant = 'schedule' THEN 'Medium Priority'
+                    WHEN quadrant = 'delegate' THEN 'Medium Priority'
+                    ELSE 'Low Priority'
+                END as priority
+            FROM tasks WHERE id = $1
+        `;
+        const taskRes = await pool.query(taskQuery, [taskId]);
+        if (taskRes.rows.length === 0) return res.status(404).json({ error: "Task not found" });
+        const parentTask = taskRes.rows[0];
+
+        // 2. Get All Subtasks for this Parent
+        const subQuery = `
+            SELECT 
+                id, title, description as notes, 
+                estimated_time_minutes || 'min' as duration,
+                LEFT(scheduled_date::text, 10) as "dueDate",
+                CASE WHEN is_completed THEN 100 ELSE 0 END as progress,
+                is_completed as "isCompleted"
+            FROM subtasks WHERE task_id = $1 ORDER BY id ASC
+        `;
+        const subRes = await pool.query(subQuery, [taskId]);
+        
+        let subtasks = subRes.rows;
+        
+        // 3. Fallback: If no subtasks exist yet, make a 1-step list out of the main task
+        if (subtasks.length === 0) {
+            subtasks = [{
+                id: parentTask.id, title: parentTask.title, notes: parentTask.notes,
+                duration: "—", dueDate: parentTask.dueDate, progress: 0, isCompleted: false
+            }];
+        }
+
+        res.json({ parentTask, subtasks });
+    } catch (err) {
+        console.error("❌ Session Error:", err.message);
+        res.status(500).json({ error: "Server Error" });
+    }
+});
+
+// ==========================================
+// MARK SUBTASK AS COMPLETE & UPDATE PARENT PROGRESS
+// ==========================================
+app.put('/api/subtasks/:id/complete', async (req, res) => {
+    try {
+        const { id } = req.params;
+        
+        // 1. Try to update it as a subtask first (and stamp the completed_at date!)
+        const subRes = await pool.query(
+            "UPDATE subtasks SET is_completed = true, completed_at = CURRENT_TIMESTAMP WHERE id = $1 RETURNING task_id", 
+            [id]
+        );
+        
+        // 2. If it WAS a subtask, check if the parent task is now fully finished
+        if (subRes.rowCount > 0) {
+            const taskId = subRes.rows[0].task_id;
+            
+            // Count total subtasks vs completed subtasks
+            const calc = await pool.query(`
+                SELECT 
+                    COUNT(*) as total, 
+                    COUNT(CASE WHEN is_completed THEN 1 END) as done 
+                FROM subtasks WHERE task_id = $1
+            `, [taskId]);
+            
+            const total = parseInt(calc.rows[0].total);
+            const done = parseInt(calc.rows[0].done);
+            
+            // If every single subtask is done, mark parent 'Completed', else 'In Progress'
+            const isAllDone = (total > 0 && total === done);
+            const status = isAllDone ? 'Completed' : 'In Progress';
+            
+            await pool.query(
+                "UPDATE tasks SET status = $1 WHERE id = $2", 
+                [status, taskId]
+            );
+        } 
+        // 3. Fallback: If it was a main task, just mark it completed
+        else {
+            await pool.query(
+                "UPDATE tasks SET status = 'Completed' WHERE id = $1", 
+                [id]
+            );
+        }
+        
+        res.json({ success: true });
+    } catch (err) {
+        console.error("❌ Completion Error:", err);
+        res.status(500).json({ error: "Server Error" });
+    }
+});
+
+// ==========================================
+// AI CHAT ASSISTANT (DEEP WORK SESSION)
+// ==========================================
+const { GoogleGenerativeAI } = require("@google/generative-ai");
+
+app.post('/api/ai/chat', async (req, res) => {
+    try {
+        const { messages, systemPrompt } = req.body;
+        
+        // ✨ THE FIX: We explicitly define and initialize the AI right here!
+        const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+
+        // Compile the chat history into a single prompt for Gemini
+        let fullPrompt = `${systemPrompt}\n\n--- CHAT HISTORY ---\n`;
+        messages.forEach(m => {
+            fullPrompt += `${m.role === 'user' ? 'Student' : 'AI Guide'}: ${m.text}\n`;
+        });
+        fullPrompt += "AI Guide:"; // Prompt it to answer next
+
+        const result = await model.generateContent(fullPrompt);
+        const responseText = result.response.text();
+
+        res.json({ reply: responseText });
+    } catch (err) {
+        console.error("❌ AI Chat Error:", err);
+        res.status(500).json({ error: "Failed to get AI response" });
+    }
+});
 
 // DB Test
 pool.query('SELECT NOW()', (err, res) => {

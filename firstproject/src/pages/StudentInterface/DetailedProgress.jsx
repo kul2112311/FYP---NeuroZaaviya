@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { ArrowLeft, CheckCircle2, Clock, Sparkles, Edit2, Save, X, Trash2, Plus, Calendar } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Clock, Sparkles, Edit2, Save, X, Trash2, Plus, Calendar, Brain, ChevronRight } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 
 const API = "http://127.0.0.1:8000/api";
@@ -151,13 +151,20 @@ function DetailedProgress() {
         updatedEntries.push({ id: a.id, title: a.title, course: a.course, status: a.status, priority: a.priority, progress: a.progress, dueDate: a.dueDate, notes: a.notes || "" });
       });
     });
-    // Keep assignments from other weeks, update ones we touched
-    const finalAssignments = [
-      ...updatedEntries,
-      ...allAssignments.filter(a => !updatedIds.has(a.id))
-    ];
+    // Merge: update progress/fields for touched assignments, keep everything else as-is
+    const finalAssignments = allAssignments.map(a => {
+      if (updatedIds.has(a.id)) {
+        const updated = updatedEntries.find(u => u.id === a.id);
+        return updated ? { ...a, ...updated } : a;
+      }
+      return a;
+    });
+    // Also add any brand-new entries not previously in upcomingAssignments
+    updatedEntries.forEach(u => {
+      if (!allAssignments.find(a => a.id === u.id)) finalAssignments.push(u);
+    });
     localStorage.setItem("upcomingAssignments", JSON.stringify(finalAssignments));
-    // note: do NOT dispatch weeklyProgressUpdated here — it would re-fetch and undo the change
+    window.dispatchEvent(new Event("eisenhowerSaved"));
   };
 
   const handleUpdateAssignment = (day, assignmentId, updates) => {
@@ -208,8 +215,18 @@ function DetailedProgress() {
 
   const handleSaveNewAssignment = (day, newAssignment) => {
     const newWeekData = { ...weekData };
-    if (!newWeekData[day]) newWeekData[day] = [];
-    newWeekData[day].push({ id: `manual-${Date.now()}`, ...newAssignment, progress: 0, status: "In Progress" });
+    // Determine the correct day column from dueDate if provided
+    let targetDay = day;
+    if (newAssignment.dueDate) {
+      try {
+        const d = new Date(newAssignment.dueDate + "T12:00:00");
+        const jsDay = d.getDay(); // 0=Sun,1=Mon,...,6=Sat
+        const dayIndex = jsDay === 0 ? 6 : jsDay - 1; // convert to Mon=0,...,Sun=6
+        targetDay = daysOfWeek[dayIndex];
+      } catch {}
+    }
+    if (!newWeekData[targetDay]) newWeekData[targetDay] = [];
+    newWeekData[targetDay].push({ id: `manual-${Date.now()}`, ...newAssignment, progress: 0, status: "In Progress" });
     updateWeekData(newWeekData);
     setAddingToDay(null);
   };
@@ -358,6 +375,7 @@ function DetailedProgress() {
                           onSave={(updates) => handleUpdateAssignment(day, assignment.id, updates)}
                           onCancel={() => setEditingAssignment(null)}
                           onDelete={() => handleDeleteAssignment(day, assignment.id)}
+                          onDeepWork={() => navigate(`/deep-work?id=${assignment.id}`)}
                         />
                       );
                     })}
@@ -383,7 +401,7 @@ function DetailedProgress() {
 }
 
 // ── AssignmentCard ─────────────────────────────────────────────────────────
-function AssignmentCard({ assignment, day, isEditing, isPinned, pinnedRef, statusColors, priorityColors, onEdit, onSave, onCancel, onDelete }) {
+function AssignmentCard({ assignment, day, isEditing, isPinned, pinnedRef, statusColors, priorityColors, onEdit, onSave, onCancel, onDelete, onDeepWork }) {
   const [editData, setEditData] = useState({ ...assignment });
 
   if (isEditing) {
@@ -496,6 +514,25 @@ function AssignmentCard({ assignment, day, isEditing, isPinned, pinnedRef, statu
               </div>
             </div>
           </div>
+
+          {/* Deep Work button */}
+          {onDeepWork && (
+            <button onClick={onDeepWork}
+              className="w-full flex items-center justify-between px-4 py-2.5 rounded-xl mb-3 transition-all hover:shadow-md group"
+              style={{ background: "linear-gradient(135deg, #f3e5f5, #fce4ec)", border: "1px solid rgba(179,157,219,0.3)" }}>
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
+                  style={{ background: "linear-gradient(135deg, #b39ddb, #f8bbd0)" }}>
+                  <Brain className="h-3.5 w-3.5 text-white" />
+                </div>
+                <div className="text-left">
+                  <p className="text-xs font-semibold" style={{ color: "#5a4a61" }}>Deep Work — Subtask AI Help</p>
+                  <p className="text-[10px]" style={{ color: "#9575a3" }}>View all subtasks & get step-by-step AI guidance</p>
+                </div>
+              </div>
+              <ChevronRight className="h-4 w-4 group-hover:translate-x-0.5 transition-transform flex-shrink-0" style={{ color: "#b39ddb" }} />
+            </button>
+          )}
 
           <div className="space-y-1">
             <div className="flex items-center justify-between">

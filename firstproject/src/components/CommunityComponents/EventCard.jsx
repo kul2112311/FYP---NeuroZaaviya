@@ -19,7 +19,7 @@ export function EventCard({ event, onViewDetails, isAdmin }) {
         <span className="bg-[#B39DDB]/10 text-[#5A4A61] px-3 py-1 rounded-full text-sm font-bold">
           {event.tag}
         </span>
-        <span className="text-[#e91e8c] font-semibold text-xs bg-pink-50 px-2 py-1 rounded-lg">
+        <span className="text-[#5A4A61] font-semibold text-xs bg-pink-50 px-2 py-1 rounded-lg">
           {daysLeft === 0 ? "Today" : `In ${daysLeft} days`}
         </span>
       </div>
@@ -46,21 +46,21 @@ export function EventCard({ event, onViewDetails, isAdmin }) {
 
       {/* Capacity Bar */}
       <div className="mb-4">
-        <div className="flex items-center justify-between mb-1 text-xs font-bold text-gray-400 uppercase">
+        {/* <div className="flex items-center justify-between mb-1 text-xs font-bold text-gray-400 uppercase">
           <span>Capacity</span>
           <span>{Math.round((event.attendees / event.capacity) * 100)}%</span>
-        </div>
-        <div className="w-full bg-gray-100 h-1.5 rounded-full">
+        </div> */}
+        {/* <div className="w-full bg-gray-100 h-1.5 rounded-full">
           <div 
             className="bg-[#B39DDB] h-1.5 rounded-full" 
             style={{ width: `${(event.attendees / event.capacity) * 100}%` }}
           ></div>
-        </div>
+        </div> */}
       </div>
 
       <button 
         onClick={onViewDetails}
-        className="w-full bg-gradient-to-r from-[#B39DDB] to-[#F8BBD0] text-white py-2.5 rounded-full font-bold hover:shadow-lg transition-all flex items-center justify-center gap-2 active:scale-95"
+        className="w-full bg-[#B39DDB] text-white py-2.5 rounded-full font-bold hover:shadow-lg transition-all flex items-center justify-center gap-2 active:scale-95"
       >
         <Eye size={18} />
         {isAdmin ? "Edit Details" : "View Details"}
@@ -98,13 +98,13 @@ export function EventModal({ event, onClose }) {
             <InfoBox icon={<Calendar />} label="Date" value={event.date} />
             <InfoBox icon={<Clock />} label="Time" value={event.time} />
             <InfoBox icon={<MapPin />} label="Location" value={event.location} />
-            <InfoBox 
+            {/* <InfoBox 
               icon={<Users />} 
               label="Capacity" 
               value={`${event.attendees} / ${event.capacity} Registered`} 
               showProgress 
               percent={(event.attendees / event.capacity) * 100} 
-            />
+            /> */}
           </div>
 
           {/* Requirements Section - Labels are bold, content is regular */}
@@ -126,7 +126,7 @@ export function EventModal({ event, onClose }) {
           </div>
 
           {/* Footer Contact */}
-          <div className="bg-[#B39DDB]/40 rounded-3xl p-8 text-[]#5A4A61]">
+          <div className="bg-[#E1BEE7]/40 rounded-3xl p-8 text-[#5A4A61]">
             <h3 className="font-bold mb-4  uppercase tracking-widest text-xs">Help & Support</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm font-normal">
               <div>
