@@ -486,24 +486,28 @@ export function AITaskResultsPage({ taskData, onBack, onEditPrompt }) {
   const [currentWeek, setCurrentWeek] = useState(0);
   const [draggedSubtask, setDraggedSubtask] = useState(null);
   const [scheduledSubtasks, setScheduledSubtasks] = useState({});
-  const [editingKey, setEditingKey] = useState(null);
+  // Edit modal state
+  const [editingKey, setEditingKey] = useState(null); 
   const [editForm, setEditForm] = useState({});
 
-  const aiSubtasks = taskData?.aiResult?.subtasks?.length > 0
-    ? taskData.aiResult.subtasks
-    : [
-        { id: "st1", title: "Research and gather information", duration: "45min", estimated_minutes: 45 },
-        { id: "st2", title: "Create an outline", duration: "30min", estimated_minutes: 30 },
-        { id: "st3", title: "Draft initial version", duration: "120min", estimated_minutes: 120 },
-        { id: "st4", title: "Review and refine", duration: "60min", estimated_minutes: 60 },
-        { id: "st5", title: "Final polish and submission", duration: "30min", estimated_minutes: 30 },
-      ];
+  const [aiSubtasks, setAiSubtasks] = useState(() => {
+    if (taskData && taskData.aiResult && taskData.aiResult.tasks) {
+      return taskData.aiResult.tasks.map((task, index) => ({
+        id: `st-${index}`,
+        title: task.title,
+        duration: `${task.duration_minutes}min`,
+        estimated_minutes: task.duration_minutes,
+        ai_detail: task.ai_detail 
+      }));
+    }
+    return []; 
+  });
 
   const quadrants = [
-    { id: "do-now",   title: "Do Now",    subtitle: "Urgent & Important",        icon: Flame,    iconColor: "#ef4444" },
-    { id: "schedule", title: "Schedule",  subtitle: "Important, Not Urgent",     icon: Target,   iconColor: "#3b82f6" },
-    { id: "delegate", title: "Delegate",  subtitle: "Urgent, Not Important",     icon: Zap,      iconColor: "#eab308" },
-    { id: "defer",    title: "Defer",     subtitle: "Not Urgent, Not Important", icon: ListTodo, iconColor: "#22c55e" },
+    { id: "do_now",   title: "Do Now",    subtitle: "Urgent & Important",       icon: Flame,    iconColor: "#ef4444" },
+    { id: "schedule", title: "Schedule",  subtitle: "Important, Not Urgent",    icon: Target,   iconColor: "#3b82f6" },
+    { id: "delegate", title: "Delegate",  subtitle: "Urgent, Not Important",    icon: Zap,      iconColor: "#eab308" },
+    { id: "defer",    title: "Defer",     subtitle: "Not Urgent, Not Important", icon: ListTodo, iconColor: "#22c55e" }
   ];
 
   const getWeekDates = () => {
@@ -571,40 +575,65 @@ export function AITaskResultsPage({ taskData, onBack, onEditPrompt }) {
     return "Low Priority";
   };
 
-  const handleConfirmAndAdd = () => {
+  const handleConfirmAndAdd = async () => {
+    console.log("🟢 1. Save button clicked");
     if (!selectedQuadrant || !dueDate) {
       setErrorMessage("Please select a priority quadrant and due date");
       setShowErrorModal(true);
       return;
     }
     try {
-      const taskId = `ai-task-${Date.now()}`;
-      const priority = getPriority(selectedQuadrant);
-      const newEntries = aiSubtasks.map((subtask, index) => {
-        const sched = scheduledSubtasks[subtask.id];
-        return {
-          id: `${taskId}-${index}`,
-          title: sched?.title || subtask.title,
-          course: taskData?.originalPrompt ? taskData.originalPrompt.slice(0, 40) : "AI Breakdown",
-          status: "In Progress", priority, progress: 0,
-          dueDate: sched?.date || dueDate,
-          time: sched?.time || "",
-          duration: sched?.duration || subtask.duration,
-          notes: `Estimated: ${sched?.duration || subtask.duration}`,
-          createdAt: new Date().toISOString(),
-          source: "ai-breakdown",
-        };
+      console.log("🟢 2. Building Payload...");
+      const payload = {
+        studentId: "a1111111-1111-1111-1111-111111111111", // Forced Ushna's ID directly to prevent context errors
+        title: taskData?.taskPrompt ? taskData.taskPrompt.substring(0, 50) + "..." : "AI Task Breakdown",
+        description: taskData?.taskPrompt || "Generated via AI Agent",
+        dueDate: dueDate,
+        quadrant: selectedQuadrant,
+        subtasks: aiSubtasks.map(subtask => {
+          const sched = scheduledSubtasks[subtask.id];
+          return {
+            title: sched?.title || subtask.title,
+            description: subtask.ai_detail || "Follow AI instructions",
+            estimated_time_minutes: sched?.estimated_minutes || subtask.estimated_minutes,
+            scheduled_date: sched?.date || null,
+            scheduled_start_time: sched?.time || null
+          };
+        })
+      };
+
+      console.log("🟢 3. Payload built successfully:", payload);
+      console.log("🟢 4. Sending fetch request to backend...");
+
+      const response = await fetch("http://127.0.0.1:5000/api/tasks/ai-breakdown", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
       });
-      const existing = localStorage.getItem("upcomingAssignments");
-      const all = existing ? JSON.parse(existing) : [];
-      localStorage.setItem("upcomingAssignments", JSON.stringify([...all, ...newEntries]));
+
+      console.log("🟢 5. Received response. Status:", response.status);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("🔴 Backend Error:", errorText);
+        throw new Error(`Backend Status ${response.status}: ${errorText}`);
+      }
+
+      console.log("🟢 6. Save successful!");
+      
       if (typeof addPoints === "function") addPoints(20, "Completed AI task breakdown");
       if (typeof updateStreak === "function") updateStreak();
-      window.dispatchEvent(new Event("eisenhowerSaved"));
+
       setShowSuccessToast(true);
-      setTimeout(() => { setShowSuccessToast(false); navigate("/"); }, 2000);
+      setTimeout(() => { 
+        setShowSuccessToast(false); 
+        navigate("/"); 
+      }, 2000);
+
     } catch (error) {
-      setErrorMessage("There was an error saving your task. Please try again.");
+      console.error("🔴 7. CATCH BLOCK TRIGGERED:", error);
+      // 🔥 THIS WILL NOW SHOW THE EXACT ERROR ON YOUR SCREEN
+      setErrorMessage(`DEBUG INFO: ${error.message}`);
       setShowErrorModal(true);
     }
   };
@@ -732,7 +761,10 @@ export function AITaskResultsPage({ taskData, onBack, onEditPrompt }) {
                                       <button onClick={() => openEdit(subtaskId)} className="w-4 h-4 rounded flex items-center justify-center hover:opacity-80" style={{ background: "#c5cae9" }}>
                                         <Edit2 className="h-2.5 w-2.5" style={{ color: "#283593" }} />
                                       </button>
-                                      <button onClick={() => removeScheduled(subtaskId)} className="w-4 h-4 rounded flex items-center justify-center hover:opacity-80" style={{ background: "#ffe0b2" }}>
+                                      <button onClick={() => removeScheduled(subtaskId)}
+                                        className="w-4 h-4 rounded flex items-center justify-center hover:opacity-80"
+                                        title="Unschedule"
+                                        style={{ background: "#ffe0b2" }}>
                                         <RotateCcw className="h-2.5 w-2.5" style={{ color: "#e65100" }} />
                                       </button>
                                     </div>
@@ -789,21 +821,21 @@ export function AITaskResultsPage({ taskData, onBack, onEditPrompt }) {
             </div>
 
             <button onClick={handleConfirmAndAdd} disabled={!selectedQuadrant || !dueDate}
-              className="w-full h-12 rounded-2xl text-white font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg flex items-center justify-center gap-2"
+              className="w-full h-12 rounded-2xl text-white font-medium transition-all hover:shadow-lg flex items-center justify-center gap-2"
               style={{ background: (!selectedQuadrant || !dueDate) ? "#e1bee7" : "#b39ddb" }}>
               <Save className="h-4 w-4" /> Save to Calendar
             </button>
 
             {/* <div className="text-xs p-3 rounded-lg" style={{ background: "#fffbeb", color: "#92400e" }}>
               ✓ {Object.keys(scheduledSubtasks).length}/{aiSubtasks.length} scheduled<br />
-              ✓ All appear in Calendar, Upcoming Assignments &amp; Weekly Progress
-            </div> */}
+              ✓ All appear in Calendar & Weekly Progress
+            </div>
 
             {onEditPrompt && (
               <button onClick={onEditPrompt} className="w-full py-2 text-xs flex items-center justify-center gap-2 hover:opacity-80" style={{ color: "#9575a3" }}>
                 <RotateCcw className="h-3.5 w-3.5" /> Edit Prompt
               </button>
-            )}
+            )} */}
           </div>
         </div>
 
@@ -836,13 +868,6 @@ export function AITaskResultsPage({ taskData, onBack, onEditPrompt }) {
                     className="w-full px-3 py-2 rounded-xl text-sm focus:outline-none"
                     style={{ background: "#fdf7fd", border: "1px solid rgba(179,157,219,0.3)", color: "#5a4a61" }} />
                 </div>
-                <div>
-                  <label className="text-xs font-medium block mb-1" style={{ color: "#9575a3" }}>Duration</label>
-                  <input value={editForm.duration} onChange={e => setEditForm({ ...editForm, duration: e.target.value })}
-                    placeholder="e.g. 45min"
-                    className="w-full px-3 py-2 rounded-xl text-sm focus:outline-none"
-                    style={{ background: "#fdf7fd", border: "1px solid rgba(179,157,219,0.3)", color: "#5a4a61" }} />
-                </div>
                 <div className="flex gap-2 pt-1">
                   <button onClick={() => setEditingKey(null)} className="flex-1 py-2 rounded-xl text-sm font-medium" style={{ background: "#f3e5f5", color: "#9575a3" }}>Cancel</button>
                   <button onClick={saveEdit} className="flex-1 py-2 rounded-xl text-sm font-medium text-white" style={{ background: "#b39ddb" }}>Save Changes</button>
@@ -855,11 +880,13 @@ export function AITaskResultsPage({ taskData, onBack, onEditPrompt }) {
         {/* Error Modal */}
         {showErrorModal && (
           <div className="fixed inset-0 flex items-center justify-center z-50" style={{ background: "rgba(0,0,0,0.5)" }}>
-            <div className="bg-white px-8 py-6 rounded-3xl shadow-2xl flex flex-col items-center gap-4" style={{ maxWidth: "400px" }}>
+            <div className="bg-white px-8 py-6 rounded-3xl shadow-2xl flex flex-col items-center gap-4" style={{ maxWidth: "500px" }}>
               <AlertTriangle className="h-12 w-12" style={{ color: "#ef4444" }} />
-              <div className="text-center">
-                <div className="text-lg font-semibold mb-1" style={{ color: "#5a4a61" }}>Missing Info</div>
-                <div className="text-sm" style={{ color: "#9575a3" }}>{errorMessage}</div>
+              <div className="text-center w-full">
+                <div className="text-lg font-semibold mb-1" style={{ color: "#5a4a61" }}>Save Failed</div>
+                <div className="text-sm p-3 rounded-lg text-left overflow-auto" style={{ background: "#fee2e2", color: "#991b1b", maxHeight: "150px" }}>
+                  {errorMessage}
+                </div>
               </div>
               <button onClick={() => setShowErrorModal(false)} className="px-6 py-2 rounded-full text-white font-medium" style={{ background: "#b39ddb" }}>OK</button>
             </div>

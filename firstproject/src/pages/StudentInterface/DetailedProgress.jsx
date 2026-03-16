@@ -60,65 +60,56 @@ function DetailedProgress() {
 
   const fetchWeekData = async () => {
     try {
-      const upcomingAssignments = localStorage.getItem("upcomingAssignments");
-      let assignmentsFromCalendar = [];
-      if (upcomingAssignments) {
-        try { assignmentsFromCalendar = JSON.parse(upcomingAssignments); } catch (e) {}
-      }
+      setLoading(true);
+      
+      // 1. Fetch all tasks from your real database (Using Ushna's ID)
+      const userId = "a1111111-1111-1111-1111-111111111111";
+      const response = await fetch(`http://127.0.0.1:5000/api/tasks/upcoming/${userId}`);
+      const assignmentsFromDB = response.ok ? await response.json() : [];
 
-      const token = localStorage.getItem("token");
-      let apiData = null;
-      if (token) {
-        try {
-          const response = await fetch(`${API}/assignments/weekly/`, {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-          if (response.ok) apiData = await response.json();
-        } catch (err) {}
-      }
-
-      let mergedWeekData = { ...mockWeekData };
+      let mergedWeekData = { Mon: [], Tue: [], Wed: [], Thu: [], Fri: [], Sat: [], Sun: [] };
       const today = new Date();
-      // Week runs Mon–Sun. (getDay()+6)%7 gives 0=Mon,1=Tue,...,6=Sun
+      
+      // Calculate the start and end of the currently selected week
       const startOfTargetWeek = new Date(today);
       startOfTargetWeek.setDate(today.getDate() - (today.getDay() + 6) % 7 + currentWeekOffset * 7);
       startOfTargetWeek.setHours(0, 0, 0, 0);
       const endOfTargetWeek = new Date(startOfTargetWeek.getTime() + 7 * 24 * 60 * 60 * 1000);
 
-      assignmentsFromCalendar.forEach(assignment => {
+      // 2. Loop through DB tasks and sort them into the correct days
+      assignmentsFromDB.forEach(assignment => {
         if (assignment.dueDate) {
           try {
             const assignmentDate = new Date(assignment.dueDate + "T12:00:00");
+            
+            // If the task falls within the week we are looking at...
             if (assignmentDate >= startOfTargetWeek && assignmentDate < endOfTargetWeek) {
               const dayOfWeek = assignmentDate.getDay();
-              // Sunday=0 in JS, but our array is Mon-Sun, so: Mon=1→0, Tue=2→1, ..., Sun=0→6
-              const dayIndex = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+              const dayIndex = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // Convert Sunday to end of week
               const day = daysOfWeek[dayIndex];
+
               if (!mergedWeekData[day]) mergedWeekData[day] = [];
-              const existingIndex = mergedWeekData[day].findIndex(a => a.id === assignment.id);
-              const entry = {
+              
+              mergedWeekData[day].push({
                 id: assignment.id,
                 title: assignment.title,
-                course: assignment.course || "Assignment",
-                status: assignment.status || "In Progress",
-                priority: assignment.priority || "Medium Priority",
+                course: assignment.category || "Assignment",
+                status: assignment.status === "completed" ? "Completed" : "In Progress",
+                priority: assignment.priority,
                 progress: assignment.progress || 0,
                 dueDate: assignment.dueDate,
-                notes: assignment.notes || ""
-              };
-              if (existingIndex === -1) mergedWeekData[day].push(entry);
-              else mergedWeekData[day][existingIndex] = entry;
+                notes: assignment.description || ""
+              });
             }
           } catch (e) {}
         }
       });
 
-      if (apiData) mergedWeekData = apiData;
       setWeekData(mergedWeekData);
       setError(null);
     } catch (err) {
-      setWeekData(mockWeekData);
-      setError(null);
+      console.error("Failed to load weekly progress from DB:", err);
+      setWeekData({ Mon: [], Tue: [], Wed: [], Thu: [], Fri: [], Sat: [], Sun: [] });
     } finally {
       setLoading(false);
     }

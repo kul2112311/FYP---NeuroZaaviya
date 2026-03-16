@@ -54,7 +54,7 @@ function StepChat({ step, stepIndex, totalSteps, parentTitle, allSteps }) {
         .map((s, i) => `  Step ${i + 1}: ${s.title}${s.duration && s.duration !== "—" ? ` (${s.duration})` : ""}`)
         .join("\n");
 
-      const systemPrompt = `You are a warm, supportive AI learning guide helping a student work through their assignment step by step.
+      const systemPrompt = `You are a warm, supportive AI learning guide helping a neurodivergent student work through their assignment step by step.
 
 Parent Assignment: "${parentTitle}"
 All Steps in this assignment:
@@ -72,27 +72,29 @@ Your rules:
 - You can reference how this step connects to other steps in the assignment
 - Help them see the big picture of the whole assignment while focusing on this step`;
 
-      const response = await fetch("https://api.anthropic.com/v1/messages", {
+      // 🚀 Now calling your local backend instead of the blocked external API
+      const response = await fetch("http://127.0.0.1:5000/api/ai/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          model: "claude-sonnet-4-20250514",
-          max_tokens: 300,
-          system: systemPrompt,
-          messages: newMessages.map((m) => ({
-            role: m.role === "assistant" ? "assistant" : "user",
-            content: m.text,
-          })),
+          systemPrompt: systemPrompt,
+          messages: newMessages
         }),
       });
 
       const data = await response.json();
-      const reply = data.content?.[0]?.text || "Great question! What do you already know about this topic? Let's build from there 🌱";
-      setMessages((prev) => [...prev, { role: "assistant", text: reply }]);
-    } catch {
+      
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to fetch response");
+      }
+
+      setMessages((prev) => [...prev, { role: "assistant", text: data.reply }]);
+      
+    } catch (error) {
+      console.error("Chat Error:", error);
       setMessages((prev) => [
         ...prev,
-        { role: "assistant", text: "Let me think with you on this! 🌟 What part of this step feels most challenging right now?" },
+        { role: "assistant", text: "Oops, my circuits got crossed! Could you try asking that again? 🌟" },
       ]);
     } finally {
       setLoading(false);
@@ -172,99 +174,60 @@ export default function DeepWorkSession() {
   const [completedSteps, setCompletedSteps] = useState(new Set());
 
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem("upcomingAssignments");
-      const all = raw ? JSON.parse(raw) : [];
-      const clicked = all.find((a) => String(a.id) === String(clickedId));
-      if (!clicked) return;
+    if (!clickedId) return;
 
-      let parent = null;
-      let siblings = [];
+    const fetchSessionData = async () => {
+      try {
+        // Fetch real data from your backend
+        const response = await fetch(`http://127.0.0.1:5000/api/session/${clickedId}`);
+        if (!response.ok) throw new Error("Failed to fetch session");
+        const data = await response.json();
 
-      // ── AI Breakdown siblings share base ID prefix ──
-      if (clicked.source === "ai-breakdown") {
-        const baseId = clicked.id.replace(/-\d+$/, "");
-        siblings = all
-          .filter((a) => a.source === "ai-breakdown" && a.id.startsWith(baseId))
-          .sort((a, b) => (parseInt(a.id.split("-").pop()) || 0) - (parseInt(b.id.split("-").pop()) || 0));
+        setParentTask(data.parentTask);
+        setAllSubtasks(data.subtasks);
 
-        // Synthetic parent: use course field as the parent title
-        const mainDue = siblings.reduce((latest, s) => (!latest || s.dueDate > latest ? s.dueDate : latest), null);
-        parent = {
-          id: baseId,
-          title: clicked.course || clicked.title,
-          dueDate: mainDue,
-          priority: clicked.priority,
-          isVirtual: true,
-        };
+        const done = new Set();
+        data.subtasks.forEach((s, i) => {
+          if (s.progress >= 100 || s.isCompleted) done.add(i);
+        });
+        setCompletedSteps(done);
+
+        // Figure out which step to jump to automatically
+        const cleanClickedId = clickedId.replace('sub-', '');
+        const clickedIdx = data.subtasks.findIndex((s) => String(s.id) === String(cleanClickedId));
+        
+        const startAt = clickedIdx !== -1 ? clickedIdx : 0;
+        const firstIncomplete = data.subtasks.findIndex((_, i) => !done.has(i));
+        setActiveStep(done.has(startAt) && firstIncomplete !== -1 ? firstIncomplete : startAt);
+      } catch (e) {
+        console.error("DeepWork load error:", e);
       }
+    };
 
-      // ── Eisenhower: subtasks live in eisenhowerTasks ──
-      else if (clicked.source === "eisenhower" || clicked.subtasksTotal > 0) {
-        const eRaw = localStorage.getItem("eisenhowerTasks");
-        const eTasks = eRaw ? JSON.parse(eRaw) : [];
-        const eTask = eTasks.find((t) => String(t.id) === String(clicked.id));
-        if (eTask?.subtasks?.length > 0) {
-          parent = { ...clicked };
-          siblings = eTask.subtasks.map((s) => ({
-            id: s.id,
-            title: s.text,
-            duration: "—",
-            notes: "",
-            progress: s.completed ? 100 : 0,
-            eisenhowerCompleted: s.completed,
-            parentId: clicked.id,
-          }));
-        }
-      }
-
-      // ── Fallback: single step ──
-      if (!parent || siblings.length === 0) {
-        parent = clicked;
-        siblings = [clicked];
-      }
-
-      setParentTask(parent);
-      setAllSubtasks(siblings);
-
-      const done = new Set();
-      siblings.forEach((s, i) => {
-        if ((s.progress ?? 0) >= 100 || s.eisenhowerCompleted) done.add(i);
-      });
-      setCompletedSteps(done);
-
-      // Start on the clicked subtask, or first incomplete
-      const clickedIdx = siblings.findIndex((s) => String(s.id) === String(clickedId));
-      const startAt = clickedIdx !== -1 ? clickedIdx : 0;
-      const firstIncomplete = siblings.findIndex((_, i) => !done.has(i));
-      setActiveStep(done.has(startAt) && firstIncomplete !== -1 ? firstIncomplete : startAt);
-    } catch (e) {
-      console.error("DeepWork load error:", e);
-    }
+    fetchSessionData();
   }, [clickedId]);
 
-  const markStepDone = (index) => {
+  const markStepDone = async (index) => {
     const newDone = new Set(completedSteps);
     newDone.add(index);
     setCompletedSteps(newDone);
 
-    try {
-      const raw = localStorage.getItem("upcomingAssignments");
-      const all = raw ? JSON.parse(raw) : [];
-      const stepId = allSubtasks[index]?.id;
-      let updated = all.map((a) =>
-        String(a.id) === String(stepId) ? { ...a, progress: 100, status: "Completed" } : a
-      );
-      if (parentTask && !parentTask.isVirtual) {
-        const pct = Math.round((newDone.size / allSubtasks.length) * 100);
-        updated = updated.map((a) =>
-          String(a.id) === String(parentTask.id) ? { ...a, progress: pct } : a
-        );
-      }
-      localStorage.setItem("upcomingAssignments", JSON.stringify(updated));
-      window.dispatchEvent(new Event("eisenhowerSaved"));
-    } catch {}
+    const stepId = allSubtasks[index]?.id;
+    
+    // Update UI instantly
+    setAllSubtasks(prev => prev.map((s, i) => i === index ? { ...s, progress: 100, isCompleted: true } : s));
 
+    try {
+      // Send completion status to the backend
+      await fetch(`http://127.0.0.1:5000/api/subtasks/${stepId}/complete`, { method: 'PUT' });
+      
+      // Ping the rest of the app to refresh (like the Dashboard)
+      window.dispatchEvent(new Event("eisenhowerSaved"));
+    } catch (err) {
+      console.error("Failed to save completion:", err);
+    }
+
+    // Auto-advance to the next incomplete step
     const next = allSubtasks.findIndex((_, i) => i > index && !newDone.has(i));
     if (next !== -1) setActiveStep(next);
   };

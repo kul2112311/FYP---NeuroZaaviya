@@ -3,8 +3,8 @@ import { Calendar, Clock, Send, Loader } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 function PendingFeedback() {
-  // Sarah Ahmed's user ID
-  const PEER_USER_ID = "a2222222-2222-2222-2222-222222222222";
+  // ✅ FIXED: Changed to Sarah Ahmed's actual Focus Peer ID
+  const PEER_USER_ID = "b1111111-1111-1111-1111-111111111111";
   
   const navigate = useNavigate();
   const [pendingSessions, setPendingSessions] = useState([]);
@@ -17,7 +17,8 @@ function PendingFeedback() {
   const fetchPendingSessions = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch(`http://localhost:5000/api/pending-feedback/${PEER_USER_ID}`);
+      // ✅ FIXED: Changed localhost to 127.0.0.1
+      const response = await fetch(`http://127.0.0.1:5000/api/pending-feedback/${PEER_USER_ID}`);
       const data = await response.json();
       
       console.log('⏳ Pending feedback sessions:', data);

@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Clock, X, Plus, Loader } from 'lucide-react';
 
 function Schedule() {
-  // Sarah Ahmed's user ID
-  const PEER_USER_ID = "a2222222-2222-2222-2222-222222222222";
+  // ✅ FIXED: Now using Sarah Ahmed's real Focus Peer ID
+  const PEER_USER_ID = "b1111111-1111-1111-1111-111111111111";
   
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedDay, setSelectedDay] = useState('Monday');
@@ -18,7 +18,6 @@ function Schedule() {
 
   const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
   
-  // Day name to number mapping (0=Sunday, 6=Saturday)
   const dayToNumber = {
     'Sunday': 0, 'Monday': 1, 'Tuesday': 2, 'Wednesday': 3,
     'Thursday': 4, 'Friday': 5, 'Saturday': 6
@@ -29,7 +28,6 @@ function Schedule() {
     4: 'Thursday', 5: 'Friday', 6: 'Saturday'
   };
 
-  // 24-hour time options for backend compatibility
   const timeOptions = [
     '08:00', '08:30', '09:00', '09:30', '10:00', '10:30',
     '11:00', '11:30', '12:00', '12:30', '13:00', '13:30',
@@ -37,7 +35,6 @@ function Schedule() {
     '17:00', '17:30', '18:00', '18:30', '19:00', '19:30', '20:00'
   ];
 
-  // Convert 24h to 12h format for display
   const formatTime12h = (time24) => {
     const [hours, minutes] = time24.split(':');
     const hour = parseInt(hours);
@@ -46,7 +43,6 @@ function Schedule() {
     return `${hour12}:${minutes} ${ampm}`;
   };
 
-  // Fetch schedule from backend
   useEffect(() => {
     fetchSchedule();
   }, []);
@@ -54,12 +50,10 @@ function Schedule() {
   const fetchSchedule = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch(`http://localhost:5000/api/peer-schedule/${PEER_USER_ID}`);
+      const response = await fetch(`http://127.0.0.1:5000/api/peer-schedule/${PEER_USER_ID}`);
+      if (!response.ok) throw new Error("Failed to fetch");
       const data = await response.json();
       
-      console.log('📅 Fetched schedule:', data);
-      
-      // Organize by day
       const organized = {
         Monday: [], Tuesday: [], Wednesday: [], Thursday: [],
         Friday: [], Saturday: [], Sunday: []
@@ -75,9 +69,9 @@ function Schedule() {
       });
       
       setSchedule(organized);
-      setIsLoading(false);
     } catch (error) {
       console.error("Error fetching schedule:", error);
+    } finally {
       setIsLoading(false);
     }
   };
@@ -85,7 +79,6 @@ function Schedule() {
   const handleAddSlot = async () => {
     if (!selectedDay || !startTime || !endTime) return;
     
-    // Validate end time is after start time
     if (startTime >= endTime) {
       alert("End time must be after start time!");
       return;
@@ -94,7 +87,7 @@ function Schedule() {
     setIsSaving(true);
     
     try {
-      const response = await fetch('http://localhost:5000/api/peer-schedule', {
+      const response = await fetch('http://127.0.0.1:5000/api/peer-schedule', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -107,9 +100,7 @@ function Schedule() {
 
       if (response.ok) {
         const newSlot = await response.json();
-        console.log('✅ Slot added:', newSlot);
         
-        // Update local state
         setSchedule(prev => ({
           ...prev,
           [selectedDay]: [...prev[selectedDay], {
@@ -139,14 +130,11 @@ function Schedule() {
     if (!confirm("Are you sure you want to remove this time slot?")) return;
     
     try {
-      const response = await fetch(`http://localhost:5000/api/peer-schedule/${slotId}`, {
+      const response = await fetch(`http://127.0.0.1:5000/api/peer-schedule/${slotId}`, {
         method: 'DELETE'
       });
 
       if (response.ok) {
-        console.log('✅ Slot removed');
-        
-        // Update local state
         setSchedule(prev => ({
           ...prev,
           [day]: prev[day].filter((_, i) => i !== index)
@@ -164,63 +152,58 @@ function Schedule() {
   if (isLoading) {
     return (
       <div className="max-w-4xl mx-auto p-6 flex items-center justify-center">
-        <Loader className="animate-spin" size={32} />
-        <span className="ml-2">Loading schedule...</span>
+        <Loader className="animate-spin text-purple-500" size={32} />
+        <span className="ml-2 text-gray-600">Loading schedule...</span>
       </div>
     );
   }
 
   return (
-    
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 px-[20.8px] pt-[20.8px] pb-[0.8px]">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-semibold text-gray-800">
-            Your Availability Schedule
-          </h2>
-          <button
-            onClick={() => setIsModalOpen(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-[#B39DDB] hover:bg-[#9575CD] text-white rounded-lg transition-colors"
-          >
-            <Plus size={18} />
-            Add Time Slot
-          </button>
-        </div>
+    <div className="bg-white rounded-lg shadow-sm border border-gray-200 px-[20.8px] pt-[20.8px] pb-[0.8px]">
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-xl font-semibold text-gray-800">
+          Your Availability Schedule
+        </h2>
+        <button
+          onClick={() => setIsModalOpen(true)}
+          className="flex items-center gap-2 px-4 py-2 bg-[#B39DDB] hover:bg-[#9575CD] text-white rounded-lg transition-colors"
+        >
+          <Plus size={18} />
+          Add Time Slot
+        </button>
+      </div>
 
-        {/* Schedule List */}
-        <div className="space-y-4">
-          {days.map(day => (
-            <div key={day} className="border-b border-gray-200 pb-4 last:border-b-0">
-              <h3 className="font-semibold text-gray-700 mb-2">{day}</h3>
-              
-              {schedule[day].length === 0 ? (
-                <p className="text-gray-400 italic text-sm">No availability set</p>
-              ) : (
-                <div className="flex flex-wrap gap-2">
-                  {schedule[day].map((slot, index) => (
-                    <div
-                      key={slot.id || index}
-                      className="flex items-center gap-2 px-3 py-1.5 bg-purple-50 text-[#B39DDB] rounded-full text-sm border border-purple-200"
+      <div className="space-y-4">
+        {days.map(day => (
+          <div key={day} className="border-b border-gray-200 pb-4 last:border-b-0">
+            <h3 className="font-semibold text-gray-700 mb-2">{day}</h3>
+            
+            {schedule[day].length === 0 ? (
+              <p className="text-gray-400 italic text-sm">No availability set</p>
+            ) : (
+              <div className="flex flex-wrap gap-2">
+                {schedule[day].map((slot, index) => (
+                  <div
+                    key={slot.id || index}
+                    className="flex items-center gap-2 px-3 py-1.5 bg-purple-50 text-[#B39DDB] rounded-full text-sm border border-purple-200"
+                  >
+                    <Clock size={14} />
+                    <span>{formatTime12h(slot.start)} - {formatTime12h(slot.end)}</span>
+                    <button
+                      onClick={() => handleRemoveSlot(day, slot.id, index)}
+                      className="hover:bg-purple-100 rounded-full p-0.5 transition-colors"
+                      title="Remove this time slot"
                     >
-                      <Clock size={14} />
-                      <span>{formatTime12h(slot.start)} - {formatTime12h(slot.end)}</span>
-                      <button
-                        onClick={() => handleRemoveSlot(day, slot.id, index)}
-                        className="hover:bg-purple-100 rounded-full p-0.5 transition-colors"
-                        title="Remove this time slot"
-                      >
-                        <X size={14} />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-     
+                      <X size={14} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
 
-      {/* Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg shadow-lg w-full max-w-md p-6">
@@ -228,56 +211,41 @@ function Schedule() {
               Add Availability Slot
             </h3>
 
-            {/* Day Selector */}
             <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Day
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Day</label>
               <select
                 value={selectedDay}
                 onChange={(e) => setSelectedDay(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#B39DDB] focus:border-transparent"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#B39DDB] focus:outline-none"
               >
-                {days.map(day => (
-                  <option key={day} value={day}>{day}</option>
-                ))}
+                {days.map(day => <option key={day} value={day}>{day}</option>)}
               </select>
             </div>
 
-            {/* Time Selectors */}
             <div className="grid grid-cols-2 gap-4 mb-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Start Time
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Start Time</label>
                 <select
                   value={startTime}
                   onChange={(e) => setStartTime(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#B39DDB] focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#B39DDB] focus:outline-none"
                 >
-                  {timeOptions.map(time => (
-                    <option key={time} value={time}>{formatTime12h(time)}</option>
-                  ))}
+                  {timeOptions.map(time => <option key={time} value={time}>{formatTime12h(time)}</option>)}
                 </select>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  End Time
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">End Time</label>
                 <select
                   value={endTime}
                   onChange={(e) => setEndTime(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#B39DDB] focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#B39DDB] focus:outline-none"
                 >
-                  {timeOptions.map(time => (
-                    <option key={time} value={time}>{formatTime12h(time)}</option>
-                  ))}
+                  {timeOptions.map(time => <option key={time} value={time}>{formatTime12h(time)}</option>)}
                 </select>
               </div>
             </div>
 
-            {/* Action Buttons */}
             <div className="flex gap-3">
               <button
                 onClick={() => setIsModalOpen(false)}
@@ -291,14 +259,7 @@ function Schedule() {
                 disabled={isSaving}
                 className="flex-1 px-4 py-2 bg-[#B39DDB] hover:bg-[#9575CD] text-white rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
               >
-                {isSaving ? (
-                  <>
-                    <Loader size={16} className="animate-spin" />
-                    Adding...
-                  </>
-                ) : (
-                  'Add Slot'
-                )}
+                {isSaving ? <><Loader size={16} className="animate-spin" /> Adding...</> : 'Add Slot'}
               </button>
             </div>
           </div>

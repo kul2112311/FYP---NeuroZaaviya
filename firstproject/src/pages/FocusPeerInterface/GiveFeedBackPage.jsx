@@ -22,7 +22,8 @@ function GiveFeedbackForm() {
 
   const fetchBadges = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/badges');
+      // ✅ FIXED: Changed localhost to 127.0.0.1
+      const response = await fetch('http://127.0.0.1:5000/api/badges');
       const data = await response.json();
       console.log('🏆 Available badges:', data);
       setAvailableBadges(data);
@@ -65,7 +66,8 @@ function GiveFeedbackForm() {
     setIsSubmitting(true);
 
     try {
-      const response = await fetch('http://localhost:5000/api/session-feedback', {
+      // ✅ FIXED: Changed localhost to 127.0.0.1
+      const response = await fetch('http://127.0.0.1:5000/api/session-feedback', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
