@@ -3,7 +3,7 @@ import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom'
 import Community from './pages/shared/CommunityPage.jsx'
 import FocusPeerPage from './pages/StudentInterface/FocusPeerPage.jsx'
 import NavBar, { SideBarItem } from './components/navbar/NavBar.jsx'
-import { LayoutDashboard, BookOpen, Newspaper, Users, Settings, FileText, Folder, CalendarSync, CalendarHeart, CalendarDays, UserPlus } from "lucide-react";
+import { LayoutDashboard, BookOpen, Newspaper, Users, Settings, FileText, Folder, CalendarSync, CalendarHeart, CalendarDays, UserPlus, MessageCircle } from "lucide-react";
 import FocusPeer from './pages/FocusPeerInterface/FocusPeer.jsx';
 import GiveFeedbackForm from './pages/FocusPeerInterface/GiveFeedBackPage.jsx';
 import { UserProvider, useUser } from './usercontext';
@@ -27,6 +27,7 @@ import Accommodations from './pages/OAP/Accommodations.jsx';
 import Files from './pages/OAP/Files.jsx';
 import FocusPeerManagement from './pages/OAP/Focuspeermanagement.jsx';
 import DeepWorkSession from "./pages/StudentInterface/Deepworksession.jsx";
+import ChatPage from "./pages/shared/Chats/ChatPage.jsx";
 
 
 const menuConfig = {
@@ -36,13 +37,16 @@ const menuConfig = {
     { icon: <BookOpen size={20}/>, text: "Resources", to: "/resources" },
     { icon: <Newspaper size={20}/>, text: "Forum", to: "/forum" },
     { icon: <Users size={20}/>, text: "FocusPeer", to: "/focuspeer" },
-    { icon: <CalendarHeart size={20}/>, text: "Events", to: "/events" }
+    { icon: <CalendarHeart size={20}/>, text: "Events", to: "/events" },
+    {icon: <MessageCircle size={20}/>, text: "Chats", to: "/chats"}
   ],
   'focus-peer': [
     { icon: <LayoutDashboard size={20}/>, text: "My Dashboard", to: "/" },
     { icon: <BookOpen size={20}/>, text: "Resources", to: "/resources" },
     { icon: <Newspaper size={20}/>, text: "Forum", to: "/forum" },
-    { icon: <CalendarHeart size={20}/>, text: "Events", to: "/events" }
+    { icon: <CalendarHeart size={20}/>, text: "Events", to: "/events" },
+    {icon: <MessageCircle size={20}/>, text: "Chats", to: "/chats"}
+
   ],
   'wellness-counsellor': [
     { icon: <LayoutDashboard size={20}/>, text: "Dashboard", to: "/" },
@@ -52,7 +56,8 @@ const menuConfig = {
     { icon: <CalendarHeart size={20}/>, text: "Events", to: "/events" },
     { icon: <Users size={20}/>, text: "Focus Peers", to: "/focuspeer-monitor" },
     { icon: <CalendarSync size={20}/>, text: "Scheduling", to: "/scheduling" },
-    { icon: <Newspaper size={20}/>, text: "Forum", to: "/forum" }
+    { icon: <Newspaper size={20}/>, text: "Forum", to: "/forum" },
+    {icon: <MessageCircle size={20}/>, text: "Chats", to: "/chats"}
   ],
   'ehsas-counsellor': [
     { icon: <LayoutDashboard size={20}/>, text: "Dashboard", to: "/" },
@@ -62,7 +67,8 @@ const menuConfig = {
     { icon: <CalendarHeart size={20}/>, text: "Events", to: "/events" },
     { icon: <Users size={20}/>, text: "Focus Peers", to: "/focuspeer-monitor" },
     { icon: <CalendarSync size={20}/>, text: "Scheduling", to: "/scheduling" },
-    { icon: <Newspaper size={20}/>, text: "Forum", to: "/forum" }
+    { icon: <Newspaper size={20}/>, text: "Forum", to: "/forum" },
+    {icon: <MessageCircle size={20}/>, text: "Chats", to: "/chats"}
   ],
   oap: [
     { icon: <LayoutDashboard size={20}/>, text: "Dashboard", to: "/" },
@@ -74,13 +80,15 @@ const menuConfig = {
     { icon: <Newspaper size={20}/>, text: "Forum", to: "/forum" },
     { icon: <CalendarSync size={20}/>, text: "Scheduling", to: "/scheduling" },
     { icon: <FileText size={20}/>, text: "Alerts", to: "/alerts" },
+    {icon: <MessageCircle size={20}/>, text: "Chats", to: "/chats"}
   ],
   professor: [
     { icon: <LayoutDashboard size={20}/>, text: "Dashboard", to: "/" },
     { icon: <BookOpen size={20}/>, text: "Courses", to: "/courses" },
     { icon: <Users size={20}/>, text: "Students", to: "/students" },
     { icon: <Folder size={20}/>, text: "Files", to: "/files" },
-    { icon: <CalendarHeart size={20}/>, text: "Events", to: "/events" }
+    { icon: <CalendarHeart size={20}/>, text: "Events", to: "/events" },
+    {icon: <MessageCircle size={20}/>, text: "Chats", to: "/chats"}
   ]
 };
 
@@ -150,6 +158,7 @@ function AppContent() {
             <Route path="/events" element={<Events />} />
             <Route path="/calendar" element={<SuperCalendarPage />} />
             <Route path="/deep-work" element={<DeepWorkSession />} />
+            <Route path="/chats" element={<ChatPage />} />
           </Routes>
         </div>
       </main>
