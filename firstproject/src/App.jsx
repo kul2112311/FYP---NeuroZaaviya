@@ -21,7 +21,7 @@ import EhsasDashboard from './pages/Wellness/EhsasDashboard.jsx';
 import Student from './pages/shared/Students.jsx';
 import Alert from './pages/shared/Alerts.jsx';
 import Scheduling from './pages/shared/Scheduling.jsx';
-import Events from './pages/shared/Events.jsx';
+import Events, { AdminInterfaceEvent , StudentInterfaceEvents} from './pages/shared/Events.jsx';
 import SuperCalendarPage from './pages/StudentInterface/SuperCalendarPage.jsx';
 import Accommodations from './pages/OAP/Accommodations.jsx';
 import Files from './pages/OAP/Files.jsx';
@@ -155,7 +155,14 @@ function AppContent() {
             <Route path="/focuspeer-management" element={<FocusPeerManagement />} />
             <Route path="/alerts" element={<Alert />} />
             <Route path="/scheduling" element={<Scheduling />} />
-            <Route path="/events" element={<Events />} />
+            <Route 
+  path="/events" 
+  element={
+    user.role === 'oap' || user.role === 'wellness-counsellor' || user.role === 'ehsas-counsellor'
+      ? <AdminInterfaceEvent />
+      : <Events />
+  } 
+/>
             <Route path="/calendar" element={<SuperCalendarPage />} />
             <Route path="/deep-work" element={<DeepWorkSession />} />
             <Route path="/chats" element={<ChatPage />} />
