@@ -156,13 +156,13 @@ function AppContent() {
             <Route path="/alerts" element={<Alert />} />
             <Route path="/scheduling" element={<Scheduling />} />
             <Route 
-  path="/events" 
-  element={
-    user.role === 'oap' || user.role === 'wellness-counsellor' || user.role === 'ehsas-counsellor'
-      ? <AdminInterfaceEvent />
-      : <Events />
-  } 
-/>
+              path="/events" 
+              element={
+                user.role === 'oap' || user.role === 'wellness-counsellor' || user.role === 'ehsas-counsellor'
+                  ? <AdminInterfaceEvent />
+                  : <Events />
+              } 
+            />
             <Route path="/calendar" element={<SuperCalendarPage />} />
             <Route path="/deep-work" element={<DeepWorkSession />} />
             <Route path="/chats" element={<ChatPage />} />
