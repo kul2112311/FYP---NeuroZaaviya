@@ -80,21 +80,55 @@ function ChatHeader({ conversation }) {
 function MessageBubble({ message, isMe }) {
   const { text, timestamp, status, file } = message;
 
+  const handleFileClick = () => {
+    if (file?.url) window.open(file.url, "_blank");
+  };
+
   return (
     <div className={`flex items-end gap-2 ${isMe ? "flex-row-reverse" : "flex-row"}`}>
-      
       <div className={`flex flex-col gap-1 max-w-[60%] ${isMe ? "items-end" : "items-start"}`}>
 
-        {text && (
-        <div className={`px-4 py-2.5 rounded-2xl text-sm leading-relaxed break-all overflow-hidden ${
-            isMe
-            ? "bg-purple-500 text-white rounded-br-sm"
-            : "bg-white border border-purple-100 text-gray-700 rounded-bl-sm shadow-sm"
-        }`}>
-            {text}
-        </div>
+        {/* File attachment */}
+        {file && (
+          <div
+            onClick={handleFileClick}
+            className={`cursor-pointer rounded-2xl overflow-hidden border transition-opacity hover:opacity-80 ${
+              isMe ? "border-purple-400" : "border-purple-100"
+            }`}
+          >
+            {file.type === "image" ? (
+              <img
+                src={file.url}
+                alt={file.name}
+                className="max-w-[200px] max-h-[200px] object-cover block"
+              />
+            ) : (
+              <div className={`flex items-center gap-2 px-3 py-2 ${
+                isMe ? "bg-purple-600" : "bg-white"
+              }`}>
+                <FileText size={16} className={isMe ? "text-purple-200 shrink-0" : "text-purple-400 shrink-0"} />
+                <span className={`text-xs truncate max-w-[160px] ${
+                  isMe ? "text-purple-100" : "text-gray-600"
+                }`}>
+                  {file.name}
+                </span>
+              </div>
+            )}
+          </div>
         )}
 
+        {/* Text */}
+        {text && (
+          <div className={`px-4 py-2.5 rounded-2xl text-sm leading-relaxed break-all overflow-hidden ${
+            isMe
+              ? "bg-purple-500 text-white rounded-br-sm"
+              : "bg-white border border-purple-100 text-gray-700 rounded-bl-sm shadow-sm"
+          }`}>
+            {text}
+          </div>
+        )}
+
+        {/* Timestamp + status */}
         <div className={`flex items-center gap-1 px-1 ${isMe ? "flex-row-reverse" : ""}`}>
           <span className="text-[10px] text-gray-400">{timestamp}</span>
           {isMe && (
@@ -104,7 +138,6 @@ function MessageBubble({ message, isMe }) {
           )}
         </div>
       </div>
-
     </div>
   );
 }
@@ -116,17 +149,17 @@ function MessageInput({ onSend }) {
   const textareaRef = useRef(null);
 
   const handleFileChange = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
+  const file = e.target.files[0];
+  if (!file) return;
 
-    const isImage = file.type.startsWith("image/");
-    setAttachment({
-      file,
-      name: file.name,
-      type: isImage ? "image" : "file",
-      url: isImage ? URL.createObjectURL(file) : null,
-    });
-  };
+  const isImage = file.type.startsWith("image/");
+  setAttachment({
+    file,
+    name: file.name,
+    type: isImage ? "image" : "file",
+    url: URL.createObjectURL(file), // ← create URL for ALL file types, not just images
+  });
+};
 
   const handleSend = () => {
     if (!text.trim() && !attachment) return;
