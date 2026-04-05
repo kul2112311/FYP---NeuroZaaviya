@@ -473,7 +473,7 @@
 import { useState } from "react";
 import { ArrowLeft, Sparkles, Calendar as CalendarIcon, AlertTriangle, Save, CheckCircle, RotateCcw, Flame, Target, Zap, ListTodo, Check, ChevronLeft, ChevronRight, GripVertical, Edit2, X, Clock } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useUser } from "../../usercontext";
+import { useUser } from "../../styles/SignInLandingPage/usercontext";
 
 export function AITaskResultsPage({ taskData, onBack, onEditPrompt }) {
   const navigate = useNavigate();
