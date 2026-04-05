@@ -44,8 +44,45 @@ export function AuthProvider({ children }) {
     setUser({ role: "student", name: "Guest" });
   };
 
+  // ── Focus Peer registration ────────────────────────────────────────────────
+  // Saves the application into localStorage under "accessRequests".
+  // The Ehsas counsellor's FocusPeerManagement page reads this list and can
+  // approve or reject each entry.
+  const registerFocusPeer = async ({ name, email, cgpa, reason, password }) => {
+    try {
+      const existing = localStorage.getItem("accessRequests");
+      const allRequests = existing ? JSON.parse(existing) : [];
+
+      // Prevent duplicate applications from the same email
+      const alreadyApplied = allRequests.find(
+        r => r.email.toLowerCase() === email.toLowerCase() && r.role === "focuspeer"
+      );
+      if (alreadyApplied) {
+        return { success: false, error: "An application from this email already exists." };
+      }
+
+      const newRequest = {
+        id: Date.now().toString(),
+        role: "focuspeer",          // ← key the Ehsas page filters on
+        name,
+        email,
+        cgpa: parseFloat(cgpa),
+        reason,
+        password,                   // stored so OAP can create the account on approval
+        status: "pending",
+        appliedAt: new Date().toISOString(),
+      };
+
+      localStorage.setItem("accessRequests", JSON.stringify([...allRequests, newRequest]));
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: "Something went wrong. Please try again." };
+    }
+  };
+  // ──────────────────────────────────────────────────────────────────────────
+
   return (
-    <AuthContext.Provider value={{ isAuthenticated, signIn, signOut }}>
+    <AuthContext.Provider value={{ isAuthenticated, signIn, signOut, registerFocusPeer }}>
       {children}
     </AuthContext.Provider>
   );
