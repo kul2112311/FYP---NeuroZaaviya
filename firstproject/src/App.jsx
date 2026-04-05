@@ -27,7 +27,8 @@ import Events from './pages/shared/Events.jsx';
 import SuperCalendarPage from './pages/StudentInterface/SuperCalendarPage.jsx';
 import Accommodations from './pages/OAP/Accommodations.jsx';
 import Files from './pages/OAP/Files.jsx';
-import FocusPeerManagement from './pages/OAP/Focuspeermanagement.jsx';       
+import FocusPeerManagement from './pages/OAP/Focuspeermanagement.jsx';
+import { OAPRequestApproval } from './pages/OAP/Oaprequestapproval.jsx';       
 import EhsasFocusPeerManagement from './pages/Ehsas/Focuspeermanagement.jsx';  
 import DeepWorkSession from "./pages/StudentInterface/Deepworksession.jsx";
 
@@ -78,6 +79,7 @@ const menuConfig = {
     { icon: <Newspaper size={20}/>, text: "Forum", to: "/forum" },
     { icon: <CalendarSync size={20}/>, text: "Scheduling", to: "/scheduling" },
     { icon: <FileText size={20}/>, text: "Alerts", to: "/alerts" },
+    { icon: <UserPlus size={20}/>, text: "Request Approvals", to: "/oap-request-approval" },
   ],
   // professor: [
   //   { icon: <LayoutDashboard size={20}/>, text: "Dashboard", to: "/" },
@@ -172,6 +174,7 @@ function AppContent() {
             <Route path="/calendar" element={<SuperCalendarPage />} />
             <Route path="/deep-work" element={<DeepWorkSession />} />
             <Route path="/ehsas-fp-management" element={<EhsasFocusPeerManagement />} />
+            <Route path="/oap-request-approval" element={<OAPRequestApproval />} />
           </Routes>
         </div>
       </main>
