@@ -70,7 +70,6 @@ const menuConfig = {
     { icon: <BookOpen size={20}/>, text: "Resources", to: "/resources" },
     { icon: <CalendarHeart size={20}/>, text: "Events", to: "/events" },
     { icon: <Users size={20}/>, text: "Focus Peers", to: "/focuspeer-monitor" },
-    { icon: <UserPlus size={20}/>, text: "Focus Peer Management", to: "/ehsas-fp-management" }, 
     { icon: <CalendarSync size={20}/>, text: "Scheduling", to: "/scheduling" },
     { icon: <Newspaper size={20}/>, text: "Forum", to: "/forum" },
     {icon: <MessageCircle size={20}/>, text: "Chats", to: "/chats"}
