@@ -78,7 +78,8 @@ export function AuthProvider({ children }) {
       const duplicate = existing.find(
         r => r.email.toLowerCase() === email.trim().toLowerCase() && r.status === "pending"
       );
-      if (duplicate) return { success: false, error: "A pending application already exists for this email." };
+      if (duplicate) return { success: false, error: "A pending application already exists for this email. Please wait for Ehsas review." };
+      // Note: rejected applicants can reapply — we just add a new request
 
       const newApp = {
         id: Date.now().toString(),
@@ -105,7 +106,8 @@ export function AuthProvider({ children }) {
       const duplicate = existing.find(
         r => r.email.toLowerCase() === email.trim().toLowerCase() && r.status === "pending"
       );
-      if (duplicate) return { success: false, error: "A pending request already exists for this email." };
+      if (duplicate) return { success: false, error: "A pending request already exists for this email. Please wait for OAP review." };
+      // Note: rejected users are allowed to reapply — we just add a new request
 
       const newRequest = {
         id: Date.now().toString(),

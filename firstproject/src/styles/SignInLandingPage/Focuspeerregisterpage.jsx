@@ -3,7 +3,7 @@ import {
   Brain, Mail, Lock, Eye, EyeOff, ArrowLeft, ArrowRight,
   Sparkles, Users, Award, TrendingUp, CheckCircle, Heart, User,
 } from "lucide-react";
-import { useAuth } from "./AuthContext";
+import { useAuth } from "./Authcontext";
 
 // ── Palette: matches FocusPeerManagement soft muted tones ─────────────────────
 const C = {
@@ -62,6 +62,7 @@ export function FocusPeerRegisterPage({ onBack }) {
   const [formData, setFormData] = useState({ name: "", email: "", cgpa: "", reason: "", password: "", confirmPassword: "" });
   const [error, setError]               = useState("");
   const [loading, setLoading]           = useState(false);
+  const [success, setSuccess]           = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [focusedField, setFocusedField] = useState(null);
   const [btnHovered, setBtnHovered]     = useState(false);
@@ -77,7 +78,7 @@ export function FocusPeerRegisterPage({ onBack }) {
     setLoading(true);
     const result = await registerFocusPeer({ name: formData.name, email: formData.email, cgpa: formData.cgpa, reason: formData.reason, password: formData.password });
     if (!result.success) { setError(result.error || "Registration failed"); setLoading(false); }
-    else { alert("✅ Application submitted! Your request will be reviewed by Ehsas staff. You'll be notified once approved."); onBack(); }
+    else { setLoading(false); setSuccess(true); }
   };
 
   const handleChange = (field, value) => { setFormData(prev => ({ ...prev, [field]: value })); setError(""); };
@@ -94,6 +95,26 @@ export function FocusPeerRegisterPage({ onBack }) {
   });
 
   const iconCol = (field) => focusedField === field ? C.purple500 : C.purple300;
+
+  if (success) {
+    return (
+      <div style={{ minHeight: "100vh", width: "100vw", display: "flex", alignItems: "center", justifyContent: "center", background: "linear-gradient(145deg, #f5eef8 0%, #ede4f5 50%, #f5e8f2 100%)", fontFamily: "'Inter', 'Segoe UI', sans-serif" }}>
+        <div style={{ background: "#fff", borderRadius: 28, padding: "52px 48px", textAlign: "center", maxWidth: 460, boxShadow: "0 16px 56px rgba(179,157,219,0.18)", border: "1.5px solid rgba(179,157,219,0.15)" }}>
+          <div style={{ width: 72, height: 72, borderRadius: "50%", background: "rgba(34,197,94,0.1)", border: "2px solid rgba(34,197,94,0.25)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 20px" }}>
+            <CheckCircle style={{ width: 36, height: 36, color: "#22c55e" }} />
+          </div>
+          <h2 style={{ fontSize: 24, fontWeight: 900, color: "#5a4a61", margin: "0 0 10px" }}>Application Submitted!</h2>
+          <p style={{ fontSize: 14, color: "#9575a3", lineHeight: 1.7, margin: "0 0 28px" }}>
+            Your Focus Peer application has been sent to <strong style={{ color: "#9b7fbd" }}>Ehsas</strong> for review.<br />
+            You'll receive a confirmation email at <strong style={{ color: "#5a4a61" }}>{formData.email}</strong> once a decision is made.
+          </p>
+          <button onClick={onBack} style={{ padding: "13px 36px", borderRadius: 14, border: "none", background: "linear-gradient(90deg, #b39ddb 0%, #f8bbd0 100%)", color: "#fff", fontWeight: 800, fontSize: 15, cursor: "pointer", boxShadow: "0 6px 20px rgba(179,157,219,0.4)" }}>
+            Back to Sign In
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{
