@@ -1,76 +1,279 @@
-import { List, Search, ChevronDown } from "lucide-react";
+import { List, Search, CalendarCheck } from "lucide-react";
 import { useState } from "react";
+import Calendar from "../../components/CommunityComponents/Calendar.jsx";
+import AppointmentModal from "../../components/CommunityComponents/AppointmentModal.jsx";
 
-import  Calendar   from "../../components/CommunityComponents/Calendar.jsx"; 
-import "react-calendar/dist/Calendar.css";
-import AppointmentModal from "../../components/CommunityComponents/AppointmentModal.jsx"; 
+const MOCK_REQUESTS = [
+  {
+    id: "r1",
+    student: "Alice Johnson",
+    date: "2026-04-10",
+    time: "10:00",
+    duration: "1 hour",
+    type: "Academic Review",
+    location: "Office Room 101",
+    notes: "Struggling with thesis structure, need guidance.",
+  },
+  {
+    id: "r2",
+    student: "Bob Smith",
+    date: "2026-04-11",
+    time: "14:00",
+    duration: "30 minutes",
+    type: "Wellness Check-in",
+    location: "Online (Zoom)",
+    notes: "",
+  },
+];
 
-
-function Schedule(){
-    const [date, setDate] = useState(new Date());
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    
-    return(
-      
-       <div className="p-6 pl-12 space-y-6" style={{ width: '80vw' }}>
-        {isModalOpen && (
-        <AppointmentModal onClose={() => setIsModalOpen(false)} />
-      )}
-        <div className="rounded-3xl p-6 bg-white flex justify-between items-center gap-5">
-            
-            <div className="flex flex-col">
-            <h4 className="text-2xl font-semibold text-grey-800" >
-                Schedule Your Week
-            </h4>
-            <p className="text-grey-700">Manage and schedule meetings with your assigned students</p>
-            </div>
-            <button onClick ={()=>setIsModalOpen(true)} className="bg-[#B39DDB] text-white px-4 py-2 rounded-lg hover:bg-[#9575CD] transition-colors">+ Schedule Appointment</button>
+function RequestCard({ req, onConfirm, onDecline }) {
+  return (
+    <div className="bg-white border border-purple-200 rounded-2xl p-4 flex flex-col gap-2">
+      <div className="flex justify-between items-start">
+        <div className="flex items-center gap-2">
+          <span className="font-semibold text-sm text-purple-900">{req.student}</span>
+          <span className="text-xs font-semibold bg-amber-50 text-amber-500 border border-amber-200 rounded-full px-2 py-0.5">
+            Pending
+          </span>
         </div>
-        <div className="bg-white rounded-3xl p-4 flex items-center justify-between gap-4 mb-6">
-      {/* Left: View Toggle */}
-      <div className="flex gap-3">
-        <button className="bg-[#B39DDB] text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-[#9575CD] transition-colors">
-          {/* <Calendar size={18} /> */}
-          <span>Calendar View</span>
-        </button>
-        <button className="bg-white text-gray-700 px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-gray-100 transition-colors border border-gray-200">
-          <List size={18} />
-          <span>List View</span>
-        </button>
+        <span className="text-xs text-purple-400 font-medium">{req.time}</span>
       </div>
 
-      {/* Right: Search & Filter */}
-      <div className="flex items-center gap-3">
-        <div className="relative">
-          <Search size={18} className="absolute left-3 top-2.5 text-gray-400" />
-          <input 
-            type="text" 
-            placeholder="Search appointments..." 
-            className="pl-10 pr-4 py-2 rounded-lg bg-gray-50 border border-gray-200 focus:outline-none focus:border-[#B39DDB]"
-          />
-        </div>
-        
-        <select className="px-4 py-2 rounded-lg bg-white border border-gray-200 text-gray-700 hover:border-[#B39DDB] cursor-pointer focus:outline-none focus:border-[#B39DDB]">
-          <option>All Status</option>
-          <option>Scheduled</option>
-          <option>Completed</option>
-          <option>Cancelled</option>
-        </select>
+      <p className="text-xs text-purple-600 m-0">
+        {req.type} · {req.duration} · {req.location}
+      </p>
+      <p className="text-xs text-purple-400 m-0">
+        {new Date(req.date + "T00:00:00").toLocaleDateString("en-US", {
+          weekday: "short", month: "short", day: "numeric", year: "numeric",
+        })}
+      </p>
+      {req.notes && (
+        <p className="text-xs text-purple-400 italic m-0">"{req.notes}"</p>
+      )}
+
+      <div className="flex gap-2 mt-1">
+        <button
+          onClick={() => onConfirm(req)}
+          className="flex-1 bg-green-50 text-green-600 border border-green-200 rounded-xl py-1.5 text-xs font-medium cursor-pointer hover:bg-green-100 transition-colors"
+        >
+          Confirm
+        </button>
+        <button
+          onClick={() => onDecline(req.id)}
+          className="flex-1 bg-red-50 text-red-500 border border-red-200 rounded-xl py-1.5 text-xs font-medium cursor-pointer hover:bg-red-100 transition-colors"
+        >
+          Decline
+        </button>
       </div>
     </div>
+  );
+}
 
-   <div className="flex gap-6">
-          <Calendar onDateSelect={setDate} />
+function AppointmentCard({ appt, onCancel }) {
+  return (
+    <div className="bg-purple-50 border border-purple-200 rounded-2xl p-4 flex flex-col gap-1.5">
+      <div className="flex justify-between items-center">
+        <span className="font-semibold text-sm text-purple-900">{appt.student}</span>
+        <span className="text-xs text-purple-600 font-medium">{appt.time}</span>
+      </div>
+      <p className="text-xs text-purple-600 m-0">
+        {appt.type} · {appt.duration}
+      </p>
+      <p className="text-xs text-purple-400 m-0">{appt.location}</p>
+      {appt.notes && (
+        <p className="text-xs text-purple-400 italic m-0">{appt.notes}</p>
+      )}
+      <div className="flex items-center justify-between mt-1">
+        <span className="text-xs font-semibold bg-green-50 text-green-600 border border-green-200 rounded-full px-2 py-0.5">
+          Scheduled
+        </span>
+        <button
+          onClick={() => onCancel(appt.id)}
+          className="bg-transparent border-none text-red-500 text-xs cursor-pointer underline p-0 hover:text-red-700"
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
+  );
+}
 
-          <div className="flex-1 bg-white rounded-3xl p-6">
-            <h3 className="text-xl font-semibold text-gray-800 mb-4">
-              {date.toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })}
-            </h3>
-            <p className="text-gray-600">No appointments scheduled for this date</p>
+function Schedule() {
+  const [date, setDate]             = useState(new Date());
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [appointments, setAppointments] = useState([]);
+  const [requests, setRequests]     = useState(MOCK_REQUESTS);
+  const [search, setSearch]         = useState("");
+  const [statusFilter, setStatusFilter] = useState("All Status");
+
+  const handleSave = (newAppointment) => {
+    setAppointments(prev => [
+      ...prev,
+      { ...newAppointment, id: Date.now().toString(), source: "oap" },
+    ]);
+  };
+
+  // Confirm request → add to appointments, remove from requests, jump calendar to that date
+  const handleConfirm = (req) => {
+    setAppointments(prev => [
+      ...prev,
+      { ...req, id: req.id + "_confirmed", source: "student" },
+    ]);
+    setRequests(prev => prev.filter(r => r.id !== req.id));
+
+    // Navigate the calendar to the confirmed appointment's date so it's immediately visible
+    const [year, month, day] = req.date.split("-").map(Number);
+    setDate(new Date(year, month - 1, day));
+  };
+
+  const handleDecline = (id) => {
+    setRequests(prev => prev.filter(r => r.id !== id));
+  };
+
+  const handleCancel = (id) => {
+    setAppointments(prev => prev.filter(a => a.id !== id));
+  };
+
+  const appointmentsForDate = appointments.filter(appt => {
+    const [year, month, day] = appt.date.split("-").map(Number);
+    return (
+      year  === date.getFullYear() &&
+      month === date.getMonth() + 1 &&
+      day   === date.getDate()
+    );
+  });
+
+  // Apply search + status filter to the selected-date list
+  const filteredAppointments = appointmentsForDate.filter(appt => {
+    const matchesSearch =
+      search.trim() === "" ||
+      appt.student.toLowerCase().includes(search.toLowerCase()) ||
+      appt.type.toLowerCase().includes(search.toLowerCase());
+    const matchesStatus =
+      statusFilter === "All Status" || statusFilter === "Scheduled";
+    return matchesSearch && matchesStatus;
+  });
+
+  return (
+    <div className="p-6 pl-12 w-[80vw] box-border">
+
+      {isModalOpen && (
+        <AppointmentModal
+          onClose={() => setIsModalOpen(false)}
+          onSave={handleSave}
+        />
+      )}
+
+      {/* Header */}
+      <div className="bg-white border border-purple-200 rounded-3xl px-6 py-5 flex justify-between items-center mb-5">
+        <div className="flex items-center gap-3">
+          <CalendarCheck size={24} className="text-purple-400" />
+          <div>
+            <h4 className="m-0 text-xl font-semibold text-purple-400">
+              Schedule Your Week
+            </h4>
+            <p className="m-0 text-xs text-purple-600">
+              Manage and schedule meetings with your assigned students
+            </p>
           </div>
         </div>
+        <button
+          onClick={() => setIsModalOpen(true)}
+          className="bg-purple-400 text-white border-none rounded-xl px-4 py-2 text-sm font-medium cursor-pointer hover:bg-purple-500 transition-colors"
+        >
+          + Schedule Appointment
+        </button>
+      </div>
+
+      {/* Student Appointment Requests */}
+      <div className="bg-white border border-purple-200 rounded-3xl px-6 py-5 mb-5">
+        <div className="mb-4">
+          <h4 className="m-0 mb-1 text-base font-semibold text-purple-900">
+            Student Appointment Requests
+          </h4>
+          <p className="m-0 text-xs text-purple-600">
+            Review and confirm requests submitted by students
+          </p>
+        </div>
+
+        {requests.length === 0 ? (
+          <p className="text-xs text-purple-400 m-0">No pending requests.</p>
+        ) : (
+          <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))" }}>
+            {requests.map(req => (
+              <RequestCard
+                key={req.id}
+                req={req}
+                onConfirm={handleConfirm}
+                onDecline={handleDecline}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Toolbar */}
+      <div className="bg-white border border-purple-200 rounded-3xl px-6 py-4 mb-5 flex items-center justify-between gap-4 flex-wrap">
+        <div className="flex gap-2">
+          <button className="bg-purple-400 text-white border-none rounded-xl px-4 py-2 text-xs font-medium cursor-pointer hover:bg-purple-500 transition-colors">
+            Calendar View
+          </button>
+          <button className="bg-white text-purple-900 border border-purple-200 rounded-xl px-4 py-2 text-xs font-medium cursor-pointer flex items-center gap-1.5 hover:bg-purple-50 transition-colors">
+            <List size={14} /> List View
+          </button>
+        </div>
+
+        <div className="flex gap-2 items-center">
+          <div className="flex items-center gap-2 bg-purple-50 border border-purple-200 rounded-xl px-3 py-2">
+            <Search size={14} className="text-purple-300" />
+            <input
+              type="text"
+              placeholder="Search appointments..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              className="border-none bg-transparent outline-none text-xs text-purple-900 w-44 placeholder-purple-300"
+            />
+          </div>
+          <select
+            value={statusFilter}
+            onChange={e => setStatusFilter(e.target.value)}
+            className="px-3 py-2 rounded-xl border border-purple-200 text-xs text-purple-900 bg-white cursor-pointer outline-none"
+          >
+            <option>All Status</option>
+            <option>Scheduled</option>
+            <option>Completed</option>
+            <option>Cancelled</option>
+          </select>
+        </div>
+      </div>
+
+      {/* Calendar + Appointments Panel */}
+      <div className="flex gap-5">
+        <Calendar onDateSelect={setDate} appointments={appointments} />
+
+        <div className="flex-1 bg-white rounded-3xl p-6 border border-purple-200">
+          <h3 className="m-0 mb-4 text-base font-semibold text-purple-900">
+            {date.toLocaleDateString("en-US", {
+              weekday: "short", year: "numeric", month: "short", day: "numeric",
+            })}
+          </h3>
+
+          {filteredAppointments.length === 0 ? (
+            <p className="text-xs text-purple-400">
+              No appointments scheduled for this date.
+            </p>
+          ) : (
+            <div className="flex flex-col gap-2.5">
+              {filteredAppointments.map(appt => (
+                <AppointmentCard key={appt.id} appt={appt} onCancel={handleCancel} />
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
 
     </div>
-    )
+  );
 }
+
 export default Schedule;

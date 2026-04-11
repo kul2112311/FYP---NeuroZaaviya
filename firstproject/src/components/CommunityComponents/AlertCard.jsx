@@ -1,142 +1,203 @@
-import { ChevronUp } from "lucide-react";
+import { ChevronUp, ChevronDown } from "lucide-react";
 import { useState } from "react";
 
-function AlertCard({ alert }) {
+// ── Palette ───────────────────────────────────────────────────────────────────
+const C = {
+  purple800: "#5a4a61",
+  purple600: "#9575a3",
+  purple500: "#b39ddb",
+  purple400: "#c0b4cc",
+  purple300: "#d8cfe0",
+  purple200: "#e8e0f0",
+  purple100: "rgba(179,157,219,0.15)",
+  purple50:  "rgba(179,157,219,0.08)",
+  green:     "#22c55e",
+  greenBg:   "rgba(34,197,94,0.1)",
+  red:       "#ef4444",
+  redBg:     "rgba(239,68,68,0.06)",
+  amber:     "#f59e0b",
+  amberBg:   "rgba(245,158,11,0.1)",
+  white:     "#FFFFFF",
+};
+
+const STATUS_CONFIG = {
+  open:          { label: 'Open',        color: C.red,   bg: C.redBg   },
+  'in-progress': { label: 'In Progress', color: C.amber, bg: C.amberBg },
+  resolved:      { label: 'Resolved',    color: C.green, bg: C.greenBg },
+};
+
+// ── Status Badge ──────────────────────────────────────────────────────────────
+function StatusBadge({ status }) {
+  const cfg = STATUS_CONFIG[status] || STATUS_CONFIG.open;
+  return (
+    <span style={{
+      fontSize: 11,
+      fontWeight: 600,
+      padding: '3px 10px',
+      borderRadius: 20,
+      background: cfg.bg,
+      color: cfg.color,
+      border: `1px solid ${cfg.color}44`,
+      whiteSpace: 'nowrap',
+    }}>
+      {cfg.label}
+    </span>
+  );
+}
+
+// ── Action Button ─────────────────────────────────────────────────────────────
+function ActionButton({ label, color, bg, border, onClick }) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        background: bg,
+        color: color,
+        border: border || `1.5px solid ${color}55`,
+        borderRadius: 10,
+        padding: '7px 14px',
+        fontSize: 13,
+        fontWeight: 500,
+        cursor: 'pointer',
+        transition: 'opacity 0.15s',
+      }}
+      onMouseEnter={e => e.currentTarget.style.opacity = '0.8'}
+      onMouseLeave={e => e.currentTarget.style.opacity = '1'}
+    >
+      {label}
+    </button>
+  );
+}
+
+// ── Alert Card ────────────────────────────────────────────────────────────────
+function AlertCard({ alert, onStatusChange }) {
   const [showDetails, setShowDetails] = useState(false);
+
+  const canMarkInProgress = alert.status !== 'in-progress' && alert.status !== 'resolved';
+  const canMarkResolved   = alert.status !== 'resolved';
+
+  const cardStyle = {
+    background: C.white,
+    borderRadius: 16,
+    border: `1px solid ${C.purple300}`,
+    overflow: 'hidden',
+  };
 
   if (showDetails) {
     return (
-      <div className="bg-white rounded-2xl p-6 mb-4 border border-gray-200">
-        {/* Header */}
-        <div className="flex items-start justify-between mb-6 pb-6 border-b border-gray-200">
+      <div style={cardStyle}>
+        {/* Expanded header */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'flex-start',
+          justifyContent: 'space-between',
+          padding: '20px 20px 16px',
+          borderBottom: `1px solid ${C.purple200}`,
+        }}>
           <div>
-            <div className="flex items-center gap-2 mb-2">
-              <h3 className="text-xl font-semibold">{alert.studentName}</h3>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+              <span style={{ fontSize: 17, fontWeight: 600, color: C.purple800 }}>
+                {alert.studentName}
+              </span>
               <StatusBadge status={alert.status} />
             </div>
-            <p className='text-gray-600 text-sm'>{alert.title}</p>
-            <p className='text-gray-500 text-xs mt-2'>
-              ⓘ by {alert.raisedBy} • {alert.date} • Assigned to: {alert.assignedTo}
+            <p style={{ margin: 0, fontSize: 13, color: C.purple600 }}>{alert.title}</p>
+            <p style={{ margin: '6px 0 0', fontSize: 12, color: C.purple400 }}>
+              by {alert.raisedBy} · {alert.date} · Assigned to: {alert.assignedTo}
             </p>
           </div>
-          <button 
+          <button
             onClick={() => setShowDetails(false)}
-            className="text-gray-500 hover:text-gray-700"
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.purple400, padding: 4 }}
           >
-            <ChevronUp size={24} />
+            <ChevronUp size={22} />
           </button>
         </div>
 
         {/* Description */}
-        <div className="mb-6">
-          <h4 className="font-semibold text-gray-700 mb-2">Description:</h4>
-          <p className="text-gray-600 text-sm leading-relaxed">
+        <div style={{ padding: '16px 20px' }}>
+          <p style={{ margin: '0 0 6px', fontSize: 13, fontWeight: 600, color: C.purple800 }}>
+            Description
+          </p>
+          <p style={{ margin: 0, fontSize: 13, color: C.purple600, lineHeight: 1.6 }}>
             {alert.description}
           </p>
         </div>
 
         {/* Action Buttons */}
-        <div className="flex gap-3 flex-wrap">
-          <ActionButton 
-            label="Mark In Progress" 
-            bgColor="bg-orange-500 hover:bg-orange-600"
+        <div style={{
+          padding: '12px 20px 20px',
+          display: 'flex',
+          flexWrap: 'wrap',
+          gap: 8,
+        }}>
+          {canMarkInProgress && (
+            <ActionButton
+              label="Mark In Progress"
+              color={C.amber}
+              bg={C.amberBg}
+              onClick={() => onStatusChange(alert.id, 'in-progress')}
+            />
+          )}
+          {canMarkResolved && (
+            <ActionButton
+              label="Mark Resolved"
+              color={C.green}
+              bg={C.greenBg}
+              onClick={() => onStatusChange(alert.id, 'resolved')}
+            />
+          )}
+          <ActionButton
+            label="Contact Focus Peer"
+            color={C.purple600}
+            bg={C.purple100}
           />
-          <ActionButton 
-            label="Mark Resolved" 
-            bgColor="bg-green-500 hover:bg-green-600"
-          />
-          <ActionButton 
-            label="Contact Focus Peer" 
-            bgColor="bg-purple-500 hover:bg-purple-600"
-          />
-          <ActionButton 
-            label="View Student Profile" 
-            bgColor="bg-purple-300 hover:bg-purple-400"
+          <ActionButton
+            label="View Student Profile"
+            color={C.purple500}
+            bg={C.purple50}
           />
         </div>
       </div>
     );
   }
 
-  // Collapsed view
+  // ── Collapsed view ──────────────────────────────────────────────────────────
   return (
-    <div className="bg-white rounded-2xl p-6 mb-4 flex items-start gap-4 justify-between border border-gray-200">
-      
-      {/* Alert Icon */}
-      <div className="flex-shrink-0">
-        <AlertIcon status={alert.status} />
-      </div>
-
-      {/* Content */}
-      <div className="flex-1">
-        <div className="flex items-center gap-2 mb-1">
-          <h3 className="text-lg font-semibold">{alert.studentName}</h3>
+    <div style={{ ...cardStyle, display: 'flex', alignItems: 'flex-start', gap: 14, padding: '16px 20px' }}>
+      <div style={{ flex: 1 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+          <span style={{ fontSize: 15, fontWeight: 600, color: C.purple800 }}>
+            {alert.studentName}
+          </span>
           <StatusBadge status={alert.status} />
         </div>
-        <p className='text-gray-600 text-sm'>{alert.title}</p>
-        <p className='text-gray-500 text-xs mt-2'>
-          ⓘ by {alert.raisedBy} • {alert.date} • Assigned to: {alert.assignedTo}
+        <p style={{ margin: 0, fontSize: 13, color: C.purple600 }}>{alert.title}</p>
+        <p style={{ margin: '4px 0 0', fontSize: 12, color: C.purple400 }}>
+          by {alert.raisedBy} · {alert.date} · Assigned to: {alert.assignedTo}
         </p>
       </div>
 
-      {/* Expand Button */}
-      <button 
+      <button
         onClick={() => setShowDetails(true)}
-        className="text-gray-500 hover:text-gray-700 flex-shrink-0"
+        style={{
+          background: C.purple50,
+          border: `1px solid ${C.purple300}`,
+          borderRadius: 8,
+          padding: '5px 10px',
+          cursor: 'pointer',
+          color: C.purple600,
+          fontSize: 12,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 4,
+          whiteSpace: 'nowrap',
+          flexShrink: 0,
+        }}
       >
-        <div className="w-6 h-6 rounded-full border-2 border-gray-300 flex items-center justify-center hover:border-gray-500 transition-colors">
-          <span className="text-xs">ⓘ</span>
-        </div>
+        Details <ChevronDown size={14} />
       </button>
     </div>
-  );
-}
-
-// Alert Icon based on status
-function AlertIcon({ status }) {
-  const icons = {
-    open: "",
-    "in-progress": "",
-    resolved: ""
-  };
-  
-  return (
-    <div className="text-2xl">
-      {icons[status]}
-    </div>
-  );
-}
-
-// Status Badge
-function StatusBadge({ status }) {
-  const styles = {
-    open: "bg-red-100 text-red-700",
-    "in-progress": "bg-yellow-100 text-yellow-700",
-    resolved: "bg-green-100 text-green-700"
-  };
-
-  const labels = {
-    open: "Open",
-    "in-progress": "In Progress",
-    resolved: "Resolved"
-  };
-
-  return (
-    <span className={`text-xs px-2 py-1 rounded ${styles[status]}`}>
-      {labels[status]}
-    </span>
-  );
-}
-
-// Reusable Action Button
-function ActionButton({ label, bgColor, onClick }) {
-  return (
-    <button
-      onClick={onClick}
-      className={`${bgColor} text-white px-3 py-2 rounded text-sm font-medium transition-colors`}
-    >
-      {label}
-    </button>
   );
 }
 
