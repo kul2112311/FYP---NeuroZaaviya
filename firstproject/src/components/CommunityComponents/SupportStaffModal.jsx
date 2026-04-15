@@ -1,166 +1,485 @@
 import React, { useState } from "react";
-import { Mail, MapPin, Clock, X, Calendar as CalIcon, ArrowLeft, CheckCircle, ChevronLeft, ChevronRight } from "lucide-react";
+import { X, Mail, MapPin, Clock, CheckCircle } from "lucide-react";
 
+// ── Palette ───────────────────────────────────────────────────────────────────
+const C = {
+  purple800: "#5a4a61",
+  purple600: "#9575a3",
+  purple500: "#b39ddb",
+  purple400: "#c0b4cc",
+  purple300: "#d8cfe0",
+  purple200: "#e8e0f0",
+  purple100: "rgba(179,157,219,0.15)",
+  purple50:  "rgba(179,157,219,0.08)",
+  pink:      "#f8bbd0",
+  green:     "#22c55e",
+  greenBg:   "rgba(34,197,94,0.1)",
+  white:     "#FFFFFF",
+  btnGrad:   "linear-gradient(90deg, #b39ddb 0%, #f8bbd0 100%)",
+};
+
+const TIME_SLOTS = [
+  "Mon 10:00 AM", "Tue 2:00 PM",  "Thu 11:00 AM",
+  "Fri 3:00 PM",  "Tue 9:00 AM",  "Wed 1:00 PM",
+];
+
+// ── Request Meeting Modal ─────────────────────────────────────────────────────
+function RequestModal({ staff, onClose, onSubmit }) {
+  const [subject, setSubject]     = useState("");
+  const [description, setDesc]    = useState("");
+  const [selectedSlot, setSlot]      = useState(null);
+  const [otherTime, setOtherTime]    = useState(false);
+  const [preferredTime, setPreferredTime] = useState("");
+
+  if (!staff) return null;
+
+  const isValid = subject && description && (selectedSlot || (otherTime && preferredTime));
+
+  const handleSubmit = () => {
+    if (!isValid) return;
+    onSubmit({ subject, description, slot: otherTime ? "other" : selectedSlot });
+    onClose();
+  };
+
+  const inputStyle = {
+    width: "100%",
+    border: `1px solid ${C.purple300}`,
+    borderRadius: 10,
+    padding: "9px 12px",
+    fontSize: 13,
+    color: C.purple800,
+    background: C.white,
+    outline: "none",
+    boxSizing: "border-box",
+    fontFamily: "inherit",
+  };
+
+  return (
+    <div
+      style={{
+        position: "fixed", inset: 0, zIndex: 60,
+        background: "rgba(0,0,0,0.45)",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        padding: 16,
+      }}
+      onClick={onClose}
+    >
+      <div
+        style={{
+          background: C.white,
+          borderRadius: 20,
+          width: "100%",
+          maxWidth: 420,
+          maxHeight: "90vh",
+          overflowY: "auto",
+          padding: 28,
+          boxSizing: "border-box",
+          display: "flex",
+          flexDirection: "column",
+          gap: 18,
+        }}
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <div style={{
+              width: 38, height: 38, borderRadius: 10,
+              background: C.purple100,
+              display: "flex", alignItems: "center", justifyContent: "center",
+              color: C.purple500,
+            }}>
+              <Clock size={20} />
+            </div>
+            <div>
+              <p style={{ margin: 0, fontSize: 16, fontWeight: 700, color: C.purple800 }}>Request Meeting</p>
+              <p style={{ margin: 0, fontSize: 12, color: C.purple600 }}>with {staff.name}</p>
+            </div>
+          </div>
+          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: C.purple400 }}>
+            <X size={20} />
+          </button>
+        </div>
+
+        {/* Meeting Subject */}
+        <div>
+          <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: C.purple800, marginBottom: 6 }}>
+            Meeting Subject <span style={{ color: "#ef4444" }}>*</span>
+          </label>
+          <input
+            type="text"
+            placeholder="e.g., Accommodation Review, Academic Advising"
+            value={subject}
+            onChange={e => setSubject(e.target.value)}
+            style={inputStyle}
+          />
+        </div>
+
+        {/* Description */}
+        <div>
+          <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: C.purple800, marginBottom: 6 }}>
+            Description <span style={{ color: "#ef4444" }}>*</span>
+          </label>
+          <textarea
+            rows={3}
+            placeholder="Briefly describe what you'd like to discuss in this meeting..."
+            value={description}
+            onChange={e => setDesc(e.target.value)}
+            style={{ ...inputStyle, resize: "none", lineHeight: 1.6 }}
+          />
+        </div>
+
+        {/* Time Slots */}
+        <div>
+          <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: C.purple800, marginBottom: 10 }}>
+            <Clock size={13} style={{ display: "inline", marginRight: 5, verticalAlign: "middle" }} />
+            Available Time Slots
+          </label>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 10 }}>
+            {TIME_SLOTS.map(slot => {
+              const active = selectedSlot === slot && !otherTime;
+              return (
+                <button
+                  key={slot}
+                  onClick={() => { setSlot(slot); setOtherTime(false); }}
+                  style={{
+                    padding: "8px 6px",
+                    borderRadius: 10,
+                    fontSize: 12,
+                    fontWeight: 500,
+                    border: `1.5px solid ${active ? C.purple500 : C.purple300}`,
+                    background: active ? C.purple100 : C.white,
+                    color: active ? C.purple800 : C.purple600,
+                    cursor: "pointer",
+                    transition: "all 0.15s",
+                  }}
+                >
+                  {slot}
+                </button>
+              );
+            })}
+          </div>
+          <button
+            onClick={() => { setOtherTime(true); setSlot(null); setPreferredTime(""); }}
+            style={{
+              background: "none", border: "none", cursor: "pointer",
+              fontSize: 12,
+              color: otherTime ? C.purple800 : C.purple500,
+              fontWeight: otherTime ? 600 : 400,
+              textDecoration: "underline", textUnderlineOffset: 3,
+              padding: 0,
+            }}
+          >
+            Other — I'm not available at these times
+          </button>
+
+          {otherTime && (
+            <div style={{ marginTop: 12 }}>
+              <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: C.purple800, marginBottom: 6 }}>
+                What is your preferred time? <span style={{ color: "#ef4444" }}>*</span>
+              </label>
+              <input
+                type="text"
+                placeholder="e.g., Weekdays after 3pm, Friday mornings..."
+                value={preferredTime}
+                onChange={e => setPreferredTime(e.target.value)}
+                style={{
+                  width: "100%",
+                  border: `1.5px solid ${C.purple500}`,
+                  borderRadius: 10,
+                  padding: "9px 12px",
+                  fontSize: 13,
+                  color: C.purple800,
+                  background: C.purple50,
+                  outline: "none",
+                  boxSizing: "border-box",
+                  fontFamily: "inherit",
+                }}
+              />
+            </div>
+          )}
+        </div>
+
+        {/* Actions */}
+        <div style={{ display: "flex", gap: 10, paddingTop: 4 }}>
+          <button
+            onClick={handleSubmit}
+            disabled={!isValid}
+            style={{
+              flex: 1,
+              background: isValid ? C.btnGrad : C.purple300,
+              color: C.white,
+              border: "none",
+              borderRadius: 10,
+              padding: "11px 0",
+              fontSize: 14,
+              fontWeight: 600,
+              cursor: isValid ? "pointer" : "not-allowed",
+              opacity: isValid ? 1 : 0.6,
+            }}
+          >
+            Submit Request
+          </button>
+          <button
+            onClick={onClose}
+            style={{
+              padding: "11px 20px",
+              borderRadius: 10,
+              border: `1px solid ${C.purple300}`,
+              background: C.white,
+              color: C.purple800,
+              fontSize: 14,
+              cursor: "pointer",
+            }}
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Staff Profile Modal ───────────────────────────────────────────────────────
 function SupportStaffModal({ staff, isOpen, onClose }) {
-  const [view, setView] = useState("profile"); // profile, calendar, reason, confirm
-  const [selectedDay, setSelectedDay] = useState(null);
-  const [monthOffset, setMonthOffset] = useState(0); // 0 = Feb, 1 = March
+  const [requestOpen, setRequestOpen] = useState(false);
+  const [submitted, setSubmitted]     = useState(false);
 
   if (!isOpen || !staff) return null;
 
-  // Mock data logic for the demo
-  const months = ["February 2026", "March 2026"];
-  const availableDays = monthOffset === 0 ? [24, 26, 28] : [2, 4, 10, 15]; // Different days for different months
-  const timeSlots = ["10:00 AM", "11:30 AM", "2:00 PM", "4:30 PM"];
+  const StaffIcon = staff.icon;
+
+  const handleRequestSubmit = () => {
+    setSubmitted(true);
+    setRequestOpen(false);
+  };
 
   const handleClose = () => {
-    setView("profile");
-    setSelectedDay(null);
-    setMonthOffset(0);
+    setSubmitted(false);
     onClose();
   };
 
   return (
-    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-hidden shadow-2xl flex flex-col border-t-8" 
-           style={{ borderColor: staff.bgColor }}>
-        
-        {/* Header */}
-        <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-white">
-          <div className="flex items-center gap-3">
-            {view !== "profile" && (
-              <button onClick={() => setView("profile")} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
-                <ArrowLeft size={20} style={{ color: '#5A4A61' }} />
-              </button>
-            )}
-            <h2 className="text-xl font-bold" style={{ color: '#5A4A61' }}>
-              {view === "calendar" ? "Pick a Date" : view === "confirm" ? "Success" : staff.name}
-            </h2>
+    <>
+      <div
+        style={{
+          position: "fixed", inset: 0, zIndex: 50,
+          background: "rgba(0,0,0,0.4)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          padding: 16,
+        }}
+        onClick={handleClose}
+      >
+        <div
+          style={{
+            background: C.white,
+            borderRadius: 22,
+            width: "100%",
+            maxWidth: 500,
+            maxHeight: "90vh",
+            overflowY: "auto",
+            boxSizing: "border-box",
+            borderTop: `7px solid ${staff.bgColor}`,
+            display: "flex",
+            flexDirection: "column",
+          }}
+          onClick={e => e.stopPropagation()}
+        >
+          {/* Modal header */}
+          <div style={{
+            display: "flex", alignItems: "center", justifyContent: "space-between",
+            padding: "18px 24px",
+            borderBottom: `1px solid ${C.purple200}`,
+          }}>
+            <span style={{ fontSize: 17, fontWeight: 700, color: C.purple800 }}>{staff.name}</span>
+            <button onClick={handleClose} style={{ background: "none", border: "none", cursor: "pointer", color: C.purple400 }}>
+              <X size={22} />
+            </button>
           </div>
-          <button onClick={handleClose} className="p-2 hover:bg-gray-100 rounded-full"><X size={24} style={{ color: '#5A4A61' }} /></button>
-        </div>
 
-        <div className="flex-grow overflow-y-auto">
-          {/* --- STEP 1: PROFILE --- */}
-          {view === "profile" && (
-            <div className="p-8 space-y-6">
-              <p className="leading-relaxed" style={{ color: '#5A4A61' }}>{staff.about}</p>
-              <button 
-                onClick={() => setView("calendar")}
-                className="w-full py-4 rounded-2xl font-bold text-white shadow-lg flex items-center justify-center gap-2"
-                style={{ backgroundColor: '#CE93D8' }}
+          <div style={{ padding: "20px 24px", display: "flex", flexDirection: "column", gap: 20 }}>
+
+            {/* Success banner */}
+            {submitted && (
+              <div style={{
+                background: C.greenBg,
+                border: `1px solid ${C.green}44`,
+                borderRadius: 12,
+                padding: "12px 16px",
+                display: "flex", alignItems: "center", gap: 10,
+              }}>
+                <CheckCircle size={18} style={{ color: C.green, flexShrink: 0 }} />
+                <span style={{ fontSize: 13, color: C.purple800, fontWeight: 500 }}>
+                  Meeting request sent! You'll receive a confirmation at your student email.
+                </span>
+              </div>
+            )}
+
+            {/* Avatar + name block */}
+            <div style={{
+              display: "flex", alignItems: "center", gap: 16,
+              background: C.purple50,
+              borderRadius: 14, padding: "14px 16px",
+            }}>
+              <div style={{
+                width: 56, height: 56, borderRadius: "50%",
+                background: `${staff.bgColor}30`,
+                border: `2px solid ${staff.bgColor}`,
+                display: "flex", alignItems: "center", justifyContent: "center",
+                flexShrink: 0, color: C.purple800,
+              }}>
+                {StaffIcon && <StaffIcon size={28} />}
+              </div>
+              <div>
+                <p style={{ margin: 0, fontWeight: 700, fontSize: 16, color: C.purple800 }}>{staff.name}</p>
+                <p style={{ margin: "2px 0 0", fontSize: 13, color: C.purple600 }}>{staff.role}</p>
+                <p style={{ margin: "1px 0 0", fontSize: 12, color: C.purple400 }}>{staff.department}</p>
+              </div>
+            </div>
+
+            {/* About */}
+            <div>
+              <p style={{ margin: "0 0 6px", fontSize: 13, fontWeight: 700, color: C.purple800 }}>About</p>
+              <p style={{ margin: 0, fontSize: 13, color: C.purple600, lineHeight: 1.6 }}>{staff.about}</p>
+            </div>
+
+            {/* Expertise */}
+            {staff.expertise && (
+              <div>
+                <p style={{ margin: "0 0 8px", fontSize: 13, fontWeight: 700, color: C.purple800 }}>Areas of Expertise</p>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
+                  {staff.expertise.map(tag => (
+                    <span key={tag} style={{
+                      fontSize: 12, fontWeight: 500,
+                      background: `${staff.bgColor}25`,
+                      border: `1px solid ${staff.bgColor}`,
+                      color: C.purple800,
+                      borderRadius: 20, padding: "3px 12px",
+                    }}>
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Contact info */}
+            <div>
+              <p style={{ margin: "0 0 10px", fontSize: 13, fontWeight: 700, color: C.purple800 }}>Contact Information</p>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {[
+                  { icon: Mail,   label: "Email",           value: staff.email },
+                  { icon: MapPin, label: "Office Location",  value: staff.location },
+                  { icon: Clock,  label: "Working Hours",    value: staff.availability },
+                ].map(({ icon: Icon, label, value }) => (
+                  <div key={label} style={{
+                    display: "flex", alignItems: "flex-start", gap: 12,
+                    background: C.purple50,
+                    border: `1px solid ${C.purple200}`,
+                    borderRadius: 10, padding: "10px 14px",
+                  }}>
+                    <div style={{
+                      width: 32, height: 32, borderRadius: 8,
+                      background: C.purple100,
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      flexShrink: 0,
+                    }}>
+                      <Icon size={15} style={{ color: C.purple500 }} />
+                    </div>
+                    <div>
+                      <p style={{ margin: 0, fontSize: 11, color: C.purple400 }}>{label}</p>
+                      <p style={{ margin: "2px 0 0", fontSize: 13, color: C.purple800, fontWeight: 500 }}>{value}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Batches */}
+            {staff.batches && (
+              <div>
+                <p style={{ margin: "0 0 8px", fontSize: 13, fontWeight: 700, color: C.purple800 }}>Assigned Batches</p>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
+                  {staff.batches.map(b => (
+                    <span key={b} style={{
+                      fontSize: 12, fontWeight: 500,
+                      background: `${staff.bgColor}20`,
+                      border: `1px solid ${staff.bgColor}`,
+                      color: C.purple800,
+                      borderRadius: 20, padding: "3px 12px",
+                    }}>
+                      {b}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Action buttons */}
+            <div style={{ display: "flex", gap: 10, paddingTop: 4 }}>
+              <a
+                href={`mailto:${staff.email}`}
+                style={{
+                  flex: 1,
+                  background: C.btnGrad,
+                  color: C.white,
+                  border: "none",
+                  borderRadius: 10,
+                  padding: "11px 0",
+                  fontSize: 14,
+                  fontWeight: 600,
+                  cursor: "pointer",
+                  textAlign: "center",
+                  textDecoration: "none",
+                  display: "flex", alignItems: "center", justifyContent: "center", gap: 7,
+                }}
               >
-                <CalIcon size={20} /> Book Appointment
+                <Mail size={16} /> Send Email
+              </a>
+              <button
+                onClick={() => setRequestOpen(true)}
+                style={{
+                  flex: 1,
+                  background: C.white,
+                  color: C.purple800,
+                  border: `1.5px solid ${C.purple300}`,
+                  borderRadius: 10,
+                  padding: "11px 0",
+                  fontSize: 14,
+                  fontWeight: 600,
+                  cursor: "pointer",
+                }}
+              >
+                Request Meeting
+              </button>
+              <button
+                onClick={handleClose}
+                style={{
+                  padding: "11px 18px",
+                  borderRadius: 10,
+                  border: `1px solid ${C.purple300}`,
+                  background: C.white,
+                  color: C.purple600,
+                  fontSize: 14,
+                  cursor: "pointer",
+                }}
+              >
+                Close
               </button>
             </div>
-          )}
-
-          {/* --- STEP 2: FUNCTIONAL CALENDAR --- */}
-          {view === "calendar" && (
-            <div className="p-8 space-y-6 animate-in fade-in slide-in-from-bottom-4">
-              <div className="bg-gray-50 p-6 rounded-2xl border border-gray-100">
-                <div className="flex items-center justify-between mb-4">
-                  <span className="font-bold" style={{ color: '#5A4A61' }}>{months[monthOffset]}</span>
-                  <div className="flex gap-4">
-                    <button 
-                      onClick={() => setMonthOffset(0)} 
-                      disabled={monthOffset === 0}
-                      className={`p-1 rounded-md ${monthOffset === 0 ? 'opacity-20' : 'hover:bg-gray-200'}`}
-                    >
-                      <ChevronLeft size={24} style={{ color: '#5A4A61' }} />
-                    </button>
-                    <button 
-                      onClick={() => setMonthOffset(1)} 
-                      disabled={monthOffset === 1}
-                      className={`p-1 rounded-md ${monthOffset === 1 ? 'opacity-20' : 'hover:bg-gray-200'}`}
-                    >
-                      <ChevronRight size={24} style={{ color: '#5A4A61' }} />
-                    </button>
-                  </div>
-                </div>
-                
-                <div className="grid grid-cols-7 gap-1 text-center text-xs font-bold mb-2" style={{ color: '#CE93D8' }}>
-                  {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map(d => <div key={d}>{d}</div>)}
-                </div>
-                
-                <div className="grid grid-cols-7 gap-1">
-                  {/* Calendar Padding (Assuming Feb 2026 starts on Sunday) */}
-                  {[...Array(monthOffset === 0 ? 0 : 0)].map((_, i) => <div key={i} />)} 
-                  {[...Array(28 + monthOffset * 3)].map((_, i) => {
-                    const day = i + 1;
-                    const isAvailable = availableDays.includes(day);
-                    return (
-                      <button
-                        key={day}
-                        disabled={!isAvailable}
-                        onClick={() => setSelectedDay(day)}
-                        className={`aspect-square rounded-lg flex items-center justify-center text-sm transition-all
-                          ${isAvailable ? 'font-bold hover:scale-105' : 'text-gray-300 cursor-not-allowed'}
-                          ${selectedDay === day ? 'ring-2 ring-purple-400 ring-offset-1' : ''}`}
-                        style={{ 
-                          backgroundColor: selectedDay === day ? '#CE93D8' : isAvailable ? '#E1BEE7' : 'transparent',
-                          color: selectedDay === day ? 'white' : '#5A4A61'
-                        }}
-                      >
-                        {day}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {selectedDay && (
-                <div className="space-y-3 animate-in fade-in slide-in-from-top-2">
-                  <h4 className="font-bold text-sm" style={{ color: '#5A4A61' }}>Available Slots for {selectedDay} {months[monthOffset].split(' ')[0]}</h4>
-                  <div className="grid grid-cols-2 gap-2">
-                    {timeSlots.map(time => (
-                      <button 
-                        key={time}
-                        onClick={() => setView("confirm")}
-                        className="py-3 rounded-xl border-2 font-medium hover:bg-emerald-50 hover:border-emerald-200 transition-all"
-                        style={{ borderColor: '#EEE', color: '#5A4A61' }}
-                      >
-                        {time}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* --- STEP 3: CONFIRMATION --- */}
-          {view === "confirm" && (
-            <div className="p-12 text-center space-y-4">
-              <div className="flex justify-center"><CheckCircle size={80} style={{ color: '#B3DDB9' }} /></div>
-              <h3 className="text-2xl font-bold" style={{ color: '#5A4A61' }}>Request Sent!</h3>
-              <p style={{ color: '#5A4A61' }}>You've requested a meeting for <strong>{selectedDay} {months[monthOffset].split(' ')[0]}</strong>. <br/>A calendar invite is being sent to your student email.</p>
-              <button onClick={handleClose} className="px-10 py-3 rounded-xl font-bold text-white shadow-md" style={{ backgroundColor: '#B3DDB9' }}>Return to Directory</button>
-            </div>
-          )}
-
-          {/* Profile Footer */}
-          {view === "profile" && (
-            <div className="p-6 bg-gray-50 m-4 rounded-2xl space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="flex items-start gap-3 text-sm">
-                  <MapPin size={18} style={{ color: '#B3DDB9' }} />
-                  <span style={{ color: '#5A4A61' }}>{staff.location}</span>
-                </div>
-                <div className="flex items-start gap-3 text-sm">
-                  <Clock size={18} style={{ color: '#B3DDB9' }} />
-                  <span style={{ color: '#5A4A61' }}>{staff.availability}</span>
-                </div>
-              </div>
-              <a href={`mailto:${staff.email}`} className="w-full flex items-center justify-center gap-2 py-3 rounded-xl font-bold border-2"
-                 style={{ backgroundColor: '#B3DDB9', borderColor: '#B3DDB9', color: '#5A4A61' }}>
-                <Mail size={18} /> Send Email
-              </a>
-            </div>
-          )}
+          </div>
         </div>
       </div>
-    </div>
+
+      {/* Request Meeting sub-modal — rendered inside the fragment, above the profile overlay */}
+      {requestOpen && (
+        <RequestModal
+          staff={staff}
+          onClose={() => setRequestOpen(false)}
+          onSubmit={handleRequestSubmit}
+        />
+      )}
+    </>
   );
 }
 
