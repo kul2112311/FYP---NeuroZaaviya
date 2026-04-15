@@ -28,6 +28,7 @@ import Files from './pages/OAP/Files.jsx';
 import FocusPeerManagement from './pages/OAP/Focuspeermanagement.jsx';
 import DeepWorkSession from "./pages/StudentInterface/Deepworksession.jsx";
 import ChatPage from "./pages/shared/Chats/ChatPage.jsx";
+import SupportSupport from './pages/shared/StudentSupport.jsx';
 
 
 const menuConfig = {
@@ -35,6 +36,7 @@ const menuConfig = {
     { icon: <LayoutDashboard size={20}/>, text: "Dashboard", to: "/" },
     { icon: <CalendarDays size={20}/>, text: "Calendar", to: "/calendar" },
     { icon: <BookOpen size={20}/>, text: "Resources", to: "/resources" },
+    {icon: <BookOpen size={20}/>, text: "Support", to: "/support"  },
     { icon: <Newspaper size={20}/>, text: "Forum", to: "/forum" },
     { icon: <Users size={20}/>, text: "FocusPeer", to: "/focuspeer" },
     { icon: <CalendarHeart size={20}/>, text: "Events", to: "/events" },
@@ -166,6 +168,7 @@ function AppContent() {
             <Route path="/calendar" element={<SuperCalendarPage />} />
             <Route path="/deep-work" element={<DeepWorkSession />} />
             <Route path="/chats" element={<ChatPage />} />
+            <Route path="/support" element={<SupportSupport />} />
           </Routes>
         </div>
       </main>
