@@ -31,7 +31,6 @@ import DeepWorkSession from "./pages/StudentInterface/Deepworksession.jsx";
 import Focuspeermanagement from "./pages/Ehsas/Focuspeermanagement.jsx";
 import { OAPRequestApproval } from './pages/OAP/Oaprequestapproval.jsx';
 
-
 const menuConfig = {
   student: [
     { icon: <LayoutDashboard size={20}/>, text: "Dashboard", to: "/" },
@@ -74,7 +73,7 @@ const menuConfig = {
     { icon: <Users size={20}/>, text: "Students", to: "/students" },
     { icon: <Folder size={20}/>, text: "Files", to: "/files" },
     { icon: <FileText size={20}/>, text: "Accommodations", to: "/accomodations" },
-    { icon: <UserPlus size={20}/>, text: "Request Approvals", to: "/oap-request-approval" }, // ← already here
+    { icon: <UserPlus size={20}/>, text: "Request Approvals", to: "/oap-request-approval" },
     { icon: <CalendarHeart size={20}/>, text: "Events", to: "/events" },
     { icon: <Newspaper size={20}/>, text: "Forum", to: "/forum" },
     { icon: <CalendarSync size={20}/>, text: "Scheduling", to: "/scheduling" },
@@ -89,6 +88,24 @@ function AppContent() {
 
   const [preAuthPage, setPreAuthPage] = useState('signin');
 
+  // 🛡️ THE FIX: Check authentication FIRST. 
+  // If there is no user, stop here and show the login screens.
+  if (!isAuthenticated || !user) {
+    if (preAuthPage === 'focuspeer-register') {
+      return (
+        <FocusPeerRegisterPage
+          onBack={() => setPreAuthPage('signin')}
+        />
+      );
+    }
+    return (
+      <SignInPage
+        onNavigateToRegister={() => setPreAuthPage('focuspeer-register')}
+      />
+    );
+  }
+
+  // 👇 By the time React gets here, we are 100% sure 'user' exists!
   const menuItems = menuConfig[user.role] || [];
 
   let dashboardToShow;
@@ -104,21 +121,6 @@ function AppContent() {
     dashboardToShow = <OAPDashboard />;
   } else {
     dashboardToShow = <Dashboard />;
-  }
-
-  if (!isAuthenticated) {
-    if (preAuthPage === 'focuspeer-register') {
-      return (
-        <FocusPeerRegisterPage
-          onBack={() => setPreAuthPage('signin')}
-        />
-      );
-    }
-    return (
-      <SignInPage
-        onNavigateToRegister={() => setPreAuthPage('focuspeer-register')}
-      />
-    );
   }
 
   return (
@@ -161,7 +163,7 @@ function AppContent() {
             <Route path="/calendar" element={<SuperCalendarPage />} />
             <Route path="/deep-work" element={<DeepWorkSession />} />
             <Route path="/ehsas-fp-management" element={<Focuspeermanagement />} />
-            <Route path="/oap-request-approval" element={<OAPRequestApproval />} /> {/* ← NEW */}
+            <Route path="/oap-request-approval" element={<OAPRequestApproval />} />
           </Routes>
         </div>
       </main>

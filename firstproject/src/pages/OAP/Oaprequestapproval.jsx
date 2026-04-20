@@ -32,8 +32,8 @@ const C = {
 };
 
 const ROLE_META = {
-  student:   { label: "Student",           icon: GraduationCap,  color: "#9575a3", bg: "rgba(179,157,219,0.15)" },
-  oap:       { label: "OAP Staff",          icon: Shield,         color: "#6b9e9a", bg: "rgba(107,158,154,0.1)"  },
+  student:   { label: "Student",          icon: GraduationCap,  color: "#9575a3", bg: "rgba(179,157,219,0.15)" },
+  oap:       { label: "OAP Staff",         icon: Shield,         color: "#6b9e9a", bg: "rgba(107,158,154,0.1)"  },
   ehsas:     { label: "Ehsas Counselor",    icon: HeartHandshake, color: "#9b7fbd", bg: "rgba(155,127,189,0.1)"  },
   wellness:  { label: "Wellness Counselor", icon: Stethoscope,    color: "#6b9e9a", bg: "rgba(107,158,154,0.1)"  },
   focuspeer: { label: "Focus Peer",         icon: UserPlus,       color: "#c0608a", bg: "rgba(248,187,208,0.15)" },
@@ -170,29 +170,49 @@ export function OAPRequestApproval() {
   const [focusedSearch, setFocusedSearch] = useState(false);
   const [refreshHov, setRefreshHov]       = useState(false);
 
-  const loadRequests = () => {
-    const all = JSON.parse(localStorage.getItem("accessRequests") || "[]");
-    setRequests(all.filter(r => r.source === "signup" || !r.source));
+  // 🔥 1. THE ONLY CHANGE: Fetching from API instead of localStorage 🔥
+  const loadRequests = async () => {
+    try {
+      const response = await fetch('http://localhost:5000/api/requests');
+      if (response.ok) {
+        const data = await response.json();
+        setRequests(data);
+      }
+    } catch (error) {
+      console.error("Failed to fetch requests:", error);
+    }
   };
+
   useEffect(() => { loadRequests(); }, []);
 
-  const commitApprove = (req) => {
-    const all = JSON.parse(localStorage.getItem("accessRequests") || "[]");
-    const updated = all.map(r => r.id === req.id ? { ...r, status: "approved", reviewedAt: new Date().toISOString() } : r);
-    localStorage.setItem("accessRequests", JSON.stringify(updated));
-    const users = JSON.parse(localStorage.getItem("registeredUsers") || "[]");
-    if (!users.find(u => u.email === req.email)) {
-      users.push({ id: Date.now().toString(), name: req.name, email: req.email, password: req.password, role: req.role, createdAt: new Date().toISOString() });
-      localStorage.setItem("registeredUsers", JSON.stringify(users));
+  // 🔥 2. THE ONLY CHANGE: Approving via API instead of localStorage 🔥
+  const commitApprove = async (req) => {
+    try {
+      const response = await fetch(`http://localhost:5000/api/requests/approve/${req.id}`, { method: 'POST' });
+      if (response.ok) {
+        loadRequests(); 
+        setEmailModal(null);
+      } else {
+        alert("Failed to approve user.");
+      }
+    } catch (error) {
+      console.error("Approval error:", error);
     }
-    loadRequests(); setEmailModal(null);
   };
 
-  const commitReject = (req) => {
-    const all = JSON.parse(localStorage.getItem("accessRequests") || "[]");
-    const updated = all.map(r => r.id === req.id ? { ...r, status: "rejected", reviewedAt: new Date().toISOString() } : r);
-    localStorage.setItem("accessRequests", JSON.stringify(updated));
-    loadRequests(); setEmailModal(null);
+  // 🔥 3. THE ONLY CHANGE: Rejecting via API instead of localStorage 🔥
+  const commitReject = async (req) => {
+    try {
+      const response = await fetch(`http://localhost:5000/api/requests/reject/${req.id}`, { method: 'POST' });
+      if (response.ok) {
+        loadRequests(); 
+        setEmailModal(null);
+      } else {
+        alert("Failed to reject user.");
+      }
+    } catch (error) {
+      console.error("Rejection error:", error);
+    }
   };
 
   const counts = {
@@ -225,19 +245,11 @@ export function OAPRequestApproval() {
   };
 
   return (
-    /*
-     * ── LAYOUT FIX ──────────────────────────────────────────────────────────
-     * App.jsx wraps <main> with `flex-1 flex justify-center` which collapses
-     * the child width. We escape that by using:
-     *   position: absolute, inset: 0, left: <sidebar-width>
-     * The sidebar is 240px wide (standard NavBar width in this project).
-     * This makes the component fill exactly the space to the right of the sidebar.
-     */
     <div style={{
       position: "absolute",
       top: 0,
       bottom: 0,
-      left: 240,    /* matches NavBar width — adjust if your sidebar is different */
+      left: 240,
       right: 0,
       overflowY: "auto",
       background: C.pageBg,
@@ -371,7 +383,22 @@ function EmailModal({ emailModal, onClose, onConfirm }) {
   const defaultBody = isApprove
     ? approvalEmailBody(emailModal.request.name || emailModal.request.email, emailModal.request.role)
     : rejectionEmailBody(emailModal.request.name || emailModal.request.email, emailModal.request.role);
+  
   const [emailBody, setEmailBody] = useState(defaultBody);
+
+  // 🔥 THE OUTLOOK WEB MAGIC: Opens Outlook directly in a new browser tab! 🔥
+  const handleSendAndProcess = () => {
+    const subject = isApprove ? "NeuroZaviya Account Approved" : "NeuroZaviya Account Request — Update";
+    
+    // Microsoft's official deep link for opening a pre-filled compose window in Outlook Web
+    const outlookWebUrl = `https://outlook.office.com/mail/deeplink/compose?to=${emailModal.request.email}&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(emailBody)}`;
+    
+    // Open in a new Chrome tab so they don't lose their place on the dashboard
+    window.open(outlookWebUrl, '_blank');
+    
+    // Execute the database approval/rejection
+    onConfirm();
+  };
 
   return (
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50, padding: 24 }}>
@@ -396,7 +423,7 @@ function EmailModal({ emailModal, onClose, onConfirm }) {
         </div>
         <div style={{ padding: "18px 30px 0" }}>
           <div style={{ background: C.purple50, borderRadius: 12, padding: "12px 16px", fontSize: 13, display: "flex", flexDirection: "column", gap: 5 }}>
-            {[["To", emailModal.request.email], ["From", "oap@habib.edu.pk"], ["Sub", isApprove ? "NeuroZaviya Account Approved" : "NeuroZaviya Account Request — Update"]].map(([k, v]) => (
+            {[["To", emailModal.request.email], ["From", "Your Default Mail App (e.g. Outlook)"], ["Sub", isApprove ? "NeuroZaviya Account Approved" : "NeuroZaviya Account Request — Update"]].map(([k, v]) => (
               <div key={k} style={{ display: "flex", gap: 10 }}>
                 <span style={{ color: C.purple400, minWidth: 38, fontWeight: 600 }}>{k}:</span>
                 <span style={{ color: C.purple800, fontWeight: 600 }}>{v}</span>
@@ -431,7 +458,9 @@ function EmailModal({ emailModal, onClose, onConfirm }) {
             style={{ padding: "11px 22px", borderRadius: 11, border: "1px solid rgba(179,157,219,0.3)", background: cancelHov ? "rgba(179,157,219,0.12)" : C.white, color: C.purple600, cursor: "pointer", fontWeight: 600, fontSize: 14, transition: "all 0.18s" }}>
             Cancel
           </button>
-          <button onClick={onConfirm}
+          
+          {/* 🔥 CHANGED: Now calls handleSendAndProcess instead of onConfirm directly 🔥 */}
+          <button onClick={handleSendAndProcess}
             onMouseEnter={() => setConfirmHov(true)} onMouseLeave={() => setConfirmHov(false)}
             style={{ padding: "11px 24px", borderRadius: 11, border: "none", cursor: "pointer", fontWeight: 700, fontSize: 14, color: "#fff", background: actionColor, display: "flex", alignItems: "center", gap: 8, boxShadow: confirmHov ? `0 8px 20px ${actionShadow}` : `0 4px 14px ${actionShadow}`, transform: confirmHov ? "translateY(-1px)" : "none", filter: confirmHov ? "brightness(1.08)" : "brightness(1)", transition: "all 0.18s" }}>
             <Send size={15} />

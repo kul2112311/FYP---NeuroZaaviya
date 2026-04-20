@@ -1,3 +1,16 @@
+// ==========================================
+// THE SILENT KILLER TRAP
+// ==========================================
+const originalExit = process.exit;
+process.exit = function(code) {
+    console.error(`\n🚨🚨🚨 CAUGHT THE GHOST! process.exit(${code}) was called! 🚨🚨🚨`);
+    console.trace('Look at the trace below to see EXACTLY which file and line killed the server:');
+    originalExit(code);
+};
+// ==========================================
+
+
+
 const express = require('express');
 const cors = require('cors');
 const pool = require('./db');
@@ -19,7 +32,216 @@ app.use(express.json());
 
 const upload = multer({ storage: multer.memoryStorage() });
 const kulsoom_index = require('./kulsoom_index');
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
 app.use('/api', kulsoom_index);
+
+
+// --- TRAP SILENT CRASHES ---
+process.on('uncaughtException', (err) => {
+    console.error('🚨 CRITICAL CRASH (Uncaught Exception):', err);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('🚨 CRITICAL CRASH (Unhandled Rejection):', reason);
+});
+// ---------------------------
+    
+// ==========================================
+// AUTHENTICATION & APPROVAL ROUTES
+// ==========================================
+
+// 1. REGISTER NEW USER (SENDS TO WAITING ROOM)
+app.post('/api/auth/register', async (req, res) => {
+    try {
+        const { name, email, password, role, cgpa, reason } = req.body;
+        
+        // Check if user already exists in the VIP users table
+        const userExists = await pool.query("SELECT * FROM users WHERE email = $1", [email]);
+        if (userExists.rows.length > 0) {
+            return res.status(400).json({ error: "Email is already registered." });
+        }
+
+        // Check if they are currently pending
+        const reqExists = await pool.query("SELECT * FROM access_requests WHERE email = $1 AND status = 'pending'", [email]);
+        if (reqExists.rows.length > 0) {
+            return res.status(400).json({ error: "A pending request already exists for this email. Please wait for OAP approval." });
+        }
+
+        // 🔥 THE FIX: Delete any old REJECTED requests for this email so they can try again! 🔥
+        await pool.query("DELETE FROM access_requests WHERE email = $1 AND status = 'rejected'", [email]);
+
+        // Hash the password safely while they wait
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(password, salt);
+
+        // Put them in the waiting room!
+        await pool.query(
+            "INSERT INTO access_requests (full_name, email, password, role, cgpa, reason, status) VALUES ($1, $2, $3, $4, $5, $6, 'pending')",
+            [name, email, hashedPassword, role, cgpa || null, reason || null]
+        );
+
+        res.json({ success: true, message: "Application submitted successfully." });
+
+    } catch (err) {
+        console.error("❌ Registration Error:", err.message);
+        res.status(500).json({ error: "Server Error during registration" });
+    }
+});
+
+// 2. FETCH PENDING REQUESTS (FOR OAP & EHSAS)
+app.get('/api/requests', async (req, res) => {
+    try {
+        // Fetch all pending requests. We alias columns to match your frontend expectations
+        const result = await pool.query(`
+            SELECT id, full_name as name, email, role, cgpa, reason, created_at as "appliedAt", status 
+            FROM access_requests 
+            ORDER BY created_at DESC
+        `);
+        res.json(result.rows);
+    } catch (err) {
+        console.error("❌ Fetch Requests Error:", err);
+        res.status(500).json({ error: "Server Error" });
+    }
+});
+
+// ==========================================
+// OAP DIRECTORY ROUTES
+// ==========================================
+
+// GET ALL REGISTERED STUDENTS
+app.get('/api/oap/all-students', async (req, res) => {
+    try {
+        const query = `
+            SELECT 
+                u.id, 
+                u.full_name as name, 
+                u.email, 
+                sp.major
+            FROM users u
+            JOIN student_profiles sp ON u.id = sp.user_id
+            WHERE u.role = 'student'
+            ORDER BY u.full_name ASC
+        `;
+        const result = await pool.query(query);
+        res.json(result.rows);
+    } catch (err) {
+        console.error("❌ Error fetching directory students:", err.message);
+        res.status(500).json({ error: "Server Error" });
+    }
+});
+
+
+
+// 3. APPROVE A REQUEST
+app.post('/api/requests/approve/:id', async (req, res) => {
+    const { id } = req.params;
+    try {
+        // Start a transaction so if one step fails, they all fail safely
+        await pool.query('BEGIN');
+
+        // Get the user from the waiting room
+        const request = await pool.query("SELECT * FROM access_requests WHERE id = $1", [id]);
+        if (request.rows.length === 0) throw new Error("Request not found");
+        const pendingUser = request.rows[0];
+
+        // 1. Move them to the main VIP users table
+        const newUser = await pool.query(
+            "INSERT INTO users (id, full_name, email, password, role) VALUES (gen_random_uuid(), $1, $2, $3, $4) RETURNING id",
+            [pendingUser.full_name, pendingUser.email, pendingUser.password, pendingUser.role]
+        );
+        const newUserId = newUser.rows[0].id;
+
+        // 2. Create their specific profile based on their role
+        if (pendingUser.role === 'student') {
+            // Extracts "al07412" from "al07412@st.habib.edu.pk"
+            const habibId = pendingUser.email.split('@')[0]; 
+
+            await pool.query(
+                "INSERT INTO student_profiles (id, user_id, student_id) VALUES (gen_random_uuid(), $1, $2)", 
+                [newUserId, habibId]
+            );
+        } else if (pendingUser.role === 'focus-peer') {
+            // I'm changing this to student_id as well, assuming your focus_peer_profiles uses the same naming convention!
+            await pool.query(
+                "INSERT INTO focus_peer_profiles (id, student_id, is_available) VALUES (gen_random_uuid(), $1, true)", 
+                [newUserId]
+            );
+        } else if (['oap', 'wellness-counsellor', 'ehsas-counsellor'].includes(pendingUser.role)) {
+            // Staff profiles usually use user_id, but if this throws an error too, we will know it needs changing!
+            await pool.query(
+                "INSERT INTO staff_profiles (id, user_id, department, role) VALUES (gen_random_uuid(), $1, $2, $3)", 
+                [newUserId, pendingUser.role === 'oap' ? 'OAP' : 'Wellness/Ehsas', pendingUser.role]
+            );
+        }
+
+        // 3. Mark the request as approved
+        await pool.query("UPDATE access_requests SET status = 'approved' WHERE id = $1", [id]);
+
+        await pool.query('COMMIT');
+        res.json({ success: true, message: "User approved and created!" });
+    } catch (err) {
+        await pool.query('ROLLBACK');
+        console.error("❌ Approval Error:", err.message);
+        res.status(500).json({ error: "Server Error during approval" });
+    }
+});
+
+// 4. REJECT A REQUEST
+app.post('/api/requests/reject/:id', async (req, res) => {
+    try {
+        await pool.query("UPDATE access_requests SET status = 'rejected' WHERE id = $1", [req.params.id]);
+        res.json({ success: true, message: "User rejected." });
+    } catch (err) {
+        res.status(500).json({ error: "Server Error during rejection" });
+    }
+});
+
+// 2. LOGIN USER
+app.post('/api/auth/login', async (req, res) => {
+    try {
+        const { email, password } = req.body;
+
+        // Find the user by email
+        const userResult = await pool.query("SELECT * FROM users WHERE email = $1", [email]);
+        if (userResult.rows.length === 0) {
+            return res.status(400).json({ error: "Invalid email or password." });
+        }
+
+        const user = userResult.rows[0];
+
+        // Compare entered password with the hashed password in DB
+        const validPassword = await bcrypt.compare(password, user.password);
+        if (!validPassword) {
+            return res.status(400).json({ error: "Invalid email or password." });
+        }
+
+        // Create the JSON Web Token (The digital ID Card)
+        const token = jwt.sign(
+            { id: user.id, role: user.role, name: user.full_name },
+            process.env.JWT_SECRET || "neurozaviya_super_secret_key_2026", 
+            { expiresIn: "24h" }
+        );
+
+        // Send back the token and the clean user profile
+        res.json({
+            success: true,
+            token,
+            user: {
+                id: user.id,
+                name: user.full_name,
+                email: user.email,
+                role: user.role
+            }
+        });
+
+    } catch (err) {
+        console.error("❌ Login Error:", err.message);
+        res.status(500).json({ error: "Server Error during login" });
+    }
+});
+
+
 
 // ==========================================
 // AI AGENT ROUTE (Gemini)

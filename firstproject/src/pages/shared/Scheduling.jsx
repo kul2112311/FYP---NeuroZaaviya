@@ -1,30 +1,7 @@
-import { List, Search, CalendarCheck } from "lucide-react";
+import { List, Search, CalendarCheck, CalendarX } from "lucide-react";
 import { useState } from "react";
 import Calendar from "../../components/CommunityComponents/Calendar.jsx";
 import AppointmentModal from "../../components/CommunityComponents/AppointmentModal.jsx";
-
-const MOCK_REQUESTS = [
-  {
-    id: "r1",
-    student: "Alice Johnson",
-    date: "2026-04-10",
-    time: "10:00",
-    duration: "1 hour",
-    type: "Academic Review",
-    location: "Office Room 101",
-    notes: "Struggling with thesis structure, need guidance.",
-  },
-  {
-    id: "r2",
-    student: "Bob Smith",
-    date: "2026-04-11",
-    time: "14:00",
-    duration: "30 minutes",
-    type: "Wellness Check-in",
-    location: "Online (Zoom)",
-    notes: "",
-  },
-];
 
 function RequestCard({ req, onConfirm, onDecline }) {
   return (
@@ -99,11 +76,14 @@ function AppointmentCard({ appt, onCancel }) {
 }
 
 function Schedule() {
-  const [date, setDate]             = useState(new Date());
+  const [date, setDate] = useState(new Date());
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [appointments, setAppointments] = useState([]);
-  const [requests, setRequests]     = useState(MOCK_REQUESTS);
-  const [search, setSearch]         = useState("");
+  
+  // CLEAN SLATE! No more MOCK_REQUESTS
+  const [requests, setRequests] = useState([]); 
+  
+  const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All Status");
 
   const handleSave = (newAppointment) => {
@@ -113,7 +93,6 @@ function Schedule() {
     ]);
   };
 
-  // Confirm request → add to appointments, remove from requests, jump calendar to that date
   const handleConfirm = (req) => {
     setAppointments(prev => [
       ...prev,
@@ -121,7 +100,6 @@ function Schedule() {
     ]);
     setRequests(prev => prev.filter(r => r.id !== req.id));
 
-    // Navigate the calendar to the confirmed appointment's date so it's immediately visible
     const [year, month, day] = req.date.split("-").map(Number);
     setDate(new Date(year, month - 1, day));
   };
@@ -143,7 +121,6 @@ function Schedule() {
     );
   });
 
-  // Apply search + status filter to the selected-date list
   const filteredAppointments = appointmentsForDate.filter(appt => {
     const matchesSearch =
       search.trim() === "" ||
@@ -197,7 +174,11 @@ function Schedule() {
         </div>
 
         {requests.length === 0 ? (
-          <p className="text-xs text-purple-400 m-0">No pending requests.</p>
+          <div className="flex flex-col items-center justify-center py-8 border-2 border-dashed border-purple-100 rounded-2xl bg-purple-50/30">
+            <CalendarX size={32} className="text-purple-300 mb-2" />
+            <p className="text-sm font-medium text-purple-800 m-0">No pending requests</p>
+            <p className="text-xs text-purple-500 m-0 mt-1">You are all caught up!</p>
+          </div>
         ) : (
           <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))" }}>
             {requests.map(req => (
@@ -259,9 +240,9 @@ function Schedule() {
           </h3>
 
           {filteredAppointments.length === 0 ? (
-            <p className="text-xs text-purple-400">
-              No appointments scheduled for this date.
-            </p>
+            <div className="flex flex-col items-center justify-center h-40">
+                <p className="text-xs text-purple-400 m-0">No appointments scheduled for this date.</p>
+            </div>
           ) : (
             <div className="flex flex-col gap-2.5">
               {filteredAppointments.map(appt => (
