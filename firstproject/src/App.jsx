@@ -1,16 +1,14 @@
 // App.jsx - Updated with Role-Based Navigation
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom'
-import { useState } from 'react'                                         
 import Community from './pages/shared/CommunityPage.jsx'
 import FocusPeerPage from './pages/StudentInterface/FocusPeerPage.jsx'
 import NavBar, { SideBarItem } from './components/navbar/NavBar.jsx'
-import { LayoutDashboard, BookOpen, Newspaper, Users, Settings, FileText, Folder, CalendarSync, CalendarHeart, CalendarDays, UserPlus } from "lucide-react";
+import { LayoutDashboard, BookOpen, Newspaper, Users, Settings, FileText, Folder, CalendarSync, CalendarHeart, CalendarDays, UserPlus, MessageCircle } from "lucide-react";
 import FocusPeer from './pages/FocusPeerInterface/FocusPeer.jsx';
 import GiveFeedbackForm from './pages/FocusPeerInterface/GiveFeedBackPage.jsx';
-import { UserProvider, useUser } from './styles/SignInLandingPage/usercontext.jsx';
-import { AuthProvider, useAuth } from './styles/SignInLandingPage/Authcontext.jsx';
-import { SignInPage } from './styles/SignInLandingPage/Signinpage.jsx';
-import { FocusPeerRegisterPage } from './styles/SignInLandingPage/Focuspeerregisterpage.jsx'; 
+import { UserProvider, useUser } from './usercontext';
+import { AuthProvider, useAuth } from './Authcontext';
+import { SignInPage } from './Signinpage';
 import FocuspeerMonitor from './pages/Wellness/FocuspeerMonitor.jsx';
 import Dashboard from './pages/StudentInterface/Dashboard.jsx';
 import DetailedProgress from './pages/StudentInterface/DetailedProgress.jsx';
@@ -19,19 +17,18 @@ import { AITaskBreakdownPage } from './pages/StudentInterface/Aitaskbreakdownpag
 import { EisenhowerMatrixPage } from './pages/StudentInterface/Eisenhowermatrixpage.jsx';
 import WellnessDashboard from './pages/Wellness/WellnessDashboard.jsx';
 import OAPDashboard from './pages/OAP/OAPDashboard.jsx';
-import EhsasDashboard from './pages/Ehsas/EhsasDashboard.jsx';
+import EhsasDashboard from './pages/Wellness/EhsasDashboard.jsx';
 import Student from './pages/shared/Students.jsx';
 import Alert from './pages/shared/Alerts.jsx';
 import Scheduling from './pages/shared/Scheduling.jsx';
-import Events, { AdminInterfaceEvent } from './pages/shared/Events.jsx';
+import Events, { AdminInterfaceEvent , StudentInterfaceEvents} from './pages/shared/Events.jsx';
 import SuperCalendarPage from './pages/StudentInterface/SuperCalendarPage.jsx';
 import Accommodations from './pages/OAP/Accommodations.jsx';
 import Files from './pages/OAP/Files.jsx';
+import FocusPeerManagement from './pages/OAP/Focuspeermanagement.jsx';
 import DeepWorkSession from "./pages/StudentInterface/Deepworksession.jsx";
-import Focuspeermanagement from "./pages/Ehsas/Focuspeermanagement.jsx";
-import { OAPRequestApproval } from './pages/OAP/Oaprequestapproval.jsx';
 import ChatPage from "./pages/shared/Chats/ChatPage.jsx";
-import SupportSupport from './pages/shared/StudentSupport.jsx';
+import StudentSupport from './pages/shared/StudentSupport.jsx';
 
 
 const menuConfig = {
@@ -42,13 +39,16 @@ const menuConfig = {
     {icon: <BookOpen size={20}/>, text: "Support", to: "/support"  },
     { icon: <Newspaper size={20}/>, text: "Forum", to: "/forum" },
     { icon: <Users size={20}/>, text: "FocusPeer", to: "/focuspeer" },
-    { icon: <CalendarHeart size={20}/>, text: "Events", to: "/events" }
+    { icon: <CalendarHeart size={20}/>, text: "Events", to: "/events" },
+    {icon: <MessageCircle size={20}/>, text: "Chats", to: "/chats"}
   ],
   'focus-peer': [
     { icon: <LayoutDashboard size={20}/>, text: "My Dashboard", to: "/" },
     { icon: <BookOpen size={20}/>, text: "Resources", to: "/resources" },
     { icon: <Newspaper size={20}/>, text: "Forum", to: "/forum" },
-    { icon: <CalendarHeart size={20}/>, text: "Events", to: "/events" }
+    { icon: <CalendarHeart size={20}/>, text: "Events", to: "/events" },
+    {icon: <MessageCircle size={20}/>, text: "Chats", to: "/chats"}
+
   ],
   'wellness-counsellor': [
     { icon: <LayoutDashboard size={20}/>, text: "Dashboard", to: "/" },
@@ -57,9 +57,9 @@ const menuConfig = {
     { icon: <BookOpen size={20}/>, text: "Resources", to: "/resources" },
     { icon: <CalendarHeart size={20}/>, text: "Events", to: "/events" },
     { icon: <Users size={20}/>, text: "Focus Peers", to: "/focuspeer-monitor" },
-    { icon: <UserPlus size={20}/>, text: "Focus Peer Management", to: "/ehsas-fp-management" },
     { icon: <CalendarSync size={20}/>, text: "Scheduling", to: "/scheduling" },
-    { icon: <Newspaper size={20}/>, text: "Forum", to: "/forum" }
+    { icon: <Newspaper size={20}/>, text: "Forum", to: "/forum" },
+    {icon: <MessageCircle size={20}/>, text: "Chats", to: "/chats"}
   ],
   'ehsas-counsellor': [
     { icon: <LayoutDashboard size={20}/>, text: "Dashboard", to: "/" },
@@ -68,29 +68,36 @@ const menuConfig = {
     { icon: <BookOpen size={20}/>, text: "Resources", to: "/resources" },
     { icon: <CalendarHeart size={20}/>, text: "Events", to: "/events" },
     { icon: <Users size={20}/>, text: "Focus Peers", to: "/focuspeer-monitor" },
-    { icon: <UserPlus size={20}/>, text: "Focus Peer Management", to: "/ehsas-fp-management" },
     { icon: <CalendarSync size={20}/>, text: "Scheduling", to: "/scheduling" },
-    { icon: <Newspaper size={20}/>, text: "Forum", to: "/forum" }
+    { icon: <Newspaper size={20}/>, text: "Forum", to: "/forum" },
+    {icon: <MessageCircle size={20}/>, text: "Chats", to: "/chats"}
   ],
   oap: [
     { icon: <LayoutDashboard size={20}/>, text: "Dashboard", to: "/" },
     { icon: <Users size={20}/>, text: "Students", to: "/students" },
     { icon: <Folder size={20}/>, text: "Files", to: "/files" },
     { icon: <FileText size={20}/>, text: "Accommodations", to: "/accomodations" },
-    { icon: <UserPlus size={20}/>, text: "Request Approvals", to: "/oap-request-approval" }, // ← already here
+    { icon: <UserPlus size={20}/>, text: "Focus Peers", to: "/focuspeer-management" },
     { icon: <CalendarHeart size={20}/>, text: "Events", to: "/events" },
     { icon: <Newspaper size={20}/>, text: "Forum", to: "/forum" },
     { icon: <CalendarSync size={20}/>, text: "Scheduling", to: "/scheduling" },
     { icon: <FileText size={20}/>, text: "Alerts", to: "/alerts" },
+    {icon: <MessageCircle size={20}/>, text: "Chats", to: "/chats"}
   ],
+  professor: [
+    { icon: <LayoutDashboard size={20}/>, text: "Dashboard", to: "/" },
+    { icon: <BookOpen size={20}/>, text: "Courses", to: "/courses" },
+    { icon: <Users size={20}/>, text: "Students", to: "/students" },
+    { icon: <Folder size={20}/>, text: "Files", to: "/files" },
+    { icon: <CalendarHeart size={20}/>, text: "Events", to: "/events" },
+    {icon: <MessageCircle size={20}/>, text: "Chats", to: "/chats"}
+  ]
 };
 
 function AppContent() {
   const location = useLocation();
   const { user } = useUser();
   const { isAuthenticated, signOut } = useAuth();
-
-  const [preAuthPage, setPreAuthPage] = useState('signin');
 
   const menuItems = menuConfig[user.role] || [];
 
@@ -110,18 +117,7 @@ function AppContent() {
   }
 
   if (!isAuthenticated) {
-    if (preAuthPage === 'focuspeer-register') {
-      return (
-        <FocusPeerRegisterPage
-          onBack={() => setPreAuthPage('signin')}
-        />
-      );
-    }
-    return (
-      <SignInPage
-        onNavigateToRegister={() => setPreAuthPage('focuspeer-register')}
-      />
-    );
+    return <SignInPage />;
   }
 
   return (
@@ -158,15 +154,21 @@ function AppContent() {
             <Route path="/courses" element={<div>Courses Page</div>} />
             <Route path="/focuspeer-monitor" element={<FocuspeerMonitor />} />
             <Route path="/accomodations" element={<Accommodations />} />
+            <Route path="/focuspeer-management" element={<FocusPeerManagement />} />
             <Route path="/alerts" element={<Alert />} />
             <Route path="/scheduling" element={<Scheduling />} />
-            <Route path="/events" element={<Events />} />
+            <Route 
+              path="/events" 
+              element={
+                user.role === 'oap' || user.role === 'wellness-counsellor' || user.role === 'ehsas-counsellor'
+                  ? <AdminInterfaceEvent />
+                  : <Events />
+              } 
+            />
             <Route path="/calendar" element={<SuperCalendarPage />} />
             <Route path="/deep-work" element={<DeepWorkSession />} />
-            <Route path="/ehsas-fp-management" element={<Focuspeermanagement />} />
-            <Route path="/oap-request-approval" element={<OAPRequestApproval />} /> {/* ← NEW */}
             <Route path="/chats" element={<ChatPage />} />
-            <Route path="/support" element={<SupportSupport />} />
+            <Route path="/support" element={<StudentSupport />} />
           </Routes>
         </div>
       </main>
