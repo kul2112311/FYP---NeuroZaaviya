@@ -724,6 +724,112 @@ app.patch('/api/sessions/:sessionId/status', async (req, res) => {
     }
 });
 
+
+// ==========================================
+// OAP / STAFF APPOINTMENTS
+// ==========================================
+
+// 1. GET ALL SUPPORT STAFF (For Student "Support" Tab)
+app.get('/api/support-staff', async (req, res) => {
+    try {
+        const query = `
+            SELECT 
+                sp.id as staff_id, 
+                u.full_name as name, 
+                u.email, 
+                sp.department, 
+                sp.role
+            FROM staff_profiles sp
+            JOIN users u ON sp.user_id = u.id
+        `;
+        const result = await pool.query(query);
+        res.json(result.rows);
+    } catch (err) {
+        console.error("❌ Error fetching staff:", err.message);
+        res.status(500).json({ error: "Server Error" });
+    }
+});
+
+// 2. CREATE A NEW APPOINTMENT REQUEST (Student -> Staff)
+app.post('/api/appointments', async (req, res) => {
+    try {
+        const { userId, staffId, subject, description, slot } = req.body;
+
+        // Extract the real student_profile id
+        const profileQuery = "SELECT id FROM student_profiles WHERE user_id = $1";
+        const profileResult = await pool.query(profileQuery, [userId]);
+
+        if (profileResult.rows.length === 0) {
+            return res.status(404).json({ error: "Student profile not found" });
+        }
+        const studentId = profileResult.rows[0].id;
+
+        // Insert into the new appointments table
+        const insertQuery = `
+            INSERT INTO appointments (student_id, staff_id, subject, description, preferred_slot, status)
+            VALUES ($1, $2, $3, $4, $5, 'pending')
+            RETURNING id
+        `;
+        const result = await pool.query(insertQuery, [studentId, staffId, subject, description, slot]);
+
+        res.json({ success: true, appointmentId: result.rows[0].id });
+    } catch (err) {
+        console.error("❌ Error creating appointment:", err.message);
+        res.status(500).json({ error: "Server Error" });
+    }
+});
+
+// 3. GET APPOINTMENTS FOR SPECIFIC STAFF MEMBER (For OAP Scheduling Tab)
+app.get('/api/appointments/staff/:userId', async (req, res) => {
+    try {
+        const { userId } = req.params;
+
+        // Extract the real staff_profile id
+        const staffQuery = "SELECT id FROM staff_profiles WHERE user_id = $1";
+        const staffResult = await pool.query(staffQuery, [userId]);
+
+        if (staffResult.rows.length === 0) return res.json([]);
+        const staffId = staffResult.rows[0].id;
+
+        // Fetch requests and join with users table to get the student's real name
+        const aptQuery = `
+            SELECT 
+                a.id, 
+                a.subject, 
+                a.description, 
+                a.preferred_slot, 
+                a.status, 
+                a.created_at,
+                u.full_name as student_name
+            FROM appointments a
+            JOIN student_profiles sp ON a.student_id = sp.id
+            JOIN users u ON sp.user_id = u.id
+            WHERE a.staff_id = $1
+            ORDER BY a.created_at ASC
+        `;
+        const result = await pool.query(aptQuery, [staffId]);
+        res.json(result.rows);
+    } catch (err) {
+        console.error("❌ Error fetching appointments:", err.message);
+        res.status(500).json({ error: "Server Error" });
+    }
+});
+
+// 4. UPDATE APPOINTMENT STATUS (Approve/Decline)
+app.patch('/api/appointments/:id/status', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { status } = req.body; // 'confirmed' or 'declined'
+
+        await pool.query("UPDATE appointments SET status = $1 WHERE id = $2", [status, id]);
+        res.json({ success: true });
+    } catch (err) {
+        console.error("❌ Error updating appointment:", err.message);
+        res.status(500).json({ error: "Server Error" });
+    }
+});
+
+
 // ==========================================
 // FEEDBACK SYSTEM
 // ==========================================

@@ -1,7 +1,9 @@
 import { List, Search, CalendarCheck, CalendarX } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Calendar from "../../components/CommunityComponents/Calendar.jsx";
 import AppointmentModal from "../../components/CommunityComponents/AppointmentModal.jsx";
+// 1. Import the User Context!
+import { useUser } from "../../styles/SignInLandingPage/usercontext.jsx";
 
 function RequestCard({ req, onConfirm, onDecline }) {
   return (
@@ -76,40 +78,116 @@ function AppointmentCard({ appt, onCancel }) {
 }
 
 function Schedule() {
+  const { user } = useUser(); // 2. Grab the logged-in OAP!
+  
   const [date, setDate] = useState(new Date());
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [appointments, setAppointments] = useState([]);
-  
-  // CLEAN SLATE! No more MOCK_REQUESTS
-  const [requests, setRequests] = useState([]); 
+  const [allAppointments, setAllAppointments] = useState([]); // Master list from DB
+  const [isLoading, setIsLoading] = useState(true);
   
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All Status");
 
+  // 3. Fetch live requests from the DB
+  useEffect(() => {
+    const fetchAppointments = async () => {
+      if (!user || !user.id) return;
+      try {
+        const response = await fetch(`http://localhost:5000/api/appointments/staff/${user.id}`);
+        if (response.ok) {
+          const data = await response.json();
+          
+          // Format the DB data to match your UI components perfectly
+          const mappedData = data.map(apt => {
+             // We fallback the date to 'today' just so it renders nicely on the calendar, 
+             // since the student just typed a string like "Mon 10:00 AM"
+             const fallbackDate = new Date().toISOString().split('T')[0];
+             
+             return {
+                id: apt.id,
+                student: apt.student_name,
+                date: fallbackDate, 
+                time: apt.preferred_slot,
+                duration: "30 mins",
+                type: apt.subject,
+                location: "OAP Office",
+                notes: apt.description,
+                status: apt.status
+             };
+          });
+          setAllAppointments(mappedData);
+        }
+      } catch (error) {
+        console.error("Failed to load appointments:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchAppointments();
+  }, [user]);
+
+  // Derived state: separate the master list into pending vs confirmed
+  const requests = allAppointments.filter(a => a.status === 'pending');
+  const appointments = allAppointments.filter(a => a.status === 'confirmed');
+
   const handleSave = (newAppointment) => {
-    setAppointments(prev => [
+    setAllAppointments(prev => [
       ...prev,
-      { ...newAppointment, id: Date.now().toString(), source: "oap" },
+      { ...newAppointment, id: Date.now().toString(), source: "oap", status: "confirmed" },
     ]);
+    setIsModalOpen(false);
   };
 
-  const handleConfirm = (req) => {
-    setAppointments(prev => [
-      ...prev,
-      { ...req, id: req.id + "_confirmed", source: "student" },
-    ]);
-    setRequests(prev => prev.filter(r => r.id !== req.id));
-
-    const [year, month, day] = req.date.split("-").map(Number);
-    setDate(new Date(year, month - 1, day));
+  // 4. Update status to 'confirmed' in the DB
+  const handleConfirm = async (req) => {
+    try {
+      const response = await fetch(`http://localhost:5000/api/appointments/${req.id}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'confirmed' })
+      });
+      if (response.ok) {
+        setAllAppointments(prev => prev.map(a => a.id === req.id ? { ...a, status: 'confirmed' } : a));
+        
+        // Switch calendar to the date of the appointment
+        const [year, month, day] = req.date.split("-").map(Number);
+        setDate(new Date(year, month - 1, day));
+      }
+    } catch (error) {
+      console.error("Confirmation error:", error);
+    }
   };
 
-  const handleDecline = (id) => {
-    setRequests(prev => prev.filter(r => r.id !== id));
+  // 5. Update status to 'declined' in the DB
+  const handleDecline = async (id) => {
+    try {
+      const response = await fetch(`http://localhost:5000/api/appointments/${id}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'declined' })
+      });
+      if (response.ok) {
+        setAllAppointments(prev => prev.map(a => a.id === id ? { ...a, status: 'declined' } : a));
+      }
+    } catch (error) {
+      console.error("Decline error:", error);
+    }
   };
 
-  const handleCancel = (id) => {
-    setAppointments(prev => prev.filter(a => a.id !== id));
+  // 6. Delete/Cancel confirmed appointment
+  const handleCancel = async (id) => {
+     try {
+      const response = await fetch(`http://localhost:5000/api/appointments/${id}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'declined' }) // Canceling sets it back to declined/removed
+      });
+      if (response.ok) {
+        setAllAppointments(prev => prev.map(a => a.id === id ? { ...a, status: 'declined' } : a));
+      }
+    } catch (error) {
+      console.error("Cancel error:", error);
+    }
   };
 
   const appointmentsForDate = appointments.filter(appt => {
@@ -173,7 +251,9 @@ function Schedule() {
           </p>
         </div>
 
-        {requests.length === 0 ? (
+        {isLoading ? (
+          <div className="text-center py-8 text-purple-400">Loading requests...</div>
+        ) : requests.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-8 border-2 border-dashed border-purple-100 rounded-2xl bg-purple-50/30">
             <CalendarX size={32} className="text-purple-300 mb-2" />
             <p className="text-sm font-medium text-purple-800 m-0">No pending requests</p>

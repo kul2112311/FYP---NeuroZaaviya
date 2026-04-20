@@ -166,13 +166,9 @@ function AppContent() {
             <Route path="/calendar" element={<SuperCalendarPage />} />
             <Route path="/deep-work" element={<DeepWorkSession />} />
             <Route path="/ehsas-fp-management" element={<Focuspeermanagement />} />
-<<<<<<< HEAD
-            <Route path="/oap-request-approval" element={<OAPRequestApproval />} />
-=======
             <Route path="/oap-request-approval" element={<OAPRequestApproval />} /> {/* ← NEW */}
             <Route path="/chats" element={<ChatPage />} />
             <Route path="/support" element={<SupportSupport />} />
->>>>>>> 1fa308cd0b911ffc349c2c02c598d38aa40b4076
           </Routes>
         </div>
       </main>

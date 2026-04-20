@@ -1,5 +1,7 @@
 import React, { useState } from "react";
 import { X, Mail, MapPin, Clock, CheckCircle } from "lucide-react";
+// 1. Import the user context! (Double check this path matches your folder structure)
+import { useUser } from "../../styles/SignInLandingPage/usercontext.jsx";
 
 // ── Palette ───────────────────────────────────────────────────────────────────
 const C = {
@@ -37,8 +39,8 @@ function RequestModal({ staff, onClose, onSubmit }) {
 
   const handleSubmit = () => {
     if (!isValid) return;
-    onSubmit({ subject, description, slot: otherTime ? "other" : selectedSlot });
-    onClose();
+    // Pass the data back up to the parent modal wrapper
+    onSubmit({ subject, description, slot: otherTime ? preferredTime : selectedSlot });
   };
 
   const inputStyle = {
@@ -242,6 +244,7 @@ function RequestModal({ staff, onClose, onSubmit }) {
 
 // ── Staff Profile Modal ───────────────────────────────────────────────────────
 function SupportStaffModal({ staff, isOpen, onClose }) {
+  const { user } = useUser(); // Grab the logged-in student!
   const [requestOpen, setRequestOpen] = useState(false);
   const [submitted, setSubmitted]     = useState(false);
 
@@ -249,9 +252,31 @@ function SupportStaffModal({ staff, isOpen, onClose }) {
 
   const StaffIcon = staff.icon;
 
-  const handleRequestSubmit = () => {
-    setSubmitted(true);
-    setRequestOpen(false);
+  // 2. The real Backend Fetch Call
+  const handleRequestSubmit = async (requestDetails) => {
+    try {
+      const response = await fetch('http://localhost:5000/api/appointments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user.id,             // The student requesting
+          staffId: staff.staff_id,     // The OAP staff ID from the database
+          subject: requestDetails.subject,
+          description: requestDetails.description,
+          slot: requestDetails.slot
+        })
+      });
+
+      if (response.ok) {
+        setSubmitted(true);
+        setRequestOpen(false);
+      } else {
+        alert("Failed to submit request.");
+      }
+    } catch (error) {
+      console.error("Error booking appointment:", error);
+      alert("Network error.");
+    }
   };
 
   const handleClose = () => {
@@ -279,7 +304,7 @@ function SupportStaffModal({ staff, isOpen, onClose }) {
             maxHeight: "90vh",
             overflowY: "auto",
             boxSizing: "border-box",
-            borderTop: `7px solid ${staff.bgColor}`,
+            borderTop: `7px solid ${staff.bgColor || '#b39ddb'}`,
             display: "flex",
             flexDirection: "column",
           }}
@@ -323,8 +348,8 @@ function SupportStaffModal({ staff, isOpen, onClose }) {
             }}>
               <div style={{
                 width: 56, height: 56, borderRadius: "50%",
-                background: `${staff.bgColor}30`,
-                border: `2px solid ${staff.bgColor}`,
+                background: `${staff.bgColor || '#b39ddb'}30`,
+                border: `2px solid ${staff.bgColor || '#b39ddb'}`,
                 display: "flex", alignItems: "center", justifyContent: "center",
                 flexShrink: 0, color: C.purple800,
               }}>
@@ -332,36 +357,16 @@ function SupportStaffModal({ staff, isOpen, onClose }) {
               </div>
               <div>
                 <p style={{ margin: 0, fontWeight: 700, fontSize: 16, color: C.purple800 }}>{staff.name}</p>
-                <p style={{ margin: "2px 0 0", fontSize: 13, color: C.purple600 }}>{staff.role}</p>
-                <p style={{ margin: "1px 0 0", fontSize: 12, color: C.purple400 }}>{staff.department}</p>
+                <p style={{ margin: "2px 0 0", fontSize: 13, color: C.purple600 }}>{staff.role || 'Staff'}</p>
+                <p style={{ margin: "1px 0 0", fontSize: 12, color: C.purple400 }}>{staff.department || 'Office of Academic Performance'}</p>
               </div>
             </div>
 
             {/* About */}
             <div>
               <p style={{ margin: "0 0 6px", fontSize: 13, fontWeight: 700, color: C.purple800 }}>About</p>
-              <p style={{ margin: 0, fontSize: 13, color: C.purple600, lineHeight: 1.6 }}>{staff.about}</p>
+              <p style={{ margin: 0, fontSize: 13, color: C.purple600, lineHeight: 1.6 }}>{staff.about || "Academic support professional dedicated to student success."}</p>
             </div>
-
-            {/* Expertise */}
-            {staff.expertise && (
-              <div>
-                <p style={{ margin: "0 0 8px", fontSize: 13, fontWeight: 700, color: C.purple800 }}>Areas of Expertise</p>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
-                  {staff.expertise.map(tag => (
-                    <span key={tag} style={{
-                      fontSize: 12, fontWeight: 500,
-                      background: `${staff.bgColor}25`,
-                      border: `1px solid ${staff.bgColor}`,
-                      color: C.purple800,
-                      borderRadius: 20, padding: "3px 12px",
-                    }}>
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
 
             {/* Contact info */}
             <div>
@@ -369,8 +374,8 @@ function SupportStaffModal({ staff, isOpen, onClose }) {
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 {[
                   { icon: Mail,   label: "Email",           value: staff.email },
-                  { icon: MapPin, label: "Office Location",  value: staff.location },
-                  { icon: Clock,  label: "Working Hours",    value: staff.availability },
+                  { icon: MapPin, label: "Office Location",  value: staff.location || "OAP Office, Main Building" },
+                  { icon: Clock,  label: "Working Hours",    value: staff.availability || "Mon-Fri, 9AM-5PM" },
                 ].map(({ icon: Icon, label, value }) => (
                   <div key={label} style={{
                     display: "flex", alignItems: "flex-start", gap: 12,
@@ -394,26 +399,6 @@ function SupportStaffModal({ staff, isOpen, onClose }) {
                 ))}
               </div>
             </div>
-
-            {/* Batches */}
-            {staff.batches && (
-              <div>
-                <p style={{ margin: "0 0 8px", fontSize: 13, fontWeight: 700, color: C.purple800 }}>Assigned Batches</p>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
-                  {staff.batches.map(b => (
-                    <span key={b} style={{
-                      fontSize: 12, fontWeight: 500,
-                      background: `${staff.bgColor}20`,
-                      border: `1px solid ${staff.bgColor}`,
-                      color: C.purple800,
-                      borderRadius: 20, padding: "3px 12px",
-                    }}>
-                      {b}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
 
             {/* Action buttons */}
             <div style={{ display: "flex", gap: 10, paddingTop: 4 }}>
@@ -471,7 +456,7 @@ function SupportStaffModal({ staff, isOpen, onClose }) {
         </div>
       </div>
 
-      {/* Request Meeting sub-modal — rendered inside the fragment, above the profile overlay */}
+      {/* Request Meeting sub-modal */}
       {requestOpen && (
         <RequestModal
           staff={staff}
