@@ -108,19 +108,29 @@ function AppContent() {
     );
   }
 
-  // 👇 By the time React gets here, we are 100% sure 'user' exists!
-  const menuItems = menuConfig[user.role] || [];
+  // 👇 Smart Role Normalizer: Protects against capitalization and spelling differences!
+  let safeRole = 'student'; 
+  if (user?.role) {
+    const raw = user.role.toLowerCase();
+    if (raw.includes('wellness')) safeRole = 'wellness-counsellor';
+    else if (raw.includes('ehsas')) safeRole = 'ehsas-counsellor';
+    else if (raw.includes('oap')) safeRole = 'oap';
+    else if (raw.includes('peer')) safeRole = 'focus-peer';
+    else safeRole = 'student';
+  }
+
+  const menuItems = menuConfig[safeRole] || [];
 
   let dashboardToShow;
-  if (user.role === 'student') {
+  if (safeRole === 'student') {
     dashboardToShow = <Dashboard />;
-  } else if (user.role === 'focus-peer') {
+  } else if (safeRole === 'focus-peer') {
     dashboardToShow = <FocusPeer />;
-  } else if (user.role === 'wellness-counsellor') {
+  } else if (safeRole === 'wellness-counsellor') {
     dashboardToShow = <WellnessDashboard />;
-  } else if (user.role === 'ehsas-counsellor') {
+  } else if (safeRole === 'ehsas-counsellor') {
     dashboardToShow = <EhsasDashboard />;
-  } else if (user.role === 'oap') {
+  } else if (safeRole === 'oap') {
     dashboardToShow = <OAPDashboard />;
   } else {
     dashboardToShow = <Dashboard />;

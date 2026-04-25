@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import CommunityPost from '../../components/CommunityComponents/CommunityPost.jsx';
 import CreatePostModal from '../../components/CommunityComponents/CreatePostModal.jsx';
+import { useUser } from '../../styles/SignInLandingPage/usercontext.jsx';
 
 function Community() {
+  const { user } = useUser();
   const [posts, setPosts] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -40,7 +42,7 @@ function Community() {
   const handleCreatePost = async (newPostData) => {
     try {
       // hard coded for right now , kuch to karna tha na jab tak ban jae login system
-      const currentUserId = "a1111111-1111-1111-1111-111111111111"; // Ushna's ID here (thank you for letting me use it :prayinghands:)
+      const currentUserId = user.id; // Ushna's ID here (thank you for letting me use it :prayinghands:)
 
       const response = await fetch('http://localhost:5000/api/community-posts', {
         method: 'POST',

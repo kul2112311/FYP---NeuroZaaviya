@@ -416,7 +416,7 @@ export function SignInPage({ onNavigateToRegister }) {
                           <label style={labelStyle}>Email Address</label>
                           <div style={{ position: "relative" }}>
                             <Mail style={{ ...iconPos, color: focusedField === "si_email" ? C.purple500 : C.purple300 }} />
-                            <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@habib.edu.pk" required
+                            <input type="text" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@habib.edu.pk" required
                               onFocus={() => setFocusedField("si_email")} onBlur={() => setFocusedField(null)} style={inp("si_email")} />
                           </div>
                         </div>
@@ -485,7 +485,7 @@ export function SignInPage({ onNavigateToRegister }) {
                             <label style={labelStyle}>Email Address *</label>
                             <div style={{ position: "relative" }}>
                               <Mail style={{ ...iconPos, color: focusedField === "su_email" ? C.purple500 : C.purple300 }} />
-                              <input type="email" value={suEmail} onChange={e => setSuEmail(e.target.value)} placeholder="your.email@habib.edu.pk" required
+                              <input type="text" value={suEmail} onChange={e => setSuEmail(e.target.value)} placeholder="your.email@habib.edu.pk" required
                                 onFocus={() => setFocusedField("su_email")} onBlur={() => setFocusedField(null)} style={inp("su_email")} />
                             </div>
                           </div>
@@ -580,7 +580,7 @@ export function SignInPage({ onNavigateToRegister }) {
             <p style={{ fontSize: 13, color: C.purple400, margin: "0 0 20px" }}>Enter your email and we'll show your password.</p>
 
             <input
-              type="email" value={forgotEmail}
+              type="text" value={forgotEmail}
               onChange={e => { setForgotEmail(e.target.value); setForgotResult(null); }}
               placeholder="your@habib.edu.pk"
               style={{ width: "100%", padding: "12px 16px", borderRadius: 12, border: `2px solid ${C.purple200}`, fontSize: 14, outline: "none", boxSizing: "border-box", fontFamily: "inherit", color: C.purple800, marginBottom: 16 }}

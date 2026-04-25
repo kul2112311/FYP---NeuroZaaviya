@@ -1,24 +1,24 @@
 import React, { useState, useEffect } from 'react';
 import { Calendar, Clock, Send, Loader } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useUser } from '../../../styles/SignInLandingPage/usercontext.jsx';
 
 function PendingFeedback() {
-  // ✅ FIXED: Changed to Sarah Ahmed's actual Focus Peer ID
-  const PEER_USER_ID = "b1111111-1111-1111-1111-111111111111";
+  const { user } = useUser();
   
   const navigate = useNavigate();
   const [pendingSessions, setPendingSessions] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    fetchPendingSessions();
-  }, []);
+    if (user && user.id) fetchPendingSessions();
+  }, [user]);
 
   const fetchPendingSessions = async () => {
     try {
       setIsLoading(true);
       // ✅ FIXED: Changed localhost to 127.0.0.1
-      const response = await fetch(`http://127.0.0.1:5000/api/pending-feedback/${PEER_USER_ID}`);
+      const response = await fetch(`http://127.0.0.1:5000/api/pending-feedback/${user.id}`);
       const data = await response.json();
       
       console.log('⏳ Pending feedback sessions:', data);

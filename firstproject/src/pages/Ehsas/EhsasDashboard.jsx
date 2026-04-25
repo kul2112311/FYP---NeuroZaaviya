@@ -1,37 +1,44 @@
-import { useState, useEffect } from 'react';
 import { Users, FileText, Bell, AlertCircle, Calendar, UserPlus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useUser } from '../../styles/SignInLandingPage/usercontext.jsx';
 
 function EhsasDashboard() {
   const navigate = useNavigate();
+  const { user } = useUser();
 
-  const recentAlerts = [
-    { id: 1, studentName: "Ushna Batool",  issue: "Student struggling with assignment organization", reportedBy: "Sarah Ahmed",  date: "2024-12-15 10:30:00" },
-    { id: 2, studentName: "Sara Hassan",   issue: "Increased anxiety about upcoming exams",          reportedBy: "Jordan Lee",   date: "2024-12-14 14:15:00" },
-    { id: 3, studentName: "Zainab Ahmed",  issue: "Missed multiple classes in Biology 405",          reportedBy: "Asad Ali",     date: "2024-12-10 09:20:00" },
-    { id: 4, studentName: "Ali Zaidi",     issue: "Student expressing burnout symptoms",             reportedBy: "Sarah Ahmed",  date: "2024-12-16 11:45:00" },
-  ];
-
-  // ── Live count of pending Focus Peer applications ─────────────────────────
   const [pendingFPCount, setPendingFPCount] = useState(0);
+  const [stats, setStats] = useState({
+    activeStudents: 0,
+    activeAccommodations: 0,
+    openAlerts: 0,
+    recentAlerts: []
+  });
 
   useEffect(() => {
-    const refresh = () => {
+    const fetchData = async () => {
       try {
-        const saved = localStorage.getItem("accessRequests");
-        const all = saved ? JSON.parse(saved) : [];
-        const count = all.filter(r => r.role === "focuspeer" && r.status === "pending").length;
-        setPendingFPCount(count);
-      } catch { setPendingFPCount(0); }
+        // Fetch FP Requests
+        const reqRes = await fetch('http://127.0.0.1:5000/api/requests');
+        if (reqRes.ok) {
+          const data = await reqRes.json();
+          setPendingFPCount(data.filter(r => (r.role === 'focuspeer' || r.role === 'focus-peer') && r.status === 'pending').length);
+        }
+        
+        // Fetch Dashboard Stats
+        const statsRes = await fetch('http://127.0.0.1:5000/api/admin/dashboard-stats');
+        if (statsRes.ok) {
+          setStats(await statsRes.json());
+        }
+      } catch (e) {
+        console.error("Failed to fetch dashboard data", e);
+      }
     };
-    refresh();
-    // Re-check whenever another tab/action updates localStorage
-    window.addEventListener("storage", refresh);
-    return () => window.removeEventListener("storage", refresh);
+    
+    fetchData();
+    const interval = setInterval(fetchData, 5000); // Live update every 5s
+    return () => clearInterval(interval);
   }, []);
-  // ──────────────────────────────────────────────────────────────────────────
-
-  const openAlerts = recentAlerts.length;
 
   return (
     <div className="p-6 pl-12 space-y-6" style={{ width: '80vw', minHeight: '100vh', background: '#f3eeff' }}>
@@ -40,7 +47,7 @@ function EhsasDashboard() {
       <div className="rounded-3xl p-6 bg-white">
         <div className="flex flex-col">
           <h1 className="text-2xl font-bold mb-2" style={{ color: '#2d2d3a' }}>
-            Welcome back, Sara Ali! 👋
+            Welcome back, {user?.name?.split(' ')[0] || 'Counselor'}! 👋
           </h1>
           <p className="text-sm mb-1 font-medium" style={{ color: '#9575cd' }}>
             Ehsas Counselor • Ehsas Support Services
@@ -53,55 +60,48 @@ function EhsasDashboard() {
 
       {/* Quick Action Cards */}
       <div className="grid grid-cols-4 gap-4">
+
+        {/* Active Students */}
         <div className="rounded-2xl p-5 bg-white border border-gray-100 shadow-sm">
           <div className="flex items-center justify-between mb-3">
             <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: '#ede7f6' }}>
               <Users size={20} style={{ color: '#9575cd' }} />
             </div>
-            <span className="text-3xl font-bold" style={{ color: '#2d2d3a' }}>8</span>
+            <span className="text-3xl font-bold" style={{ color: '#2d2d3a' }}>{stats.activeStudents}</span>
           </div>
           <p className="text-sm font-medium" style={{ color: '#a0a0b0' }}>Active Students</p>
         </div>
 
+        {/* Active Accommodations */}
         <div className="rounded-2xl p-5 bg-white border border-gray-100 shadow-sm">
           <div className="flex items-center justify-between mb-3">
             <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: '#fce4ec' }}>
               <FileText size={20} style={{ color: '#e91e8c' }} />
             </div>
-            <span className="text-3xl font-bold" style={{ color: '#2d2d3a' }}>11</span>
+            <span className="text-3xl font-bold" style={{ color: '#2d2d3a' }}>{stats.activeAccommodations}</span>
           </div>
           <p className="text-sm font-medium" style={{ color: '#a0a0b0' }}>Active Accommodations</p>
         </div>
 
+        {/* Open Alerts */}
         <div className="rounded-2xl p-5 bg-white border border-gray-100 shadow-sm">
           <div className="flex items-center justify-between mb-3">
             <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: '#fff3e0' }}>
               <Bell size={20} style={{ color: '#fb8c00' }} />
             </div>
-            <span className="text-3xl font-bold" style={{ color: '#2d2d3a' }}>4</span>
+            <span className="text-3xl font-bold" style={{ color: '#2d2d3a' }}>{stats.openAlerts}</span>
           </div>
           <p className="text-sm font-medium" style={{ color: '#a0a0b0' }}>Open Alerts</p>
         </div>
 
-        {/* ── Focus Peer Applications card — clickable, live count ── */}
+        {/* FP Applications */}
         <button
           onClick={() => navigate('/ehsas-fp-management')}
           className="rounded-2xl p-5 bg-white border shadow-sm text-left transition-all hover:shadow-md"
-          style={{
-            borderColor: pendingFPCount > 0 ? 'rgba(179,157,219,0.5)' : '#f3f4f6',
-            position: 'relative',
-            cursor: 'pointer',
-          }}
+          style={{ borderColor: pendingFPCount > 0 ? 'rgba(179,157,219,0.5)' : '#f3f4f6', position: 'relative', cursor: 'pointer' }}
         >
-          {/* Red dot badge if there are pending applications */}
           {pendingFPCount > 0 && (
-            <span style={{
-              position: 'absolute', top: 12, right: 12,
-              background: '#ef4444', color: '#fff',
-              fontSize: 10, fontWeight: 700,
-              borderRadius: 999, padding: '2px 7px',
-              lineHeight: 1.4,
-            }}>
+            <span style={{ position: 'absolute', top: 12, right: 12, background: '#ef4444', color: '#fff', fontSize: 10, fontWeight: 700, borderRadius: 999, padding: '2px 7px' }}>
               {pendingFPCount} new
             </span>
           )}
@@ -115,10 +115,13 @@ function EhsasDashboard() {
           </div>
           <p className="text-sm font-medium" style={{ color: '#a0a0b0' }}>FP Applications</p>
         </button>
+
       </div>
 
       {/* Bottom Row */}
       <div className="grid grid-cols-2 gap-6">
+
+        {/* Recent Alerts */}
         <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
@@ -126,27 +129,33 @@ function EhsasDashboard() {
               <h2 className="text-base font-semibold" style={{ color: '#2d2d3a' }}>Recent Alerts</h2>
             </div>
             <span className="text-xs font-semibold px-3 py-1 rounded-full" style={{ background: '#fff3e0', color: '#fb8c00' }}>
-              {openAlerts} Open
+              {stats.openAlerts} Open
             </span>
           </div>
+
           <div className="space-y-3">
-            {recentAlerts.map((alert) => (
-              <div key={alert.id} className="rounded-2xl p-4 flex items-start gap-3"
-                style={{ backgroundColor: '#fdf6ff', border: '1px solid #f0e6ff' }}>
-                <div className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
-                  style={{ backgroundColor: '#fff3e0' }}>
-                  <AlertCircle size={18} style={{ color: '#fb8c00' }} />
+            {stats.recentAlerts.length === 0 ? (
+               <div className="flex flex-col items-center justify-center py-8">
+                 <p className="text-sm font-medium" style={{ color: '#a0a0b0' }}>No recent alerts to display.</p>
+               </div>
+            ) : (
+              stats.recentAlerts.map((alert) => (
+                <div key={alert.id} className="rounded-2xl p-4 flex items-start gap-3" style={{ backgroundColor: '#fdf6ff', border: '1px solid #f0e6ff' }}>
+                  <div className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#fff3e0' }}>
+                    <AlertCircle size={18} style={{ color: '#fb8c00' }} />
+                  </div>
+                  <div className="flex-1">
+                    <span className="font-semibold text-sm" style={{ color: '#2d2d3a' }}>{alert.studentName}</span>
+                    <p className="text-xs mt-0.5 mb-1" style={{ color: '#5a5a72' }}>{alert.issue}</p>
+                    <p className="text-xs" style={{ color: '#a0a0b0' }}>by {alert.reportedBy} • {alert.date}</p>
+                  </div>
                 </div>
-                <div className="flex-1">
-                  <span className="font-semibold text-sm" style={{ color: '#2d2d3a' }}>{alert.studentName}</span>
-                  <p className="text-xs mt-0.5 mb-1" style={{ color: '#5a5a72' }}>{alert.issue}</p>
-                  <p className="text-xs" style={{ color: '#a0a0b0' }}>by {alert.reportedBy} • {alert.date}</p>
-                </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </div>
 
+        {/* Upcoming Meetings */}
         <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
@@ -157,6 +166,7 @@ function EhsasDashboard() {
               0 Scheduled
             </span>
           </div>
+
           <div className="flex flex-col items-center justify-center py-12">
             <div className="w-16 h-16 rounded-full flex items-center justify-center mb-3" style={{ backgroundColor: '#ede7f6' }}>
               <Calendar size={28} style={{ color: '#b39ddb' }} />
@@ -164,9 +174,10 @@ function EhsasDashboard() {
             <p className="text-sm font-medium" style={{ color: '#a0a0b0' }}>No upcoming meetings scheduled</p>
           </div>
         </div>
+
       </div>
     </div>
   );
 }
 
-export default EhsasDashboard;
+export default EhsasDashboard;  

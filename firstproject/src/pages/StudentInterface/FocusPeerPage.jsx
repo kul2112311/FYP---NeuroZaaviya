@@ -5,6 +5,7 @@ import PeerCard from "./Components/PeerCard.jsx";
 import BookingModal, { SelectPeersModal } from "./Components/BookingModal.jsx";
 import Checkin from "./Components/Checkin.jsx";
 import { Users } from "lucide-react";
+import { useUser } from '../../styles/SignInLandingPage/usercontext.jsx';
 
 
 function FocusPeerPage() {
@@ -18,7 +19,39 @@ function FocusPeerPage() {
   const [isLoading, setIsLoading] = useState(true);
  
   // The up-to-3 peers the student has assigned for the year
+  
+  const { user } = useUser(); // ✨ Grab the logged-in student
+  
+  // The up-to-3 peers the student has assigned for the year
   const [myPeers, setMyPeers] = useState([]);
+
+  // ✨ NEW: Fetch the student's saved peers from the database
+  const loadMyPeers = async () => {
+    if (!user || !user.id) return;
+    try {
+      const response = await fetch(`http://127.0.0.1:5000/api/my-focus-peers/${user.id}`);
+      if (response.ok) {
+        const data = await response.json();
+        const formattedSaved = data.map(peer => ({
+          id: peer.id,
+          name: peer.full_name,
+          specialty: peer.major,
+          rating: Number(peer.rating),
+          bio: peer.bio || "",
+          initials: peer.full_name.split(" ").map(n => n[0]).join("").substring(0, 2).toUpperCase(),
+          avatarColor: "purple",
+        }));
+        setMyPeers(formattedSaved);
+      }
+    } catch (err) {
+      console.error("Error loading saved peers:", err);
+    }
+  };
+
+  // ✨ NEW: Load saved peers whenever the user loads
+  useEffect(() => {
+    loadMyPeers();
+  }, [user]);
  
   useEffect(() => {
     const fetchPeers = async () => {
@@ -52,9 +85,24 @@ function FocusPeerPage() {
     fetchPeers();
   }, []);
  
-  // Called when SelectPeersModal confirms a selection
-  const handlePeersSelected = (chosenPeers) => {
-    setMyPeers(chosenPeers);
+  // ✨ FIXED: Now permanently saves new selections to the database!
+  const handlePeersSelected = async (chosenPeers) => {
+    // Find which peers are newly selected (in chosenPeers but not yet in myPeers)
+    const newPeers = chosenPeers.filter(cp => !myPeers.find(mp => mp.id === cp.id));
+
+    for (const peer of newPeers) {
+      try {
+        await fetch('http://127.0.0.1:5000/api/select-focus-peer', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId: user.id, peerProfileId: peer.id })
+        });
+      } catch (err) {
+        console.error("Failed to save peer", peer.name);
+      }
+    }
+    // Reload from database to ensure the UI is perfectly synced!
+    loadMyPeers();
   };
  
   const handleBookSession = (peer) => {
@@ -70,7 +118,7 @@ function FocusPeerPage() {
       const dateStr = `${year}-${month}-${day}`;
  
       const bookingData = {
-        user_id:        "a1111111-1111-1111-1111-111111111111",
+        user_id:        user.id,
         peer_id:        selectedPeer.id,
         scheduled_date: dateStr,
         start_time:     slot.time24h,
@@ -196,7 +244,7 @@ function FocusPeerPage() {
                 </p>
                 <button
                   onClick={() => setShowSelectModal(true)}
-                  className="px-5 py-2.5 rounded-xl text-sm font-medium"
+                  className="px-5 py-2.5 rounded-xl text-sm font-medium hover:opacity-90 transition-opacity"
                   style={{ background: "#b39ddb", border: "none", color: "#fff", cursor: "pointer" }}
                 >
                   Select Your FocusPeers
@@ -245,204 +293,3 @@ function FocusPeerPage() {
  
 export default FocusPeerPage;
 
-// import React, { useState, useEffect } from "react";
-// import Session from "./Components/Session.jsx";
-// import FeedBack from "./Components/FeedBack.jsx";
-// import PeerCard from "./Components/PeerCard.jsx";
-// import BookingModal from "./Components/BookingModal.jsx";
-// import Checkin from "./Components/Checkin.jsx";
-
-// function FocusPeerPage() {
-//   const [activeTab, setActiveTab] = useState('book');
-//   const [showModal, setShowModal] = useState(false);
-//   const [selectedPeer, setSelectedPeer] = useState(null);
-  
-//   const [peers, setPeers] = useState([]);
-//   const [isLoading, setIsLoading] = useState(true);
-
-//     const handleBookSession = (peer) => {
-//     setSelectedPeer(peer);
-//     setShowModal(true);
-//   };
-
-//   const handleConfirmBooking = async (slot) => {
-//     try {
-//         // 1. Format Date correctly as YYYY-MM-DD (Local time)
-//         const year = slot.rawDate.getFullYear();
-//         const month = String(slot.rawDate.getMonth() + 1).padStart(2, '0');
-//         const day = String(slot.rawDate.getDate()).padStart(2, '0');
-//         const dateStr = `${year}-${month}-${day}`;
-        
-//         const bookingData = {
-//             user_id: "a1111111-1111-1111-1111-111111111111", 
-//             peer_id: selectedPeer.id,
-//             scheduled_date: dateStr, 
-//             start_time: slot.time24h,
-//             end_time: addOneHour(slot.time24h),
-//             student_notes: "Booked via Web App"
-//         };
-
-//         console.log('📤 Sending Booking:', bookingData);
-
-//         const response = await fetch('http://localhost:5000/api/book-session', {
-//             method: 'POST',
-//             headers: { 'Content-Type': 'application/json' },
-//             body: JSON.stringify(bookingData)
-//         });
-
-//         if (response.ok) {
-//             const result = await response.json();
-//             console.log('✅ Booking Response:', result);
-            
-//             alert(`✅ Booking Confirmed with ${selectedPeer.name}!\nCheck 'My Sessions' tab.`);
-//             setShowModal(false);
-//             setSelectedPeer(null);
-//             setActiveTab('my'); // Switch tabs automatically
-//         } else {
-//             const errorData = await response.json();
-//             alert(`Failed: ${errorData.error || "Could not book session"}`);
-//         }
-
-//     } catch (error) {
-//         console.error("Booking Error:", error);
-//         alert("An error occurred.");
-//     }
-//   };
-
-
-//   const handleCloseModal = () => {
-//     setShowModal(false);
-//     setSelectedPeer(null);
-//   };
-
-//   // Helper: Add 1 Hour to 24h time string
-//   const addOneHour = (time24h) => {
-//     let [hours, minutes] = time24h.split(':');
-//     hours = (parseInt(hours) + 1) % 24;
-//     return `${String(hours).padStart(2, '0')}:${minutes}`; 
-//   };
-
-//   // Fetch Peers (Modified to use Dummy Data while server is off)
-//   useEffect(() => {
-//     const fetchPeers = async () => {
-//       setIsLoading(true);
-      
-//       // Dummy data matching the structure your API would return
-//       const dummyData = [
-//         {
-//           id: 1,
-//           full_name: "Ayesha Malik",
-//           major: "Computer Science",
-//           rating: "4.9"
-//         },
-//         {
-//           id: 2,
-//           full_name: "Zain Ahmed",
-//           major: "Psychology",
-//           rating: "4.8"
-//         },
-//         {
-//           id: 3,
-//           full_name: "Rida Fatima",
-//           major: "Social Sciences",
-//           rating: "5.0"
-//         }
-//       ];
-
-//       // Format logic kept exactly as you wrote it
-//       const formattedPeers = dummyData.map(peer => ({
-//         id: peer.id,
-//         name: peer.full_name,
-//         specialty: peer.major,
-//         rating: Number(peer.rating),
-//         initials: peer.full_name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase(),
-//         avatarColor: "bg-[#E0E7FF] text-[#5A4A61]" // Using your project colors
-//       }));
-
-//       setPeers(formattedPeers);
-//       setIsLoading(false);
-
-//       // Original API Logic (Commented out)
-//       try {
-//         const response = await fetch('http://localhost:5000/api/focus-peers');
-//         const data = await response.json();
-//         ...
-//       } catch (err) { ... }
-      
-//     };
-
-//     fetchPeers();
-//   }, []);
-
-//   // ... handleBookSession, handleConfirmBooking, handleCloseModal, addOneHour logic stays same ...
-
-//   return (
-//     <>
-//       <div className="p-6 pl-12 space-y-6" style={{ width: '80vw', margin: '0 auto' }}>
-//         <div className="focuspeer-content">
-//           <h1>FocusPeer Sessions</h1>
-//           <p>Connect with a FocusPeer for one-on-one support. Our peers help you organize tasks, understand assignments, and provide a calming presence when you need it most. 💜</p>
-//         </div>
-        
-//         {/* Tab layout preserved exactly */}
-//         <div className="focuspeer-tabs">
-//           <button 
-//             className={`tab-button ${activeTab === 'book' ? 'active' : ''}`}
-//             onClick={() => setActiveTab('book')}
-//           >
-//             Book a Session
-//           </button>
-//           <button 
-//             className={`tab-button ${activeTab === 'my' ? 'active' : ''}`}
-//             onClick={() => setActiveTab('my')}
-//           >
-//             My Sessions
-//           </button>
-//           <button 
-//             className={`tab-button ${activeTab === 'feedback' ? 'active' : ''}`}
-//             onClick={() => setActiveTab('feedback')}
-//           >
-//             Session Feedback
-//           </button>
-//           <button 
-//             className={`tab-button ${activeTab === 'UpComing Checkin' ? 'active' : ''}`}
-//             onClick={() => setActiveTab('UpComing Checkin')}
-//           >
-//             Upcoming Checkins
-//           </button>
-//         </div>
-        
-//         {activeTab === 'book' && (
-//           <div className="peers-grid">
-//             {isLoading ? (
-//                <p>Loading Focus Peers...</p> 
-//             ) : (
-//               peers.map(peer => (
-//                 <PeerCard 
-//                   key={peer.id} 
-//                   peer={peer}
-//                   onBookSession={handleBookSession}
-//                 />
-//               ))
-//             )}
-//           </div>
-//         )}
-        
-//         {activeTab === 'my' && <Session />}
-//         {activeTab === 'feedback' && <FeedBack />}
-//         {activeTab === 'UpComing Checkin' && <Checkin />}
-//       </div>
-
-//       {showModal && selectedPeer && (
-//         <BookingModal
-//           peer={selectedPeer}
-//           isOpen={showModal}
-//           onClose={handleCloseModal}
-//           onConfirm={handleConfirmBooking}
-//         />
-//       )}
-//     </>
-//   );
-// }
-
-// export default FocusPeerPage;

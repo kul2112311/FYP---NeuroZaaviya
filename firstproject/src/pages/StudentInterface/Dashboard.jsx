@@ -18,7 +18,7 @@ function Dashboard() {
     ]; } catch { return []; }
   });
   const [newTask, setNewTask] = useState("");
-  const [currentDate] = useState(new Date());
+  const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(null); 
 
   const [upcomingAssignments, setUpcomingAssignments] = useState([]);
@@ -120,11 +120,29 @@ function Dashboard() {
     return { bg: "#e8f5e9", text: "#2e7d32" };
   };
 
-  const getDaysInMonth = () =>
-    new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate();
+  // ✨ FIX: Safe local timezone formatter (Prevents the +1 day bug!)
+  const getLocalDateStr = (d) => {
+    if (!d) return "";
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  // ✨ FIX: Adds blank spaces so the 1st of the month lands on the correct weekday!
+  const getMonthDays = () => {
+    const y = currentDate.getFullYear();
+    const m = currentDate.getMonth();
+    const first = new Date(y, m, 1);
+    const last = new Date(y, m + 1, 0);
+    const days = [];
+    const startOffset = (first.getDay() + 6) % 7; // Makes Monday = 0
+    for (let i = 0; i < startOffset; i++) days.push(null);
+    for (let i = 1; i <= last.getDate(); i++) days.push(new Date(y, m, i));
+    return days;
+  };
 
   const getWeekDays = () => {
-    // Mon-start week
     const start = new Date(currentDate);
     start.setDate(currentDate.getDate() - (currentDate.getDay() + 6) % 7);
     return Array.from({ length: 7 }, (_, i) => {
@@ -133,7 +151,16 @@ function Dashboard() {
   };
 
   const weekDays = getWeekDays();
-  const todayStr = currentDate.toISOString().split("T")[0];
+  const monthDays = getMonthDays();
+  const todayStr = getLocalDateStr(new Date()); // Uses true local today
+
+  // ✨ FIX: Makes the arrows actually change the weeks/months!
+  const navigateCalendar = (dir) => {
+    const d = new Date(currentDate);
+    if (view === "week") d.setDate(d.getDate() + dir * 7);
+    else d.setMonth(d.getMonth() + dir);
+    setCurrentDate(d);
+  };
 
   const handleAddTask = () => {
     if (newTask.trim()) {
@@ -278,15 +305,16 @@ function Dashboard() {
 
               {/* Calendar */}
               <div className="rounded-3xl p-7 shadow-sm" style={{ background: "#ffffff", border: "1px solid rgba(179,157,219,0.2)" }}>
+                {/* ✨ FIX: Shows the actual Month/Year and wires up the arrows */}
                 <div className="flex items-center justify-between mb-5">
                   <h3 className="text-xl font-semibold" style={{ color: "#5a4a61" }}>
-                    {view === "week" ? "Week" : "Month"} View
+                    {currentDate.toLocaleDateString("en-US", { month: "long", year: "numeric" })}
                   </h3>
                   <div className="flex items-center gap-2">
-                    <button className="p-2 rounded-lg" style={{ background: "#f3e5f5" }}>
+                    <button onClick={() => navigateCalendar(-1)} className="p-2 rounded-lg hover:opacity-80 transition-opacity cursor-pointer" style={{ background: "#f3e5f5" }}>
                       <ChevronLeft className="h-4 w-4" style={{ color: "#9575a3" }} />
                     </button>
-                    <button className="p-2 rounded-lg" style={{ background: "#f3e5f5" }}>
+                    <button onClick={() => navigateCalendar(1)} className="p-2 rounded-lg hover:opacity-80 transition-opacity cursor-pointer" style={{ background: "#f3e5f5" }}>
                       <ChevronRight className="h-4 w-4" style={{ color: "#9575a3" }} />
                     </button>
                   </div>
@@ -311,7 +339,7 @@ function Dashboard() {
                 {view === "week" ? (
                   <div className="grid grid-cols-7 gap-2">
                     {weekDays.map((date, idx) => {
-                      const ds = date.toISOString().split("T")[0];
+                      const ds = getLocalDateStr(date); // ✨ FIX: Bypasses UTC Timezone
                       const list = assignmentsOnDate(ds);
                       const isToday = ds === todayStr;
                       return (
@@ -332,9 +360,9 @@ function Dashboard() {
                   </div>
                 ) : (
                   <div className="grid grid-cols-7 gap-2">
-                    {Array.from({ length: getDaysInMonth() }, (_, i) => {
-                      const d = new Date(currentDate.getFullYear(), currentDate.getMonth(), i + 1);
-                      const ds = d.toISOString().split("T")[0];
+                    {monthDays.map((d, i) => {
+                      if (!d) return <div key={`empty-${i}`} className="aspect-square" />; // ✨ FIX: Empty slots so the days align perfectly!
+                      const ds = getLocalDateStr(d); // ✨ FIX: Bypasses UTC Timezone
                       const list = assignmentsOnDate(ds);
                       const isToday = ds === todayStr;
                       return (
@@ -342,7 +370,7 @@ function Dashboard() {
                           className="aspect-square flex flex-col items-center justify-center rounded-xl text-sm cursor-pointer hover:opacity-90 transition-opacity"
                           style={{ background: isToday ? "#b39ddb" : "#fdf7fd", color: isToday ? "#ffffff" : "#5a4a61", fontWeight: isToday ? "600" : "400" }}
                           onClick={() => list.length > 0 && setSelectedDate({ dateStr: ds, date: d, assignments: list })}>
-                          <span>{i + 1}</span>
+                          <span>{d.getDate()}</span>
                           {list.length > 0 && (
                             <span className="text-[10px] mt-0.5 px-1.5 rounded font-semibold"
                               style={{ background: isToday ? "rgba(255,255,255,0.3)" : "#b39ddb", color: "#fff" }}>

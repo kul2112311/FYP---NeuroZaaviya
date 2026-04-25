@@ -99,14 +99,10 @@ function Schedule() {
           
           // Format the DB data to match your UI components perfectly
           const mappedData = data.map(apt => {
-             // We fallback the date to 'today' just so it renders nicely on the calendar, 
-             // since the student just typed a string like "Mon 10:00 AM"
-             const fallbackDate = new Date().toISOString().split('T')[0];
-             
              return {
                 id: apt.id,
                 student: apt.student_name,
-                date: fallbackDate, 
+                date: apt.db_date, 
                 time: apt.preferred_slot,
                 duration: "30 mins",
                 type: apt.subject,

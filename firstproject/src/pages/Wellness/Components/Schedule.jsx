@@ -1,80 +1,61 @@
-import PeerCard from "./PeerCard";
-function Schedule() {
-  const dummyPeers = [
-    {
-      id: 1,
-      name: "Sarah Ahmed",
-      specialty: "CS | SDP",
-      rating: 4.8,
-      initials: "SA",
-      avatarColor: "bg-red-500",
-      totalSessions: 45,
-      upcomingSessions: 6,
-      availability: [
-        { day: "Mon", time: "10:00 AM" },
-        { day: "Mon", time: "2:00 PM" },
-        { day: "Wed", time: "11:00 AM" },
-        { day: "Fri", time: "3:00 PM" }
-      ]
-    },
-    {
-      id: 2,
-      name: "Marcus Chen",
-      specialty: "EE | CE",
-      rating: 4.9,
-      initials: "MC",
-      avatarColor: "bg-gray-700",
-      totalSessions: 52,
-      upcomingSessions: 8,
-      availability: [
-        { day: "Sun", time: "9:00 AM" },
-        { day: "Tue", time: "1:00 PM" },
-        { day: "Thu", time: "4:00 PM" },
-        { day: "Sat", time: "10:00 AM" }
-      ]
-    },
-    {
-      id: 3,
-      name: "Layla Hassan",
-      specialty: "CND | CH",
-      rating: 4.7,
-      initials: "LH",
-      avatarColor: "bg-green-600",
-      totalSessions: 38,
-      upcomingSessions: 5,
-      availability: [
-        { day: "Mon", time: "3:00 PM" },
-        { day: "Tue", time: "11:00 AM" },
-        { day: "Thu", time: "2:00 PM" },
-        { day: "Sun", time: "1:00 PM" }
-      ]
-    },
-    {
-      id: 4,
-      name: "Jordan Taylor",
-      specialty: "CH | CS",
-      rating: 4.6,
-      initials: "JT",
-      avatarColor: "bg-purple-500",
-      totalSessions: 29,
-      upcomingSessions: 4,
-      availability: [
-        { day: "Sun", time: "2:00 PM" },
-        { day: "Wed", time: "9:00 AM" },
-        { day: "Fri", time: "11:00 AM" },
-        { day: "Mon", time: "3:00 PM" }
-      ]
-    }
-  ];
+import React, { useState, useEffect } from 'react';
+import { Clock, User } from 'lucide-react';
 
- return (
-    <div className="bg-white p-6" style={{ borderRadius: '24px' }}>
-      <h2 className="text-sm mb-6" style={{ color: '#E1BEE7' }}>Focus Peer Schedule</h2>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {dummyPeers.map(peer => (
-          <PeerCard key={peer.id} peer={peer} />
-        ))}
-      </div>
+export default function Schedule() {
+  const [schedules, setSchedules] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const daysMap = { 0: 'Sun', 1: 'Mon', 2: 'Tue', 3: 'Wed', 4: 'Thu', 5: 'Fri', 6: 'Sat' };
+
+  useEffect(() => {
+    const fetchSchedules = async () => {
+      try {
+        const res = await fetch('http://127.0.0.1:5000/api/monitor/schedules');
+        if (res.ok) setSchedules(await res.json());
+      } catch (err) { console.error(err); } finally { setIsLoading(false); }
+    };
+    fetchSchedules();
+  }, []);
+
+  if (isLoading) return <div className="p-8 text-center text-[#9575a3]">Loading schedules...</div>;
+
+  // Group by peer name
+  const grouped = schedules.reduce((acc, slot) => {
+    if (!acc[slot.peer_name]) acc[slot.peer_name] = [];
+    acc[slot.peer_name].push(slot);
+    return acc;
+  }, {});
+
+  return (
+    <div className="bg-white rounded-3xl p-6 border border-[rgba(179,157,219,0.2)] mt-6">
+      <h2 className="text-xl font-bold text-[#5a4a61] mb-6">Global Peer Availability</h2>
+
+      {Object.keys(grouped).length === 0 ? (
+        <p className="text-center text-[#9575a3] py-8">No peers have set their availability yet.</p>
+      ) : (
+        <div className="space-y-4">
+          {Object.entries(grouped).map(([peerName, slots]) => (
+            <div key={peerName} className="p-5 rounded-2xl border border-[rgba(179,157,219,0.2)] bg-[#fdf7fd]">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-full bg-[#e1bee7] flex items-center justify-center">
+                  <User size={20} className="text-[#5a4a61]" />
+                </div>
+                <h3 className="font-bold text-[#5a4a61] text-lg">{peerName}</h3>
+              </div>
+              
+              <div className="flex flex-wrap gap-3">
+                {slots.map(slot => (
+                  <div key={slot.id} className="flex items-center gap-2 bg-white px-3 py-2 rounded-lg border border-[rgba(179,157,219,0.3)] shadow-sm text-sm">
+                    <span className="font-bold text-[#b39ddb]">{daysMap[slot.day_of_week]}</span>
+                    <Clock size={14} className="text-[#9575a3]" />
+                    <span className="text-[#5a4a61]">{slot.start_time} - {slot.end_time}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
-  )}
-export default Schedule;
+  );
+}
