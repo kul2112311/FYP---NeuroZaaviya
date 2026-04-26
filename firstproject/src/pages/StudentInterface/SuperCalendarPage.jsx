@@ -2,10 +2,70 @@ import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   ChevronLeft, ChevronRight, Calendar, Clock, TrendingUp,
-  Sparkles, X, Edit2, CheckCircle2, AlertCircle, Flame, Target, Zap, ListTodo
+  Sparkles, X, Edit2, CheckCircle2, AlertCircle, Flame, Target,
+  Zap, ListTodo, Filter, ChevronDown, Check, SlidersHorizontal,
+  UserCheck, Heart, HeartHandshake, Shield, BookOpen, ClipboardList,
+  FileQuestion, Users, Eye, EyeOff,
 } from "lucide-react";
-// 1. IMPORT USER CONTEXT
 import { useUser } from "../../styles/SignInLandingPage/usercontext.jsx";
+
+// ── Palette (matches FocusPeerManagement) ────────────────────────────────────
+const C = {
+  purple800: "#5a4a61",
+  purple600: "#9575a3",
+  purple500: "#b39ddb",
+  purple400: "#c0b4cc",
+  purple200: "#e8e0f0",
+  purple100: "rgba(179,157,219,0.15)",
+  purple50:  "rgba(179,157,219,0.08)",
+  pink:      "#f8bbd0",
+  pageBg:    "#f5eef8",
+  white:     "#FFFFFF",
+};
+
+// ── Filter category definitions ───────────────────────────────────────────────
+// Each category has: id, label, icon, color, bg, description
+// "type" field is what we match against assignment.type in data
+const FILTER_CATEGORIES = [
+  {
+    group: "Appointments",
+    items: [
+      { id: "oap",         label: "OAP Appointments",          icon: Shield,        color: "#6b9e9a", bg: "rgba(107,158,154,0.12)", border: "rgba(107,158,154,0.3)",  types: ["oap", "oap-appointment"]        },
+      { id: "wellness",    label: "Wellness Appointments",      icon: Heart,         color: "#d4789a", bg: "rgba(212,120,154,0.12)", border: "rgba(212,120,154,0.3)",  types: ["wellness", "wellness-appointment"] },
+      { id: "ehsas",       label: "Ehsas Appointments",         icon: HeartHandshake,color: "#9b7fbd", bg: "rgba(155,127,189,0.12)", border: "rgba(155,127,189,0.3)",  types: ["ehsas", "ehsas-appointment"]    },
+      { id: "focuspeer_apt", label: "Focus Peer Appointments",  icon: Users,         color: "#b39ddb", bg: "rgba(179,157,219,0.12)", border: "rgba(179,157,219,0.3)",  types: ["focuspeer-appointment", "focus-peer-appointment"] },
+      { id: "checkin",     label: "Focus Peer Check-ins",       icon: UserCheck,     color: "#7ca5b8", bg: "rgba(124,165,184,0.12)", border: "rgba(124,165,184,0.3)",  types: ["checkin", "check-in", "focuspeer-checkin"] },
+    ],
+  },
+  {
+    group: "Academic",
+    items: [
+      { id: "assignment",  label: "Assignments",                icon: BookOpen,      color: "#f59e0b", bg: "rgba(245,158,11,0.1)",   border: "rgba(245,158,11,0.3)",   types: ["assignment"]                   },
+      { id: "subtask",     label: "Subtasks",                   icon: ListTodo,      color: "#22c55e", bg: "rgba(34,197,94,0.1)",    border: "rgba(34,197,94,0.3)",    types: ["subtask", "sub-task"]          },
+      { id: "quiz",        label: "Quizzes & Exams",            icon: FileQuestion,  color: "#ef4444", bg: "rgba(239,68,68,0.08)",   border: "rgba(239,68,68,0.25)",   types: ["quiz", "exam", "test"]         },
+      { id: "other",       label: "Other Tasks",                icon: ClipboardList, color: "#9575a3", bg: "rgba(149,117,163,0.1)",  border: "rgba(149,117,163,0.3)",  types: ["task", "other", null, undefined] },
+    ],
+  },
+];
+
+// Flatten all items for easy lookup
+const ALL_FILTER_ITEMS = FILTER_CATEGORIES.flatMap(g => g.items);
+
+// Get the filter item that matches an assignment's type
+const getFilterForAssignment = (a) => {
+  const t = (a.type || "").toLowerCase().replace(/_/g, "-");
+  // Check apt- prefix (legacy)
+  const isApt = a.id?.toString().startsWith("apt-");
+
+  for (const item of ALL_FILTER_ITEMS) {
+    if (item.types.some(type => {
+      if (type === null || type === undefined) return !a.type;
+      return t === type || t.includes(type);
+    })) return item;
+  }
+  // Fallback: if it's an apt- id, call it oap; otherwise other
+  return isApt ? ALL_FILTER_ITEMS.find(i => i.id === "oap") : ALL_FILTER_ITEMS.find(i => i.id === "other");
+};
 
 const PRIORITY_COLORS = {
   "High Priority":   { bg: "#ffebee", text: "#c62828", dot: "#ef4444" },
@@ -13,15 +73,8 @@ const PRIORITY_COLORS = {
   "Low Priority":    { bg: "#e8f5e9", text: "#2e7d32", dot: "#66bb6a" },
 };
 
-const QUADRANT_ICONS = {
-  "do-now":   { icon: Flame,    color: "#ef4444" },
-  "schedule": { icon: Target,   color: "#3b82f6" },
-  "delegate": { icon: Zap,      color: "#eab308" },
-  "defer":    { icon: ListTodo, color: "#22c55e" },
-};
-
 const DAY_LABELS_MON = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
-const HOURS = Array.from({ length: 15 }, (_, i) => 7 + i); // 7am–9pm
+const HOURS = Array.from({ length: 15 }, (_, i) => 7 + i);
 
 const formatTime = (time24) => {
   if (!time24 || !time24.includes(":")) return time24;
@@ -32,21 +85,37 @@ const formatTime = (time24) => {
   return `${hour}:${m} ${ampm}`;
 };
 
-
 function SuperCalendarPage() {
   const navigate = useNavigate();
-  const { user } = useUser(); // 2. GRAB LOGGED-IN STUDENT
+  const { user } = useUser();
 
-  const [viewMode, setViewMode] = useState("week");
-  const [currentDate, setCurrentDate] = useState(new Date());
-  const [assignments, setAssignments] = useState([]);
-  const [hoveredDate, setHoveredDate] = useState(null);
+  const [viewMode, setViewMode]               = useState("week");
+  const [currentDate, setCurrentDate]         = useState(new Date());
+  const [assignments, setAssignments]         = useState([]);
+  const [hoveredDate, setHoveredDate]         = useState(null);
   const [selectedAssignment, setSelectedAssignment] = useState(null);
-  const scrollRef = useRef(null);
+  const [showFilterPanel, setShowFilterPanel] = useState(false);
+  const [activeFilters, setActiveFilters]     = useState(
+    // All enabled by default
+    Object.fromEntries(ALL_FILTER_ITEMS.map(i => [i.id, true]))
+  );
+  const [filterSearch, setFilterSearch]       = useState("");
+  const scrollRef  = useRef(null);
+  const filterRef  = useRef(null);
 
-  // Load directly from PostgreSQL Database
+  // Close filter panel on outside click
+  useEffect(() => {
+    const handler = (e) => {
+      if (filterRef.current && !filterRef.current.contains(e.target)) {
+        setShowFilterPanel(false);
+      }
+    };
+    if (showFilterPanel) document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [showFilterPanel]);
+
   const load = async () => {
-    if (!user || !user.id) return; // Safety check
+    if (!user || !user.id) return;
     try {
       const response = await fetch(`http://127.0.0.1:5000/api/calendar/${user.id}`);
       if (response.ok) {
@@ -61,18 +130,37 @@ function SuperCalendarPage() {
   useEffect(() => {
     load();
     window.addEventListener("eisenhowerSaved", load);
-    const t = setInterval(load, 2000); // Poll every 2 seconds to stay synced
+    const t = setInterval(load, 2000);
     return () => { window.removeEventListener("eisenhowerSaved", load); clearInterval(t); };
   }, [user]);
 
-  // Scroll to 8am on mount
   useEffect(() => {
     if (scrollRef.current && viewMode === "week") {
-      scrollRef.current.scrollTop = 60; // 1 hour slot height = 60px, scroll to 8am
+      scrollRef.current.scrollTop = 60;
     }
   }, [viewMode]);
 
-  // ── Week helpers (Mon-start) ──────────────────────────────────────────────
+  // ── Filter logic ──────────────────────────────────────────────────────────
+  const isVisible = (a) => {
+    const filterItem = getFilterForAssignment(a);
+    return filterItem ? activeFilters[filterItem.id] !== false : true;
+  };
+
+  const visibleAssignments = assignments.filter(isVisible);
+
+  const toggleFilter = (id) => {
+    setActiveFilters(prev => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const enableAll  = () => setActiveFilters(Object.fromEntries(ALL_FILTER_ITEMS.map(i => [i.id, true])));
+  const disableAll = () => setActiveFilters(Object.fromEntries(ALL_FILTER_ITEMS.map(i => [i.id, false])));
+
+  const activeCount   = Object.values(activeFilters).filter(Boolean).length;
+  const totalCount    = ALL_FILTER_ITEMS.length;
+  const allOn         = activeCount === totalCount;
+  const hiddenCount   = totalCount - activeCount;
+
+  // ── Calendar helpers ──────────────────────────────────────────────────────
   const getWeekDays = (anchor) => {
     const d = new Date(anchor);
     d.setDate(d.getDate() - (d.getDay() + 6) % 7);
@@ -86,7 +174,6 @@ function SuperCalendarPage() {
     const first = new Date(y, m, 1);
     const last  = new Date(y, m + 1, 0);
     const days  = [];
-    // Mon-start: offset
     const startOffset = (first.getDay() + 6) % 7;
     for (let i = 0; i < startOffset; i++) days.push(null);
     for (let i = 1; i <= last.getDate(); i++) days.push(new Date(y, m, i));
@@ -100,103 +187,222 @@ function SuperCalendarPage() {
     setCurrentDate(d);
   };
 
-  const weekDays   = getWeekDays(currentDate);
-  const monthDays  = getMonthDays(currentDate);
-  const todayStr   = new Date().toISOString().split("T")[0];
+  const weekDays  = getWeekDays(currentDate);
+  const monthDays = getMonthDays(currentDate);
+  const todayStr  = new Date().toISOString().split("T")[0];
+  const dateStr   = (d) => d ? d.toISOString().split("T")[0] : "";
 
-  const dateStr = (d) => d ? d.toISOString().split("T")[0] : "";
+  const assignmentsOnDate   = (d) => { if (!d) return []; const ds = dateStr(d); return visibleAssignments.filter(a => a.dueDate === ds); };
+  const assignmentsAtSlot   = (d, hour) => { const ds = dateStr(d); return visibleAssignments.filter(a => { if (a.dueDate !== ds || !a.time) return false; return parseInt(a.time.split(":")[0]) === hour; }); };
+  const progressOnDate      = (d) => { const list = assignmentsOnDate(d).filter(a => a.progress !== undefined && !a.id?.toString().startsWith("apt-")); if (!list.length) return 0; return Math.round(list.reduce((s, a) => s + (a.progress || 0), 0) / list.length); };
+  const weekProgress        = () => weekDays.map(d => ({ day: DAY_LABELS_MON[(d.getDay() + 6) % 7], value: progressOnDate(d) }));
+  const monthName           = currentDate.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+  const priorityColor       = (p) => PRIORITY_COLORS[p] || PRIORITY_COLORS["Low Priority"];
 
-  // Assignments for a specific date
-  const assignmentsOnDate = (d) => {
-    if (!d) return [];
-    const ds = dateStr(d);
-    return assignments.filter(a => a.dueDate === ds);
+  // Assign a display color to an item based on its filter category
+  const itemStyle = (a) => {
+    const fi = getFilterForAssignment(a);
+    if (fi) return { bg: fi.bg, text: fi.color, dot: fi.color, border: fi.border };
+    return { bg: "#f3e5f5", text: "#9575a3", dot: "#b39ddb", border: "rgba(179,157,219,0.3)" };
   };
-
-  // Progress for a date (avg of assignments' progress)
-  const progressOnDate = (d) => {
-    const list = assignmentsOnDate(d).filter(a => a.progress !== undefined && !a.id.toString().startsWith('apt-')); // Exclude appointments from progress bar math
-    if (!list.length) return 0;
-    return Math.round(list.reduce((s, a) => s + (a.progress || 0), 0) / list.length);
-  };
-
-  // Assignments for a specific date+hour (time slot)
-  const assignmentsAtSlot = (d, hour) => {
-    const ds = dateStr(d);
-    return assignments.filter(a => {
-      if (a.dueDate !== ds) return false;
-      if (!a.time) return false;
-      return parseInt(a.time.split(":")[0]) === hour;
-    });
-  };
-
-  // Week-level progress summary
-  const weekProgress = () => {
-    return weekDays.map(d => ({ day: DAY_LABELS_MON[(d.getDay() + 6) % 7], value: progressOnDate(d) }));
-  };
-
-  // Month header
-  const monthName = currentDate.toLocaleDateString("en-US", { month: "long", year: "numeric" });
-
-  const priorityColor = (p) => PRIORITY_COLORS[p] || PRIORITY_COLORS["Low Priority"];
 
   return (
-    <div className="min-h-screen" style={{ background: "#f5eef8" }}>
+    <div className="min-h-screen" style={{ background: C.pageBg }}>
       <div className="p-6 pl-12 space-y-5" style={{ width: "80vw" }}>
 
         {/* ── Header ── */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl flex items-center justify-center shadow-sm"
-              style={{ background: "#b39ddb" }}>
+            <div className="w-12 h-12 rounded-2xl flex items-center justify-center shadow-sm" style={{ background: C.purple500 }}>
               <Calendar className="h-6 w-6 text-white" />
             </div>
             <div>
-              <h1 className="text-3xl font-semibold" style={{ color: "#5a4a61" }}>Calendar</h1>
-              <p className="text-sm" style={{ color: "#9575a3" }}>All your assignments, scheduled tasks and progress in one view</p>
+              <h1 className="text-3xl font-semibold" style={{ color: C.purple800 }}>Calendar</h1>
+              <p className="text-sm" style={{ color: C.purple600 }}>All your assignments, scheduled tasks and progress in one view</p>
             </div>
           </div>
 
-          {/* View toggle */}
-          <div className="flex gap-1 p-1 rounded-2xl" style={{ background: "#e1bee7" }}>
-            {["week","month"].map(v => (
-              <button key={v} onClick={() => setViewMode(v)}
-                className="px-5 py-2 rounded-xl text-sm font-medium transition-all capitalize"
-                style={{
-                  background: viewMode === v ? "#b39ddb" : "transparent",
-                  color: viewMode === v ? "#fff" : "#9575a3",
-                  boxShadow: viewMode === v ? "0 2px 8px rgba(179,157,219,0.4)" : "none"
-                }}>
-                {v}
+          <div className="flex items-center gap-3">
+            {/* ── Filter button ── */}
+            <div style={{ position: "relative" }} ref={filterRef}>
+              <button onClick={() => setShowFilterPanel(!showFilterPanel)} style={{
+                display: "flex", alignItems: "center", gap: 8, padding: "9px 18px",
+                background: showFilterPanel ? C.purple500 : C.white,
+                border: `1.5px solid ${showFilterPanel ? C.purple500 : C.purple200}`,
+                borderRadius: 14, cursor: "pointer", transition: "all 0.2s",
+                color: showFilterPanel ? C.white : C.purple800,
+                fontWeight: 600, fontSize: 13,
+                boxShadow: showFilterPanel ? "0 4px 14px rgba(179,157,219,0.4)" : "0 1px 4px rgba(179,157,219,0.12)",
+              }}
+                onMouseEnter={e => { if (!showFilterPanel) { e.currentTarget.style.borderColor = C.purple500; e.currentTarget.style.background = C.purple50; }}}
+                onMouseLeave={e => { if (!showFilterPanel) { e.currentTarget.style.borderColor = C.purple200; e.currentTarget.style.background = C.white; }}}>
+                <SlidersHorizontal size={15} />
+                Filter
+                {hiddenCount > 0 && (
+                  <span style={{ background: showFilterPanel ? "rgba(255,255,255,0.25)" : "rgba(239,68,68,0.12)", color: showFilterPanel ? C.white : "#ef4444", fontSize: 10, fontWeight: 800, padding: "1px 7px", borderRadius: 999 }}>
+                    {hiddenCount} hidden
+                  </span>
+                )}
+                <ChevronDown size={13} style={{ transform: showFilterPanel ? "rotate(180deg)" : "none", transition: "transform 0.22s" }} />
               </button>
-            ))}
+
+              {/* ── Filter dropdown panel ── */}
+              {showFilterPanel && (
+                <div style={{
+                  position: "absolute", top: "calc(100% + 10px)", right: 0, width: 320,
+                  background: C.white, borderRadius: 20,
+                  boxShadow: "0 20px 60px rgba(90,74,97,0.15), 0 4px 16px rgba(0,0,0,0.06)",
+                  border: `1px solid ${C.purple200}`, zIndex: 100, overflow: "hidden",
+                }}>
+                  {/* Panel header */}
+                  <div style={{ padding: "14px 18px 12px", background: `linear-gradient(135deg, ${C.purple100}, rgba(248,187,208,0.1))`, borderBottom: `1px solid ${C.purple200}` }}>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                        <Filter size={14} color={C.purple500} />
+                        <span style={{ fontWeight: 800, fontSize: 13, color: C.purple800 }}>Filter Calendar</span>
+                      </div>
+                      <button onClick={() => setShowFilterPanel(false)} style={{ background: "none", border: "none", cursor: "pointer", color: C.purple400, padding: 2, borderRadius: 6, display: "flex" }}
+                        onMouseEnter={e => e.currentTarget.style.color = C.purple800}
+                        onMouseLeave={e => e.currentTarget.style.color = C.purple400}>
+                        <X size={15} />
+                      </button>
+                    </div>
+
+                    {/* Show all / Hide all */}
+                    <div style={{ display: "flex", gap: 6 }}>
+                      <button onClick={enableAll} style={{ flex: 1, padding: "6px", borderRadius: 8, border: "none", cursor: "pointer", background: allOn ? C.purple500 : C.purple100, color: allOn ? C.white : C.purple600, fontSize: 11, fontWeight: 700, transition: "all 0.15s", display: "flex", alignItems: "center", justifyContent: "center", gap: 5 }}>
+                        <Eye size={11} /> Show All
+                      </button>
+                      <button onClick={disableAll} style={{ flex: 1, padding: "6px", borderRadius: 8, border: "none", cursor: "pointer", background: "rgba(239,68,68,0.08)", color: "#ef4444", fontSize: 11, fontWeight: 700, transition: "all 0.15s", display: "flex", alignItems: "center", justifyContent: "center", gap: 5 }}
+                        onMouseEnter={e => { e.currentTarget.style.background = "#ef4444"; e.currentTarget.style.color = C.white; }}
+                        onMouseLeave={e => { e.currentTarget.style.background = "rgba(239,68,68,0.08)"; e.currentTarget.style.color = "#ef4444"; }}>
+                        <EyeOff size={11} /> Hide All
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Category groups */}
+                  <div style={{ maxHeight: 420, overflowY: "auto", padding: "10px 12px 14px" }}>
+                    {FILTER_CATEGORIES.map(({ group, items }) => (
+                      <div key={group} style={{ marginBottom: 14 }}>
+                        {/* Group label */}
+                        <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 7, padding: "0 4px" }}>
+                          <div style={{ height: 1, flex: 1, background: C.purple200 }} />
+                          <span style={{ fontSize: 10, fontWeight: 800, color: C.purple400, letterSpacing: "0.1em", textTransform: "uppercase", whiteSpace: "nowrap" }}>{group}</span>
+                          <div style={{ height: 1, flex: 1, background: C.purple200 }} />
+                        </div>
+
+                        {/* Items */}
+                        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                          {items.map(item => {
+                            const Icon = item.icon;
+                            const on   = activeFilters[item.id] !== false;
+                            return (
+                              <button key={item.id} onClick={() => toggleFilter(item.id)} style={{
+                                display: "flex", alignItems: "center", gap: 10, padding: "9px 12px",
+                                borderRadius: 12, border: `1.5px solid ${on ? item.border : C.purple200}`,
+                                background: on ? item.bg : "rgba(179,157,219,0.04)",
+                                cursor: "pointer", textAlign: "left", transition: "all 0.18s",
+                                opacity: on ? 1 : 0.5,
+                              }}
+                                onMouseEnter={e => { e.currentTarget.style.opacity = "1"; e.currentTarget.style.borderColor = item.border; }}
+                                onMouseLeave={e => { e.currentTarget.style.opacity = on ? "1" : "0.5"; e.currentTarget.style.borderColor = on ? item.border : C.purple200; }}>
+                                {/* Colour dot / icon */}
+                                <div style={{ width: 30, height: 30, borderRadius: 9, background: on ? item.bg : C.purple50, border: `1px solid ${on ? item.border : C.purple200}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, transition: "all 0.18s" }}>
+                                  <Icon size={14} color={on ? item.color : C.purple400} />
+                                </div>
+                                {/* Label */}
+                                <span style={{ flex: 1, fontSize: 12.5, fontWeight: 600, color: on ? item.color : C.purple400, transition: "color 0.18s" }}>{item.label}</span>
+                                {/* Checkbox */}
+                                <div style={{ width: 18, height: 18, borderRadius: 5, border: `2px solid ${on ? item.color : C.purple300}`, background: on ? item.color : "transparent", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.18s", flexShrink: 0 }}>
+                                  {on && <Check size={10} color={C.white} strokeWidth={3} />}
+                                </div>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Panel footer — summary */}
+                  <div style={{ padding: "10px 16px", borderTop: `1px solid ${C.purple200}`, background: C.purple50, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                    <span style={{ fontSize: 11, color: C.purple600, fontWeight: 500 }}>
+                      {activeCount} of {totalCount} categories visible
+                    </span>
+                    <div style={{ display: "flex", gap: 4 }}>
+                      {ALL_FILTER_ITEMS.filter(i => activeFilters[i.id] !== false).map(i => (
+                        <div key={i.id} style={{ width: 8, height: 8, borderRadius: "50%", background: i.color }} title={i.label} />
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* ── View toggle ── */}
+            <div className="flex gap-1 p-1 rounded-2xl" style={{ background: "#e1bee7" }}>
+              {["week","month"].map(v => (
+                <button key={v} onClick={() => setViewMode(v)}
+                  className="px-5 py-2 rounded-xl text-sm font-medium transition-all capitalize"
+                  style={{ background: viewMode === v ? C.purple500 : "transparent", color: viewMode === v ? "#fff" : C.purple600, boxShadow: viewMode === v ? "0 2px 8px rgba(179,157,219,0.4)" : "none" }}>
+                  {v}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
-        {/* ── Week Progress Summary Bar (only in week view) ── */}
+        {/* ── Active filter chips (shown when some are hidden) ── */}
+        {hiddenCount > 0 && (
+          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+            <span style={{ fontSize: 11, color: C.purple400, fontWeight: 600 }}>Hidden:</span>
+            {ALL_FILTER_ITEMS.filter(i => !activeFilters[i.id]).map(i => {
+              const Icon = i.icon;
+              return (
+                <button key={i.id} onClick={() => toggleFilter(i.id)} style={{
+                  display: "flex", alignItems: "center", gap: 5, padding: "4px 10px 4px 7px",
+                  borderRadius: 999, background: "rgba(239,68,68,0.07)",
+                  border: "1px solid rgba(239,68,68,0.2)", cursor: "pointer", transition: "all 0.15s",
+                }}
+                  onMouseEnter={e => { e.currentTarget.style.background = "rgba(239,68,68,0.14)"; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = "rgba(239,68,68,0.07)"; }}>
+                  <Icon size={10} color="#ef4444" />
+                  <span style={{ fontSize: 10.5, color: "#ef4444", fontWeight: 600 }}>{i.label}</span>
+                  <X size={9} color="#ef4444" style={{ marginLeft: 2 }} />
+                </button>
+              );
+            })}
+            <button onClick={enableAll} style={{ fontSize: 10.5, color: C.purple500, background: "none", border: "none", cursor: "pointer", fontWeight: 700, padding: "4px 8px", borderRadius: 999, textDecoration: "underline" }}>
+              Show all
+            </button>
+          </div>
+        )}
+
+        {/* ── Week Progress Summary Bar ── */}
         {viewMode === "week" && (
           <div className="rounded-3xl p-5 shadow-sm" style={{ background: "#fff", border: "1px solid rgba(179,157,219,0.2)" }}>
             <div className="flex items-center gap-2 mb-4">
-              <TrendingUp className="h-4 w-4" style={{ color: "#b39ddb" }} />
-              <span className="font-semibold text-sm" style={{ color: "#5a4a61" }}>Weekly Progress</span>
+              <TrendingUp className="h-4 w-4" style={{ color: C.purple500 }} />
+              <span className="font-semibold text-sm" style={{ color: C.purple800 }}>Weekly Progress</span>
               <button onClick={() => navigate("/detailed-progress")}
                 className="ml-auto text-xs px-3 py-1 rounded-full hover:opacity-80"
-                style={{ background: "#f3e5f5", color: "#b39ddb" }}>
+                style={{ background: "#f3e5f5", color: C.purple500 }}>
                 View Details →
               </button>
             </div>
             <div className="grid grid-cols-7 gap-3">
               {weekProgress().map(({ day, value }) => (
                 <div key={day} className="text-center">
-                  <div className="text-xs mb-2 font-medium" style={{ color: "#9575a3" }}>{day}</div>
+                  <div className="text-xs mb-2 font-medium" style={{ color: C.purple600 }}>{day}</div>
                   <div className="relative w-10 h-10 mx-auto">
                     <svg className="w-full h-full -rotate-90">
                       <circle cx="50%" cy="50%" r="45%" fill="none" stroke="#e1bee7" strokeWidth="6"/>
-                      <circle cx="50%" cy="50%" r="45%" fill="none" stroke="#b39ddb" strokeWidth="6"
+                      <circle cx="50%" cy="50%" r="45%" fill="none" stroke={C.purple500} strokeWidth="6"
                         strokeDasharray={`${value * 1.26} 126`} strokeLinecap="round"/>
                     </svg>
                     <div className="absolute inset-0 flex items-center justify-center">
-                      <span className="text-[9px] font-bold" style={{ color: "#b39ddb" }}>{value}%</span>
+                      <span className="text-[9px] font-bold" style={{ color: C.purple500 }}>{value}%</span>
                     </div>
                   </div>
                 </div>
@@ -207,49 +413,43 @@ function SuperCalendarPage() {
 
         {/* ── Main Calendar Card ── */}
         <div className="rounded-3xl shadow-sm overflow-hidden" style={{ background: "#fff", border: "1px solid rgba(179,157,219,0.2)" }}>
-
           {/* Nav bar */}
           <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: "1px solid rgba(179,157,219,0.15)" }}>
-            <button onClick={() => navigate_(-1)}
-              className="w-9 h-9 rounded-xl flex items-center justify-center hover:opacity-80 transition-opacity"
-              style={{ background: "#f3e5f5" }}>
-              <ChevronLeft className="h-4 w-4" style={{ color: "#b39ddb" }} />
+            <button onClick={() => navigate_(-1)} className="w-9 h-9 rounded-xl flex items-center justify-center hover:opacity-80 transition-opacity" style={{ background: "#f3e5f5" }}>
+              <ChevronLeft className="h-4 w-4" style={{ color: C.purple500 }} />
             </button>
             <div className="text-center">
-              <div className="font-semibold text-lg" style={{ color: "#5a4a61" }}>{monthName}</div>
+              <div className="font-semibold text-lg" style={{ color: C.purple800 }}>{monthName}</div>
               {viewMode === "week" && (
-                <div className="text-xs" style={{ color: "#9575a3" }}>
+                <div className="text-xs" style={{ color: C.purple600 }}>
                   {weekDays[0].toLocaleDateString("en-US",{month:"short",day:"numeric"})} – {weekDays[6].toLocaleDateString("en-US",{month:"short",day:"numeric"})}
                 </div>
               )}
             </div>
-            <button onClick={() => navigate_(1)}
-              className="w-9 h-9 rounded-xl flex items-center justify-center hover:opacity-80 transition-opacity"
-              style={{ background: "#f3e5f5" }}>
-              <ChevronRight className="h-4 w-4" style={{ color: "#b39ddb" }} />
+            <button onClick={() => navigate_(1)} className="w-9 h-9 rounded-xl flex items-center justify-center hover:opacity-80 transition-opacity" style={{ background: "#f3e5f5" }}>
+              <ChevronRight className="h-4 w-4" style={{ color: C.purple500 }} />
             </button>
           </div>
 
           {/* ── WEEK VIEW ── */}
           {viewMode === "week" && (
             <div>
-              {/* Day headers */}
               <div className="grid sticky top-0 z-10" style={{ gridTemplateColumns: "72px repeat(7, 1fr)", background: "#fdf7fd", borderBottom: "1px solid rgba(179,157,219,0.15)" }}>
                 <div />
                 {weekDays.map((d, i) => {
                   const ds = dateStr(d);
                   const isToday = ds === todayStr;
-                  const count = assignmentsOnDate(d).length;
+                  const count   = assignmentsOnDate(d).length;
                   return (
                     <div key={i} className="text-center py-3 px-1">
-                      <div className="text-xs font-medium mb-1" style={{ color: "#9575a3" }}>{DAY_LABELS_MON[i]}</div>
+                      <div className="text-xs font-medium mb-1" style={{ color: C.purple600 }}>{DAY_LABELS_MON[i]}</div>
                       <div className="w-9 h-9 mx-auto rounded-full flex flex-col items-center justify-center"
-                        style={{ background: isToday ? "#b39ddb" : "transparent" }}>
-                        <span className="text-sm font-semibold" style={{ color: isToday ? "#fff" : "#5a4a61" }}>{d.getDate()}</span>
+                        style={{ background: isToday ? C.purple500 : "transparent" }}>
+                        <span className="text-sm font-semibold" style={{ color: isToday ? "#fff" : C.purple800 }}>{d.getDate()}</span>
                       </div>
                       {count > 0 && (
                         <div className="mt-1 mx-auto w-5 h-4 rounded-full flex items-center justify-center text-[9px] font-bold"
-                          style={{ background: isToday ? "rgba(179,157,219,0.3)" : "#e1bee7", color: isToday ? "#fff" : "#b39ddb" }}>
+                          style={{ background: isToday ? "rgba(179,157,219,0.3)" : "#e1bee7", color: isToday ? "#fff" : C.purple500 }}>
                           {count}
                         </div>
                       )}
@@ -258,7 +458,6 @@ function SuperCalendarPage() {
                 })}
               </div>
 
-              {/* Time grid */}
               <div ref={scrollRef} style={{ maxHeight: "calc(100vh - 400px)", overflowY: "auto" }}>
                 {HOURS.map(hour => (
                   <div key={hour} className="grid" style={{ gridTemplateColumns: "72px repeat(7, 1fr)", minHeight: 64, borderBottom: "1px solid rgba(179,157,219,0.07)" }}>
@@ -268,23 +467,26 @@ function SuperCalendarPage() {
                       </span>
                     </div>
                     {weekDays.map((day, di) => {
-                      const slots = assignmentsAtSlot(day, hour);
-                      // Also show all-day (no time) assignments on their dueDate in the first slot row
+                      const slots  = assignmentsAtSlot(day, hour);
                       const allDay = hour === 8 ? assignmentsOnDate(day).filter(a => !a.time) : [];
-                      const all = [...slots, ...allDay];
+                      const all    = [...slots, ...allDay];
                       return (
                         <div key={di} className="border-l relative py-1 px-1"
                           style={{ borderColor: "rgba(179,157,219,0.1)", minHeight: 64 }}>
                           {all.map(a => {
-                            const pc = priorityColor(a.priority);
+                            const style = itemStyle(a);
+                            const fi    = getFilterForAssignment(a);
+                            const Icon  = fi?.icon;
                             return (
-                              <button key={a.id}
-                                onClick={() => setSelectedAssignment(a)}  
+                              <button key={a.id} onClick={() => setSelectedAssignment(a)}
                                 className="w-full text-left rounded-lg px-2 py-1 mb-1 hover:opacity-90 transition-opacity"
-                                style={{ background: pc.bg, border: `1px solid ${pc.dot}22` }}>
-                                <div className="text-[10px] font-semibold truncate" style={{ color: pc.text }}>{a.title}</div>
-                                {a.time && <div className="text-[9px]" style={{ color: pc.text, opacity: 0.7 }}>{formatTime(a.time)}{a.duration ? ` · ${a.duration}` : ""}</div>}
-                                {!a.time && <div className="text-[9px]" style={{ color: pc.text, opacity: 0.6 }}>All day</div>}
+                                style={{ background: style.bg, border: `1px solid ${style.border}` }}>
+                                <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                                  {Icon && <Icon size={9} color={style.text} style={{ flexShrink: 0 }} />}
+                                  <div className="text-[10px] font-semibold truncate" style={{ color: style.text }}>{a.title}</div>
+                                </div>
+                                {a.time && <div className="text-[9px]" style={{ color: style.text, opacity: 0.7 }}>{formatTime(a.time)}{a.duration ? ` · ${a.duration}` : ""}</div>}
+                                {!a.time && <div className="text-[9px]" style={{ color: style.text, opacity: 0.6 }}>All day</div>}
                               </button>
                             );
                           })}
@@ -300,62 +502,59 @@ function SuperCalendarPage() {
           {/* ── MONTH VIEW ── */}
           {viewMode === "month" && (
             <div className="p-4">
-              {/* Day name headers */}
               <div className="grid grid-cols-7 mb-2">
                 {DAY_LABELS_MON.map(d => (
-                  <div key={d} className="text-center text-xs font-medium py-2" style={{ color: "#9575a3" }}>{d}</div>
+                  <div key={d} className="text-center text-xs font-medium py-2" style={{ color: C.purple600 }}>{d}</div>
                 ))}
               </div>
-              {/* Day cells */}
               <div className="grid grid-cols-7 gap-1">
                 {monthDays.map((day, idx) => {
                   if (!day) return <div key={idx} />;
-                  const ds = dateStr(day);
+                  const ds      = dateStr(day);
                   const isToday = ds === todayStr;
-                  const list = assignmentsOnDate(day);
-                  const prog = progressOnDate(day);
+                  const list    = assignmentsOnDate(day);
+                  const prog    = progressOnDate(day);
                   return (
                     <div key={idx}
                       className="rounded-2xl p-2 min-h-[80px] cursor-pointer hover:shadow-md transition-all relative group"
-                      style={{
-                        background: isToday ? "#f3e5f5" : "#fdf7fd",
-                        border: isToday ? "2px solid #b39ddb" : "1px solid rgba(179,157,219,0.15)"
-                      }}
+                      style={{ background: isToday ? "#f3e5f5" : "#fdf7fd", border: isToday ? `2px solid ${C.purple500}` : "1px solid rgba(179,157,219,0.15)" }}
                       onMouseEnter={() => list.length && setHoveredDate(ds)}
                       onMouseLeave={() => setHoveredDate(null)}>
-                      {/* Date number */}
                       <div className="flex items-center justify-between mb-1">
-                        <span className="text-sm font-semibold" style={{ color: isToday ? "#b39ddb" : "#5a4a61" }}>
-                          {day.getDate()}
-                        </span>
+                        <span className="text-sm font-semibold" style={{ color: isToday ? C.purple500 : C.purple800 }}>{day.getDate()}</span>
                         {list.length > 0 && (
-                          <span className="text-[9px] px-1.5 py-0.5 rounded-full font-bold"
-                            style={{ background: "#e1bee7", color: "#b39ddb" }}>
-                            {list.length}
-                          </span>
+                          <span className="text-[9px] px-1.5 py-0.5 rounded-full font-bold" style={{ background: "#e1bee7", color: C.purple500 }}>{list.length}</span>
                         )}
                       </div>
-                      {/* Progress mini bar */}
                       {prog > 0 && (
                         <div className="w-full h-1 rounded-full overflow-hidden mb-1.5" style={{ background: "#e1bee7" }}>
-                          <div className="h-full rounded-full" style={{ width: `${prog}%`, background: "#b39ddb" }} />
+                          <div className="h-full rounded-full" style={{ width: `${prog}%`, background: C.purple500 }} />
                         </div>
                       )}
-                      {/* Task pills — show up to 2 */}
+                      {/* Coloured category dots */}
+                      {list.length > 0 && (
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: 2, marginBottom: 3 }}>
+                          {[...new Map(list.map(a => { const fi = getFilterForAssignment(a); return [fi?.id, fi]; })).values()].filter(Boolean).slice(0, 4).map(fi => (
+                            <div key={fi.id} style={{ width: 7, height: 7, borderRadius: "50%", background: fi.color }} title={fi.label} />
+                          ))}
+                        </div>
+                      )}
                       <div className="space-y-0.5">
                         {list.slice(0, 2).map(a => {
-                          const pc = priorityColor(a.priority);
+                          const style = itemStyle(a);
+                          const fi    = getFilterForAssignment(a);
+                          const Icon  = fi?.icon;
                           return (
-                            <button key={a.id}
-                              onClick={() => setSelectedAssignment(a)}
-                              className="w-full text-left rounded px-1.5 py-0.5 truncate text-[9px] font-medium"
-                              style={{ background: pc.bg, color: pc.text }}>
+                            <button key={a.id} onClick={() => setSelectedAssignment(a)}
+                              className="w-full text-left rounded px-1.5 py-0.5 truncate text-[9px] font-medium flex items-center gap-1"
+                              style={{ background: style.bg, color: style.text }}>
+                              {Icon && <Icon size={8} color={style.text} style={{ flexShrink: 0 }} />}
                               {a.title}
                             </button>
                           );
                         })}
                         {list.length > 2 && (
-                          <div className="text-[9px] text-center" style={{ color: "#9575a3" }}>+{list.length - 2} more</div>
+                          <div className="text-[9px] text-center" style={{ color: C.purple600 }}>+{list.length - 2} more</div>
                         )}
                       </div>
 
@@ -363,19 +562,24 @@ function SuperCalendarPage() {
                       {hoveredDate === ds && list.length > 0 && (
                         <div className="absolute z-50 left-0 top-full mt-2 rounded-2xl shadow-xl p-3 w-60"
                           style={{ background: "#fff", border: "1px solid rgba(179,157,219,0.3)" }}>
-                          <div className="text-xs font-semibold mb-2" style={{ color: "#5a4a61" }}>
+                          <div className="text-xs font-semibold mb-2" style={{ color: C.purple800 }}>
                             {day.toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"})}
                           </div>
                           <div className="space-y-1.5 max-h-40 overflow-y-auto">
                             {list.map(a => {
-                              const pc = priorityColor(a.priority);
+                              const style = itemStyle(a);
+                              const fi    = getFilterForAssignment(a);
+                              const Icon  = fi?.icon;
                               return (
                                 <button key={a.id} onClick={() => setSelectedAssignment(a)}
-                                  className="w-full text-left p-2 rounded-xl hover:opacity-80 transition-opacity"
-                                  style={{ background: pc.bg }}>
-                                  <div className="text-xs font-medium" style={{ color: pc.text }}>{a.title}</div>
-                                  <div className="text-[10px] mt-0.5" style={{ color: pc.text, opacity: 0.7 }}>
-                                    {a.progress ?? 0}% done · {a.priority}
+                                  className="w-full text-left p-2 rounded-xl hover:opacity-80 transition-opacity flex items-center gap-2"
+                                  style={{ background: style.bg }}>
+                                  {Icon && <Icon size={12} color={style.text} style={{ flexShrink: 0 }} />}
+                                  <div>
+                                    <div className="text-xs font-medium" style={{ color: style.text }}>{a.title}</div>
+                                    <div className="text-[10px] mt-0.5" style={{ color: style.text, opacity: 0.7 }}>
+                                      {fi?.label}{a.progress !== undefined ? ` · ${a.progress ?? 0}% done` : ""}
+                                    </div>
                                   </div>
                                 </button>
                               );
@@ -391,50 +595,72 @@ function SuperCalendarPage() {
           )}
         </div>
 
-        {/* ── Upcoming Assignments strip (bottom) ── */}
+        {/* ── Category legend strip ── */}
+        <div style={{ background: C.white, borderRadius: 20, border: "1px solid rgba(179,157,219,0.15)", padding: "12px 20px", display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+          <span style={{ fontSize: 11, fontWeight: 700, color: C.purple400, marginRight: 4, textTransform: "uppercase", letterSpacing: "0.08em" }}>Legend</span>
+          {ALL_FILTER_ITEMS.filter(i => activeFilters[i.id] !== false).map(i => {
+            const Icon = i.icon;
+            return (
+              <div key={i.id} style={{ display: "flex", alignItems: "center", gap: 5, padding: "4px 10px", borderRadius: 999, background: i.bg, border: `1px solid ${i.border}`, cursor: "pointer" }}
+                onClick={() => toggleFilter(i.id)}
+                title={`Click to hide ${i.label}`}>
+                <Icon size={10} color={i.color} />
+                <span style={{ fontSize: 10.5, color: i.color, fontWeight: 600 }}>{i.label}</span>
+              </div>
+            );
+          })}
+          {hiddenCount > 0 && (
+            <button onClick={enableAll} style={{ fontSize: 10.5, color: C.purple500, background: "none", border: `1px dashed ${C.purple300}`, cursor: "pointer", fontWeight: 600, padding: "4px 10px", borderRadius: 999 }}>
+              + {hiddenCount} hidden
+            </button>
+          )}
+        </div>
+
+        {/* ── Upcoming Tasks & Meetings ── */}
         <div className="rounded-3xl p-5 shadow-sm" style={{ background: "#fff", border: "1px solid rgba(179,157,219,0.2)" }}>
           <div className="flex items-center gap-2 mb-4">
-            <Sparkles className="h-4 w-4" style={{ color: "#b39ddb" }} />
-            <span className="font-semibold text-sm" style={{ color: "#5a4a61" }}>Upcoming Tasks & Meetings</span>
-            <span className="ml-1 text-xs px-2 py-0.5 rounded-full" style={{ background: "#f3e5f5", color: "#b39ddb" }}>
-              {assignments.filter(a => (a.progress ?? 0) < 100 && a.status !== "Completed").length}
+            <Sparkles className="h-4 w-4" style={{ color: C.purple500 }} />
+            <span className="font-semibold text-sm" style={{ color: C.purple800 }}>Upcoming Tasks & Meetings</span>
+            <span className="ml-1 text-xs px-2 py-0.5 rounded-full" style={{ background: "#f3e5f5", color: C.purple500 }}>
+              {visibleAssignments.filter(a => (a.progress ?? 0) < 100 && a.status !== "Completed").length}
             </span>
           </div>
           <div className="flex gap-3 overflow-x-auto pb-2">
-            {assignments
+            {visibleAssignments
               .filter(a => (a.progress ?? 0) < 100 && a.status !== "Completed")
               .sort((a,b) => new Date(a.dueDate||"9999") - new Date(b.dueDate||"9999"))
               .slice(0, 8)
               .map(a => {
-                const pc = priorityColor(a.priority);
-                const due = a.dueDate ? new Date(a.dueDate + "T12:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric"}) : null;
+                const style = itemStyle(a);
+                const fi    = getFilterForAssignment(a);
+                const Icon  = fi?.icon;
+                const due   = a.dueDate ? new Date(a.dueDate + "T12:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric"}) : null;
                 return (
                   <button key={a.id}
-                    onClick={() => {
-                        // Only let them update progress if it's an actual task, not a meeting
-                        if(!a.id.toString().startsWith('apt-')) {
-                           navigate(`/detailed-progress?id=${a.id}`);
-                        } else {
-                           setSelectedAssignment(a);
-                        }
-                    }}
+                    onClick={() => { if (!a.id?.toString().startsWith("apt-")) { navigate(`/detailed-progress?id=${a.id}`); } else { setSelectedAssignment(a); } }}
                     className="flex-shrink-0 rounded-2xl p-3 text-left hover:shadow-md transition-all w-44"
-                    style={{ background: pc.bg, border: `1px solid ${pc.dot}33` }}>
-                    <div className="text-xs font-semibold mb-1 line-clamp-2" style={{ color: pc.text }}>{a.title}</div>
-                    {due && <div className="text-[10px] mb-2" style={{ color: pc.text, opacity: 0.7 }}>Due {due}</div>}
-                    {!a.id.toString().startsWith('apt-') && (
-                       <>
-                         <div className="w-full h-1.5 rounded-full overflow-hidden" style={{ background: "rgba(0,0,0,0.08)" }}>
-                           <div className="h-full rounded-full" style={{ width: `${a.progress ?? 0}%`, background: pc.dot }} />
-                         </div>
-                         <div className="text-[9px] mt-1" style={{ color: pc.text, opacity: 0.6 }}>{a.progress ?? 0}% done</div>
-                       </>
+                    style={{ background: style.bg, border: `1px solid ${style.border}` }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 5 }}>
+                      {Icon && <div style={{ width: 20, height: 20, borderRadius: 6, background: "rgba(255,255,255,0.6)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                        <Icon size={11} color={style.text} />
+                      </div>}
+                      <span style={{ fontSize: 9, fontWeight: 700, color: style.text, textTransform: "uppercase", letterSpacing: "0.05em", opacity: 0.7 }}>{fi?.label}</span>
+                    </div>
+                    <div className="text-xs font-semibold mb-1 line-clamp-2" style={{ color: style.text }}>{a.title}</div>
+                    {due && <div className="text-[10px] mb-2" style={{ color: style.text, opacity: 0.7 }}>Due {due}</div>}
+                    {!a.id?.toString().startsWith("apt-") && (
+                      <>
+                        <div className="w-full h-1.5 rounded-full overflow-hidden" style={{ background: "rgba(0,0,0,0.08)" }}>
+                          <div className="h-full rounded-full" style={{ width: `${a.progress ?? 0}%`, background: style.dot }} />
+                        </div>
+                        <div className="text-[9px] mt-1" style={{ color: style.text, opacity: 0.6 }}>{a.progress ?? 0}% done</div>
+                      </>
                     )}
                   </button>
                 );
               })}
-            {assignments.filter(a => (a.progress ?? 0) < 100 && a.status !== "Completed").length === 0 && (
-              <div className="text-sm py-4 w-full text-center" style={{ color: "#9575a3" }}>
+            {visibleAssignments.filter(a => (a.progress ?? 0) < 100 && a.status !== "Completed").length === 0 && (
+              <div className="text-sm py-4 w-full text-center" style={{ color: C.purple600 }}>
                 🎉 All caught up! No upcoming assignments.
               </div>
             )}
@@ -442,105 +668,86 @@ function SuperCalendarPage() {
         </div>
       </div>
 
-      {/* ── Assignment/Meeting Detail Modal ── */}
+      {/* ── Detail Modal ── */}
       {selectedAssignment && (
         <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: "rgba(90,74,97,0.4)" }}
           onClick={() => setSelectedAssignment(null)}>
-          <div className="rounded-3xl p-6 shadow-2xl w-96 max-w-full mx-4"
-            style={{ background: "#fff" }}
-            onClick={e => e.stopPropagation()}>
-            {/* Modal header */}
-            <div className="flex items-start justify-between mb-4">
-              <div className="flex-1 pr-4">
-                <h3 className="font-semibold text-lg leading-tight" style={{ color: "#5a4a61" }}>
-                  {selectedAssignment.title}
-                </h3>
-                {selectedAssignment.course && (
-                  <p className="text-xs mt-1" style={{ color: "#9575a3" }}>{selectedAssignment.course}</p>
-                )}
-              </div>
-              <button onClick={() => setSelectedAssignment(null)}
-                className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
-                style={{ background: "#f3e5f5" }}>
-                <X className="h-4 w-4" style={{ color: "#9575a3" }} />
-              </button>
-            </div>
-
-            {/* Details */}
-            <div className="space-y-3">
-              {/* Priority */}
-              {selectedAssignment.priority && (() => {
-                const pc = priorityColor(selectedAssignment.priority);
-                return (
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs px-3 py-1 rounded-full font-medium" style={{ background: pc.bg, color: pc.text }}>
-                      {selectedAssignment.priority}
-                    </span>
+          <div className="rounded-3xl p-6 shadow-2xl w-96 max-w-full mx-4" style={{ background: "#fff" }} onClick={e => e.stopPropagation()}>
+            {(() => {
+              const style = itemStyle(selectedAssignment);
+              const fi    = getFilterForAssignment(selectedAssignment);
+              const Icon  = fi?.icon;
+              return (
+                <>
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex items-center gap-3 flex-1 pr-4">
+                      {Icon && (
+                        <div style={{ width: 38, height: 38, borderRadius: 12, background: style.bg, border: `1.5px solid ${style.border}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                          <Icon size={18} color={style.text} />
+                        </div>
+                      )}
+                      <div>
+                        <div style={{ fontSize: 10, fontWeight: 700, color: style.text, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 3 }}>{fi?.label}</div>
+                        <h3 className="font-semibold text-lg leading-tight" style={{ color: C.purple800 }}>{selectedAssignment.title}</h3>
+                        {selectedAssignment.course && <p className="text-xs mt-1" style={{ color: C.purple600 }}>{selectedAssignment.course}</p>}
+                      </div>
+                    </div>
+                    <button onClick={() => setSelectedAssignment(null)} className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: "#f3e5f5" }}>
+                      <X className="h-4 w-4" style={{ color: C.purple600 }} />
+                    </button>
                   </div>
-                );
-              })()}
 
-              {/* Due date + time */}
-              <div className="flex items-center gap-4 text-sm" style={{ color: "#9575a3" }}>
-                {selectedAssignment.dueDate && (
-                  <div className="flex items-center gap-1.5">
-                    <Calendar className="h-4 w-4" style={{ color: "#b39ddb" }} />
-                    <span>{new Date(selectedAssignment.dueDate + "T12:00:00").toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"})}</span>
+                  <div className="space-y-3">
+                    {selectedAssignment.priority && (() => {
+                      const pc = priorityColor(selectedAssignment.priority);
+                      return <div><span className="text-xs px-3 py-1 rounded-full font-medium" style={{ background: pc.bg, color: pc.text }}>{selectedAssignment.priority}</span></div>;
+                    })()}
+                    <div className="flex items-center gap-4 text-sm" style={{ color: C.purple600 }}>
+                      {selectedAssignment.dueDate && (
+                        <div className="flex items-center gap-1.5">
+                          <Calendar className="h-4 w-4" style={{ color: C.purple500 }} />
+                          <span>{new Date(selectedAssignment.dueDate + "T12:00:00").toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"})}</span>
+                        </div>
+                      )}
+                      {selectedAssignment.time && (
+                        <div className="flex items-center gap-1.5">
+                          <Clock className="h-4 w-4" style={{ color: C.purple500 }} />
+                          <span>{formatTime(selectedAssignment.time)}</span>
+                        </div>
+                      )}
+                    </div>
+                    {!selectedAssignment.id?.toString().startsWith("apt-") && (
+                      <div>
+                        <div className="flex justify-between text-xs mb-1.5" style={{ color: C.purple600 }}>
+                          <span>Progress</span>
+                          <span className="font-semibold" style={{ color: C.purple500 }}>{selectedAssignment.progress ?? 0}%</span>
+                        </div>
+                        <div className="w-full h-2.5 rounded-full overflow-hidden" style={{ background: "#e1bee7" }}>
+                          <div className="h-full rounded-full transition-all" style={{ width: `${selectedAssignment.progress ?? 0}%`, background: `linear-gradient(90deg, ${style.dot}, ${style.text})` }} />
+                        </div>
+                      </div>
+                    )}
+                    {selectedAssignment.duration && <div className="text-xs" style={{ color: C.purple600 }}>⏱ Estimated: {selectedAssignment.duration}</div>}
+                    {selectedAssignment.notes && <div className="text-xs p-3 rounded-xl" style={{ background: "#fdf7fd", color: C.purple600 }}>{selectedAssignment.notes}</div>}
                   </div>
-                )}
-                {selectedAssignment.time && (
-                  <div className="flex items-center gap-1.5">
-                    <Clock className="h-4 w-4" style={{ color: "#b39ddb" }} />
-                    <span>{formatTime(selectedAssignment.time)}</span>
+
+                  <div className="flex gap-2 mt-5">
+                    {!selectedAssignment.id?.toString().startsWith("apt-") && (
+                      <button onClick={() => { navigate(`/detailed-progress?id=${selectedAssignment.id}`); setSelectedAssignment(null); }}
+                        className="flex-1 py-2.5 rounded-xl text-sm font-medium text-white hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
+                        style={{ background: C.purple500 }}>
+                        <Edit2 className="h-4 w-4" /> Update Progress
+                      </button>
+                    )}
+                    <button onClick={() => setSelectedAssignment(null)}
+                      className="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium hover:opacity-80 transition-opacity"
+                      style={{ background: "#f3e5f5", color: C.purple600 }}>
+                      Close
+                    </button>
                   </div>
-                )}
-              </div>
-
-              {/* Progress bar (Hide for meetings) */}
-              {!selectedAssignment.id.toString().startsWith('apt-') && (
-                <div>
-                  <div className="flex justify-between text-xs mb-1.5" style={{ color: "#9575a3" }}>
-                    <span>Progress</span>
-                    <span className="font-semibold" style={{ color: "#b39ddb" }}>{selectedAssignment.progress ?? 0}%</span>
-                  </div>
-                  <div className="w-full h-2.5 rounded-full overflow-hidden" style={{ background: "#e1bee7" }}>
-                    <div className="h-full rounded-full transition-all"
-                      style={{ width: `${selectedAssignment.progress ?? 0}%`, background: "linear-gradient(90deg, #ce93d8, #b39ddb)" }} />
-                  </div>
-                </div>
-              )}
-
-              {/* Duration */}
-              {selectedAssignment.duration && (
-                <div className="text-xs" style={{ color: "#9575a3" }}>
-                  ⏱ Estimated: {selectedAssignment.duration}
-                </div>
-              )}
-
-              {/* Notes */}
-              {selectedAssignment.notes && (
-                <div className="text-xs p-3 rounded-xl" style={{ background: "#fdf7fd", color: "#9575a3" }}>
-                  {selectedAssignment.notes}
-                </div>
-              )}
-            </div>
-
-            {/* Actions */}
-            <div className="flex gap-2 mt-5">
-              {!selectedAssignment.id.toString().startsWith('apt-') && (
-                <button
-                  onClick={() => { navigate(`/detailed-progress?id=${selectedAssignment.id}`); setSelectedAssignment(null); }}
-                  className="flex-1 py-2.5 rounded-xl text-sm font-medium text-white hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
-                  style={{ background: "#b39ddb" }}>
-                  <Edit2 className="h-4 w-4" /> Update Progress
-                </button>
-              )}
-              <button onClick={() => setSelectedAssignment(null)}
-                className="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium hover:opacity-80 transition-opacity"
-                style={{ background: "#f3e5f5", color: "#9575a3" }}>
-                Close
-              </button>
-            </div>
+                </>
+              );
+            })()}
           </div>
         </div>
       )}

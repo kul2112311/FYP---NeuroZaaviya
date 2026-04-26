@@ -32,6 +32,7 @@ import Focuspeermanagement from "./pages/Ehsas/Focuspeermanagement.jsx";
 import { OAPRequestApproval } from './pages/OAP/Oaprequestapproval.jsx';
 import ChatPage from "./pages/shared/Chats/ChatPage.jsx";
 import SupportSupport from './pages/shared/StudentSupport.jsx';
+import CanvasIntegrationPage from './pages/StudentInterface/CanvasIntegrationPage.jsx';
 
 const menuConfig = {
   student: [
@@ -176,9 +177,10 @@ function AppContent() {
             <Route path="/calendar" element={<SuperCalendarPage />} />
             <Route path="/deep-work" element={<DeepWorkSession />} />
             <Route path="/ehsas-fp-management" element={<Focuspeermanagement />} />
-            <Route path="/oap-request-approval" element={<OAPRequestApproval />} /> {/* ← NEW */}
+            <Route path="/oap-request-approval" element={<OAPRequestApproval />} />
             <Route path="/chats" element={<ChatPage />} />
             <Route path="/support" element={<SupportSupport />} />
+            <Route path="/canvas-integration" element={<CanvasIntegrationPage />} />
           </Routes>
         </div>
       </main>
