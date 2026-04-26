@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Clock, AlertCircle, Calendar, CheckCircle } from "lucide-react";
+import { useUser } from '../../../styles/SignInLandingPage/usercontext.jsx';
 
 // -------------------------------------------------------------
 // STUDENT CHECKIN CARD (Consolidated to fix resolution error)
@@ -80,14 +81,15 @@ function CheckIn() {
   const [error, setError] = useState(null);
 
   // Hardcoded ID for Ushna Batool (Student) to ensure functionality during local dev
-  const STUDENT_USER_ID = "a1111111-1111-1111-1111-111111111111";
+  const { user } = useUser();
 
   useEffect(() => {
     const fetchStudentCheckins = async () => {
       try {
+        if (!user || !user.id) return;
         setIsLoading(true);
         // Using 127.0.0.1 to avoid local network routing delays
-        const response = await fetch(`http://127.0.0.1:5000/api/checkups/student/${STUDENT_USER_ID}`);
+        const response = await fetch(`http://127.0.0.1:5000/api/checkups/student/${user.id}`);
         
         if (!response.ok) {
           throw new Error("Failed to load your upcoming check-ins.");
@@ -104,7 +106,7 @@ function CheckIn() {
     };
 
     fetchStudentCheckins();
-  }, []);
+  }, [user]);
 
   return (
     <div className="bg-white rounded-3xl shadow-sm border border-gray-200 px-[20.8px] pt-[20.8px] pb-[20.8px]">

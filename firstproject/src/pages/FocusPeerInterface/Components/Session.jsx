@@ -201,7 +201,7 @@ export default function Session() {
 
                 return {
                     id: session.id,
-                    studentId: session.student_user_id,
+                    studentId: session.id,
                     studentName: session.student_name,
                     peerUserId: user.id,
                     date: dateObj.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }),

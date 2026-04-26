@@ -1,31 +1,42 @@
 import { useState, useEffect } from 'react';
-import { Users, FileText, Bell, AlertCircle, Calendar, CheckCircle } from 'lucide-react';
+import { Users, FileText, Bell, AlertCircle, Calendar, CheckCircle, Clock } from 'lucide-react';
 import { useUser } from '../../styles/SignInLandingPage/usercontext.jsx';
 
 function OAPDashboard() {
   const { user } = useUser();
 
-  // 1. Real State! Starting empty because our database is clean.
   const [recentAlerts, setRecentAlerts] = useState([]);
+  const [upcomingMeetings, setUpcomingMeetings] = useState([]);
   const [stats, setStats] = useState({
     activeStudents: 0,
     pendingFiles: 0,
-    availablePeers: 0
+    availablePeers: 0,
+    openAlerts: 0
   });
 
-  // Future-proofing: This is where we will fetch from the backend later
-  /*
+  // ✨ Fetch real data from our new backend endpoint!
   useEffect(() => {
-    fetch('/api/oap/dashboard-stats')
-      .then(res => res.json())
-      .then(data => {
-        setRecentAlerts(data.alerts);
-        setStats(data.stats);
-      });
-  }, []);
-  */
+    const fetchDashboardData = async () => {
+      if (!user || !user.id) return;
+      try {
+        const res = await fetch(`http://127.0.0.1:5000/api/oap/dashboard-stats/${user.id}`);
+        if (res.ok) {
+          const data = await res.json();
+          setRecentAlerts(data.alerts || []);
+          setUpcomingMeetings(data.meetings || []);
+          setStats(data.stats || { activeStudents: 0, pendingFiles: 0, availablePeers: 0, openAlerts: 0 });
+        }
+      } catch (error) {
+        console.error("Failed to fetch OAP dashboard stats:", error);
+      }
+    };
 
-  const openAlerts = recentAlerts.length;
+    fetchDashboardData();
+    const interval = setInterval(fetchDashboardData, 5000); // Live update every 5s
+    return () => clearInterval(interval);
+  }, [user]);
+
+  const openAlerts = stats.openAlerts;
 
   return (
     <div className="p-8 max-w-7xl mx-auto">
@@ -49,7 +60,7 @@ function OAPDashboard() {
         </div>
       </div>
 
-      {/* Quick Stats - Now reflecting reality (Zeros!) */}
+      {/* Quick Stats - Now reflecting reality! */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
         <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
           <div className="flex items-center gap-4">
@@ -107,7 +118,6 @@ function OAPDashboard() {
             </div>
           </div>
           
-          {/* 2. Dynamic Rendering: If empty, show the "All Clear" state! */}
           {recentAlerts.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 border-2 border-dashed border-gray-100 rounded-2xl">
               <div className="w-16 h-16 rounded-full flex items-center justify-center mb-3" style={{ backgroundColor: '#e8f5e9' }}>
@@ -147,17 +157,36 @@ function OAPDashboard() {
               <h2 className="text-base font-semibold" style={{ color: '#2d2d3a' }}>Upcoming Meetings</h2>
             </div>
             <span className="text-xs font-semibold px-3 py-1 rounded-full" style={{ background: '#ede7f6', color: '#9575cd' }}>
-              0 Scheduled
+              {upcomingMeetings.length} Scheduled
             </span>
           </div>
 
-          <div className="flex flex-col items-center justify-center py-12 border-2 border-dashed border-gray-100 rounded-2xl">
-            <div className="w-16 h-16 rounded-full flex items-center justify-center mb-3" style={{ backgroundColor: '#ede7f6' }}>
-              <Calendar size={28} style={{ color: '#b39ddb' }} />
+          {upcomingMeetings.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 border-2 border-dashed border-gray-100 rounded-2xl">
+              <div className="w-16 h-16 rounded-full flex items-center justify-center mb-3" style={{ backgroundColor: '#ede7f6' }}>
+                <Calendar size={28} style={{ color: '#b39ddb' }} />
+              </div>
+              <p className="text-sm font-medium" style={{ color: '#5a4a61' }}>No upcoming meetings</p>
+              <p className="text-xs mt-1" style={{ color: '#9575a3' }}>Your schedule is clear for today.</p>
             </div>
-            <p className="text-sm font-medium" style={{ color: '#5a4a61' }}>No upcoming meetings</p>
-            <p className="text-xs mt-1" style={{ color: '#9575a3' }}>Your schedule is clear for today.</p>
-          </div>
+          ) : (
+            <div className="space-y-3 mt-2">
+              {upcomingMeetings.map(meeting => (
+                <div key={meeting.id} className="flex gap-4 p-4 rounded-2xl border border-gray-100 bg-gray-50 hover:bg-gray-100 transition-colors">
+                  <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: '#ede7f6' }}>
+                    <Calendar size={18} style={{ color: '#9575cd' }} />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-sm text-gray-800">{meeting.studentName}</h3>
+                    <div className="flex items-center gap-3 text-xs text-gray-500 mt-1">
+                      <span className="flex items-center gap-1"><Calendar size={12}/> {meeting.date}</span>
+                      <span className="flex items-center gap-1"><Clock size={12}/> {meeting.time?.substring(0,5)}</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>

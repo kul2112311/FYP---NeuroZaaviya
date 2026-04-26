@@ -1,7 +1,17 @@
 import { useState, useEffect } from "react";
 import { UserPlus, Mail, Users, Trash2, CheckCircle, X, Send, Edit3 } from "lucide-react";
+import { useUser } from "../../styles/SignInLandingPage/usercontext.jsx";
 
 export function FocusPeerManagement() {
+  // 👇 1. HOOKS MUST GO INSIDE THE FUNCTION BLOCK! 👇
+  const { user } = useUser(); 
+
+  // 👇 2. Dynamic variables stay inside too
+  const isWellness = user?.role?.toLowerCase().includes('wellness');
+  const deptEmail = isWellness ? 'wellness@habib.edu.pk' : 'ehsas@habib.edu.pk';
+  const deptName = isWellness ? 'Wellness Support Services' : 'Ehsas Support Services';
+
+  // 3. Keep your existing state below that
   const [focusPeers, setFocusPeers] = useState([]);
   const [requests, setRequests] = useState([]);
 
@@ -11,7 +21,7 @@ export function FocusPeerManagement() {
 
   const [emailModal, setEmailModal] = useState(null); 
 
-  // ✨ NEW: Fetch real data from the backend
+  // ✨ Fetch real data from the backend
   const fetchData = async () => {
     try {
       // Fetch Applications
@@ -36,32 +46,32 @@ export function FocusPeerManagement() {
     fetchData();
   }, []);
 
-  // ── Email templates ────────────────────────────────────────────────────────
+  // ── ✨ 3. Dynamic Email templates ──────────────────────────────────────────
   const approvalEmailTemplate = (app) =>
-`Dear ${app.name || app.email},
+    `Dear ${app.name || app.email},
 
-We are pleased to inform you that your application to become a Focus Peer at Habib University has been approved.
+    We are pleased to inform you that your application to become a Focus Peer at Habib University has been approved.
 
-You can now log in to the NeuroZaviya platform using your registered email and password to access the Focus Peer dashboard.
+    You can now log in to the NeuroZaviya platform using your registered email and password to access the Focus Peer dashboard.
 
-If you have any questions, please reach out to us at ehsas@habib.edu.pk.
+    If you have any questions, please reach out to us at ${deptEmail}.
 
-Warm regards,
-Ehsas Support Services
-Habib University`;
+    Warm regards,
+    ${deptName}
+    Habib University`;
 
-  const rejectionEmailTemplate = (app) =>
-`Dear ${app.name || app.email},
+      const rejectionEmailTemplate = (app) =>
+    `Dear ${app.name || app.email},
 
-Thank you for your interest in the Focus Peer programme at Habib University.
+    Thank you for your interest in the Focus Peer programme at Habib University.
 
-After careful review, we regret to inform you that your application has not been selected at this time. This decision does not reflect negatively on you — we encourage you to reapply in a future cycle.
+    After careful review, we regret to inform you that your application has not been selected at this time. This decision does not reflect negatively on you — we encourage you to reapply in a future cycle.
 
-For feedback or further queries, contact ehsas@habib.edu.pk.
+    For feedback or further queries, contact ${deptEmail}.
 
-Kind regards,
-Ehsas Support Services
-Habib University`;
+    Kind regards,
+    ${deptName}
+    Habib University`;
 
   const toggleStudentSelection = (studentId) => {
     setSelectedStudents((prev) =>
@@ -125,6 +135,27 @@ Habib University`;
       }
     } catch (error) {
       console.error("Error rejecting:", error);
+    }
+  };
+
+  // 🔥 THE OUTLOOK WEB MAGIC: Opens Outlook directly in a new browser tab! 🔥
+  const handleSendAndProcess = () => {
+    if (!emailModal) return;
+
+    const isApprove = emailModal.type === "approve";
+    const subject = isApprove ? "Focus Peer Application Approved" : "Focus Peer Application Update";
+    
+    // Microsoft's official deep link for opening a pre-filled compose window in Outlook Web
+    const outlookWebUrl = `https://outlook.office.com/mail/deeplink/compose?to=${emailModal.app.email}&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(emailModal.body)}`;
+    
+    // Open in a new Chrome tab so they don't lose their place on the dashboard
+    window.open(outlookWebUrl, '_blank');
+    
+    // Execute the database approval/rejection
+    if (isApprove) {
+      commitApprove(emailModal.app);
+    } else {
+      commitReject(emailModal.app.id);
     }
   };
 
@@ -283,7 +314,7 @@ Habib University`;
                 </div>
                 <div style={{ display: "flex", gap: 8 }}>
                   <span style={{ color: "#9575a3", minWidth: 36 }}>From:</span>
-                  <span style={{ color: "#5a4a61", fontWeight: 600 }}>ehsas@habib.edu.pk</span>
+                  <span style={{ color: "#5a4a61", fontWeight: 600 }}>{deptEmail}</span>
                 </div>
               </div>
             </div>
@@ -314,7 +345,7 @@ Habib University`;
                 Cancel
               </button>
               <button
-                onClick={() => emailModal.type === "approve" ? commitApprove(emailModal.app) : commitReject(emailModal.app.id)}
+                onClick={handleSendAndProcess}
                 style={{ padding: "10px 22px", borderRadius: 10, border: "none", cursor: "pointer", fontWeight: 700, fontSize: "0.85rem", color: "#fff", background: emailModal.type === "approve" ? "#22c55e" : "#ef4444", display: "flex", alignItems: "center", gap: 7, transition: "all 0.18s" }}
                 onMouseEnter={e => { e.currentTarget.style.filter = "brightness(1.08)"; e.currentTarget.style.transform = "translateY(-1px)"; }}
                 onMouseLeave={e => { e.currentTarget.style.filter = "brightness(1)"; e.currentTarget.style.transform = "none"; }}>

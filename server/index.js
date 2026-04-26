@@ -256,6 +256,73 @@ app.post('/api/auth/login', async (req, res) => {
 
 
 // ==========================================
+// OAP DASHBOARD STATS
+// ==========================================
+app.get('/api/oap/dashboard-stats/:userId', async (req, res) => {
+    try {
+        // 1. Active Students Count
+        const studentRes = await pool.query("SELECT COUNT(*) FROM users WHERE role = 'student'");
+        const activeStudents = parseInt(studentRes.rows[0].count);
+
+        // 2. Pending Files/Accommodations
+        const filesRes = await pool.query("SELECT COUNT(*) FROM accommodations");
+        const pendingFiles = parseInt(filesRes.rows[0].count);
+
+        // 3. Available Focus Peers
+        const peersRes = await pool.query("SELECT COUNT(*) FROM users WHERE role = 'focus-peer' OR role = 'focuspeer'");
+        const availablePeers = parseInt(peersRes.rows[0].count);
+
+        // 4. Recent Alerts
+        const alertsRes = await pool.query(`
+            SELECT 
+                id, 
+                title as issue, 
+                message as "studentName", 
+                TO_CHAR(created_at, 'YYYY-MM-DD HH24:MI') as date, 
+                'System' as "reportedBy"
+            FROM notifications 
+            WHERE notification_type = 'alert'
+            ORDER BY created_at DESC
+            LIMIT 4
+        `);
+
+        // 5. Upcoming Meetings (GLOBAL OAP APPOINTMENTS)
+        // ✨ FIXED: Now securely querying the correct 'appointments' table!
+        // ✨ FIXED: Added TO_CHAR to format the date cleanly for the UI
+        const meetingsRes = await pool.query(`
+            SELECT 
+                a.id,
+                u.full_name as "studentName",
+                TO_CHAR(a.scheduled_date, 'Mon DD, YYYY') as date,
+                a.start_time as time,
+                a.title
+            FROM appointments a
+            JOIN student_profiles sp ON a.student_id = sp.id
+            JOIN users u ON sp.user_id = u.id
+            WHERE a.status IN ('scheduled', 'confirmed', 'pending') 
+            AND a.scheduled_date >= CURRENT_DATE
+            ORDER BY a.scheduled_date ASC, a.start_time ASC
+            LIMIT 3
+        `);
+
+        res.json({
+            stats: {
+                activeStudents,
+                pendingFiles,
+                availablePeers,
+                openAlerts: alertsRes.rows.length
+            },
+            alerts: alertsRes.rows,
+            meetings: meetingsRes.rows
+        });
+    } catch (err) {
+        console.error("❌ OAP Stats Error:", err.message);
+        res.status(500).json({ error: "Server Error" });
+    }
+});
+
+
+// ==========================================
 // COUNSELOR DASHBOARD STATS
 // ==========================================
 app.get('/api/admin/dashboard-stats', async (req, res) => {

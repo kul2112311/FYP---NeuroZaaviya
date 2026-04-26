@@ -47,7 +47,7 @@ function WellnessDashboard() {
       <div className="rounded-3xl p-6 bg-white">
         <div className="flex flex-col">
           <h1 className="text-2xl font-bold mb-2" style={{ color: '#2d2d3a' }}>
-            Welcome back, {user?.name?.split(' ')[0] || 'Counselor'}! 👋
+            Welcome back, {user?.name || 'Counselor'}! 👋
           </h1>
           <p className="text-sm mb-1 font-medium" style={{ color: '#9575cd' }}>
             Wellness Counselor • Wellness Support Services
