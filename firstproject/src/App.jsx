@@ -33,7 +33,6 @@ import { OAPRequestApproval } from './pages/OAP/Oaprequestapproval.jsx';
 import ChatPage from "./pages/shared/Chats/ChatPage.jsx";
 import SupportSupport from './pages/shared/StudentSupport.jsx';
 
-
 const menuConfig = {
   student: [
     { icon: <LayoutDashboard size={20}/>, text: "Dashboard", to: "/" },
@@ -77,7 +76,7 @@ const menuConfig = {
     { icon: <Users size={20}/>, text: "Students", to: "/students" },
     { icon: <Folder size={20}/>, text: "Files", to: "/files" },
     { icon: <FileText size={20}/>, text: "Accommodations", to: "/accomodations" },
-    { icon: <UserPlus size={20}/>, text: "Request Approvals", to: "/oap-request-approval" }, // ← already here
+    { icon: <UserPlus size={20}/>, text: "Request Approvals", to: "/oap-request-approval" },
     { icon: <CalendarHeart size={20}/>, text: "Events", to: "/events" },
     { icon: <Newspaper size={20}/>, text: "Forum", to: "/forum" },
     { icon: <CalendarSync size={20}/>, text: "Scheduling", to: "/scheduling" },
@@ -92,24 +91,9 @@ function AppContent() {
 
   const [preAuthPage, setPreAuthPage] = useState('signin');
 
-  const menuItems = menuConfig[user.role] || [];
-
-  let dashboardToShow;
-  if (user.role === 'student') {
-    dashboardToShow = <Dashboard />;
-  } else if (user.role === 'focus-peer') {
-    dashboardToShow = <FocusPeer />;
-  } else if (user.role === 'wellness-counsellor') {
-    dashboardToShow = <WellnessDashboard />;
-  } else if (user.role === 'ehsas-counsellor') {
-    dashboardToShow = <EhsasDashboard />;
-  } else if (user.role === 'oap') {
-    dashboardToShow = <OAPDashboard />;
-  } else {
-    dashboardToShow = <Dashboard />;
-  }
-
-  if (!isAuthenticated) {
+  // 🛡️ THE FIX: Check authentication FIRST. 
+  // If there is no user, stop here and show the login screens.
+  if (!isAuthenticated || !user) {
     if (preAuthPage === 'focuspeer-register') {
       return (
         <FocusPeerRegisterPage
@@ -122,6 +106,34 @@ function AppContent() {
         onNavigateToRegister={() => setPreAuthPage('focuspeer-register')}
       />
     );
+  }
+
+  // 👇 Smart Role Normalizer: Protects against capitalization and spelling differences!
+  let safeRole = 'student'; 
+  if (user?.role) {
+    const raw = user.role.toLowerCase();
+    if (raw.includes('wellness')) safeRole = 'wellness-counsellor';
+    else if (raw.includes('ehsas')) safeRole = 'ehsas-counsellor';
+    else if (raw.includes('oap')) safeRole = 'oap';
+    else if (raw.includes('peer')) safeRole = 'focus-peer';
+    else safeRole = 'student';
+  }
+
+  const menuItems = menuConfig[safeRole] || [];
+
+  let dashboardToShow;
+  if (safeRole === 'student') {
+    dashboardToShow = <Dashboard />;
+  } else if (safeRole === 'focus-peer') {
+    dashboardToShow = <FocusPeer />;
+  } else if (safeRole === 'wellness-counsellor') {
+    dashboardToShow = <WellnessDashboard />;
+  } else if (safeRole === 'ehsas-counsellor') {
+    dashboardToShow = <EhsasDashboard />;
+  } else if (safeRole === 'oap') {
+    dashboardToShow = <OAPDashboard />;
+  } else {
+    dashboardToShow = <Dashboard />;
   }
 
   return (

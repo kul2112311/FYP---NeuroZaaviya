@@ -1,17 +1,20 @@
 import { useState, useEffect } from 'react';
 import SessionCard from './SessionCard.jsx';
+import { useUser } from '../../../styles/SignInLandingPage/usercontext.jsx';
 
 function Session() {
+    const { user } = useUser();
     const [sessions, setSessions] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
         const fetchSessions = async () => {
+            // ✨ Wait until the user context is fully loaded
+            if (!user || !user.id) return;
+
             try {
-                // Hardcoded User ID for Ushna (from seed data)
-                const userId = "a1111111-1111-1111-1111-111111111111";
-                
-                const response = await fetch(`http://localhost:5000/api/my-sessions/${userId}`);
+                // ✨ FIXED: Using the real logged-in student's ID
+                const response = await fetch(`http://127.0.0.1:5000/api/my-sessions/${user.id}`);
                 const data = await response.json();
 
                 console.log('📅 Sessions from backend:', data);
@@ -51,7 +54,7 @@ function Session() {
         };
 
         fetchSessions();
-    }, []);
+    }, [user]); // ✨ Re-run the fetch when the user data is ready
 
     // Helper to capitalize status (confirmed -> Confirmed)
     const capitalize = (s) => s.charAt(0).toUpperCase() + s.slice(1);

@@ -1,88 +1,62 @@
-import { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { Calendar, Clock, User, CheckCircle, XCircle, Loader } from 'lucide-react';
 
-import SessionCard from './SessionCard.jsx';
+export default function Appointment() {
+  const [appointments, setAppointments] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-function Appointment() {
-    // Dummy data for sessions - matching the design screenshot
-    const dummySessions = [
-        {
-            id: 1,
-            peerName: "Sarah Ahmed",
-            studentName: "Ushna Khan",
-            date: "Sat, Nov 22",
-            time: "10:00 AM",
-            status: "Confirmed"
-        },
-        {
-            id: 2,
-            peerName: "Marcus Chen",
-            studentName: "Ali Hassan",
-            date: "Sat, Nov 22",
-            time: "2:00 PM",
-            status: "Confirmed"
-        },
-        {
-            id: 3,
-            peerName: "Layla Hassan",
-            studentName: "Fatima Noor",
-            date: "Sun, Nov 23",
-            time: "11:00 AM",
-            status: "Confirmed"
-        },
-        {
-            id: 4,
-            peerName: "Sarah Ahmed",
-            studentName: "Ahmed Malik",
-            date: "Sat, Nov 15",
-            time: "3:00 PM",
-            status: "Completed"
-        },
-        {
-            id: 5,
-            peerName: "Marcus Chen",
-            studentName: "Ushna Khan",
-            date: "Sat, Nov 15",
-            time: "2:00 PM",
-            status: "Completed"
-        }
-    ];
+  useEffect(() => {
+    const fetchApps = async () => {
+      try {
+        const res = await fetch('http://127.0.0.1:5000/api/monitor/appointments');
+        if (res.ok) setAppointments(await res.json());
+      } catch (err) { console.error(err); } finally { setIsLoading(false); }
+    };
+    fetchApps();
+  }, []);
 
-    const [sessions] = useState(dummySessions);
+  if (isLoading) return <div className="p-8 text-center text-[#9575a3]">Loading all university appointments...</div>;
 
-    // Filter sessions into upcoming and past
-    const upcomingSessions = sessions.filter(s => s.status === 'Confirmed' || s.status === 'Pending');
-    const pastSessions = sessions.filter(s => s.status === 'Completed' || s.status === 'Cancelled');
-
-    return (
-        <div className="Session-Container">
-            <div className="upcoming-session-layout">
-                <h1 className="session-layout-header">Upcoming Appointments</h1>
-                <p className="session-count">{upcomingSessions.length} sessions</p>
-                <div className="sessions-grid">
-                    {upcomingSessions.length > 0 ? (
-                        upcomingSessions.map(session => (
-                            <SessionCard key={session.id} session={session} />
-                        ))
-                    ) : (
-                        <p>No upcoming sessions.</p>
-                    )}
+  return (
+    <div className="bg-white rounded-3xl p-6 border border-[rgba(179,157,219,0.2)] mt-6">
+      <h2 className="text-xl font-bold text-[#5a4a61] mb-6">University-Wide Appointments</h2>
+      
+      {appointments.length === 0 ? (
+        <p className="text-center text-[#9575a3] py-8">No appointments scheduled yet.</p>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {appointments.map((app) => (
+            <div key={app.id} className="p-5 rounded-2xl border border-[rgba(179,157,219,0.2)] bg-[#fdf7fd] hover:shadow-md transition-all">
+              <div className="flex justify-between items-start mb-4">
+                <div>
+                  <p className="text-xs font-semibold text-[#b39ddb] uppercase tracking-wider mb-1">Student</p>
+                  <p className="font-bold text-[#5a4a61]">{app.student_name}</p>
                 </div>
-            </div>
-
-            <div className="previous-session-layout">
-                <h2 className="session-layout-header">Recent Completed Sessions</h2>
-                <div className="sessions-grid">
-                    {pastSessions.length > 0 ? (
-                        pastSessions.map(session => (
-                            <SessionCard key={session.id} session={session} />
-                        ))
-                    ) : (
-                        <p>No past sessions.</p>
-                    )}
+                <span className={`text-xs px-3 py-1 rounded-full font-bold ${
+                  app.status === 'completed' ? 'bg-green-100 text-green-600' :
+                  app.status === 'pending' ? 'bg-yellow-100 text-yellow-600' :
+                  'bg-purple-100 text-[#b39ddb]'
+                }`}>
+                  {app.status.toUpperCase()}
+                </span>
+              </div>
+              
+              <div className="pt-3 border-t border-[rgba(179,157,219,0.15)]">
+                <p className="text-xs font-semibold text-[#b39ddb] uppercase tracking-wider mb-1">Focus Peer</p>
+                <div className="flex items-center gap-2 mb-3">
+                  <User size={16} className="text-[#9575a3]" />
+                  <span className="text-[#5a4a61] font-medium">{app.peer_name}</span>
                 </div>
+                
+                <div className="flex gap-4 text-xs text-[#9575a3]">
+                  <div className="flex items-center gap-1"><Calendar size={14}/> {app.date}</div>
+                  <div className="flex items-center gap-1"><Clock size={14}/> {app.start_time}</div>
+                </div>
+              </div>
             </div>
+          ))}
         </div>
-    );
+      )}
+    </div>
+  );
 }
-
-export default Appointment;

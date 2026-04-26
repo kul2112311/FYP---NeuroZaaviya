@@ -1,156 +1,4 @@
-// import React, { useState } from "react";
-// import { Heart, Sun } from "lucide-react"; // Swapped to Sun for consistency
-// import SupportStaffCard from "../../components/CommunityComponents/StudentSupportCard.jsx";
-// import SupportStaffModal from "../../components/CommunityComponents/SupportStaffModal.jsx";
-// import { User, ShieldCheck, HeartPulse, GraduationCap } from "lucide-react";
-// function SupportSupport() {
-//   const [selectedStaff, setSelectedStaff] = useState(null);
-//   const [isModalOpen, setIsModalOpen] = useState(false);
-
-//   // Theme Colors: 
-//   // Primary: #B3DDB9 (Green)
-//   // Secondary: #CE93D8 (Purple)
-//   // Light: #E1BEE7 (Lavender)
-//   // Text: #5A4A61 (Dark Purple)
-
-//   const staffData = [
-//   {
-//     id: 1,
-//     name: "Zainab Mansoor",
-//     role: "OAP Advisor",
-//     icon: ShieldCheck, 
-//     department: "Office of Accessible Programs",
-//     // calendlyLink: "https://calendly.com/your-link",
-//     email: "ZainabMansoor@habib.edu.pk",
-//     location: "Student Services, Room 205",
-//     availability: "Mon-Fri 9:00 AM - 5:00 PM",
-//     bgColor: "#B3DDB9", // Primary Green
-//     about: "Zainab focuses on ensuring all students have the necessary accommodations to thrive academically.",
-//     expertise: ["ADHD Support", "Executive Functioning"]
-//   },
-//   {
-//     id: 2,
-//     name: "Omar Siddiqui",
-//     role: "Ehsas Counselor",
-//     icon: HeartPulse,
-//     department: "Ehsas Support Services",
-//     // calendlyLink: "https://calendly.com/your-link",
-//     email: "OmarSiddiqui@habib.edu.pk",
-//     location: "Ehsas Office, Room 102",
-//     availability: "Mon-Fri 10:00 AM - 6:00 PM",
-//     bgColor: "#E1BEE7", // Light Lavender
-//     about: "Omar provides a safe space for students to discuss mental health and emotional well-being.",
-//     expertise: ["Mental Health", "Anxiety Management"]
-//   },
-//   {
-//     id: 3,
-//     name: "Dr. Anum Rashid",
-//     role: "Wellness Counselor",
-//     icon: HeartPulse, 
-//     department: "Counseling & Wellness Services",
-//     // calendlyLink: "https://calendly.com/your-link",
-//     email: "AnumRashid@habib.edu.pk",
-//     location: "Wellness Center, Room 3",
-//     availability: "Mon-Thu 8:30 AM - 4:30 PM",
-//     bgColor: "#CE93D8", // Medium Purple
-//     about: "Dr. Anum specializes in holistic wellness and sensory-friendly therapeutic practices.",
-//     expertise: ["Wellness Planning", "Sensory Regulation"]
-//   },
-//   {
-//     id: 4,
-//     name: "Prof. Bilal Ahmed",
-//     role: "Associate Professor",
-//     icon: GraduationCap,
-//     department: "Computer Science",
-//     // calendlyLink: "https://calendly.com/your-link",
-//     email: "bilal.ahmed@habib.edu.pk",
-//     location: "Information Processing Lab",
-//     availability: "Mon & Wed 2:00 PM - 4:00 PM",
-//     bgColor: "#B3DDB9", // Primary Green
-//     about: "Prof. Bilal is passionate about neuro-inclusive teaching methods in STEM.",
-//     expertise: ["Academic Mentoring", "Technical Guidance"]
-//   },
-//   {
-//     id: 5,
-//     name: "Mariam Jameel",
-//     role: "Student Life Lead",
-//     icon: User,
-//     department: "Office of Student Life",
-//     // calendlyLink: "https://calendly.com/your-link",
-//     email: "MariamJameel@habib.edu.pk",
-//     location: "Student Life Office 4",
-//     availability: "Tue-Fri 11:00 AM - 5:00 PM",
-//     bgColor: "#E1BEE7", // Light Lavender
-//     about: "Mariam helps organize low-stimulus social events and parallel-play workshops.",
-//     expertise: ["Social Integration", "Event Planning"]
-//   }
-// ];
-//   const handleViewProfile = (staff) => {
-//     setSelectedStaff(staff);
-//     setIsModalOpen(true);
-//   };
-
-//   return (
-//     <div className="p-6 pl-12 space-y-8" style={{ width: '80vw', margin: '0 auto', color: '#5A4A61' }}>
-      
-//       {/* Header Section */}
-//       <div className="rounded-2xl p-8 border" style={{ backgroundColor: '#E1BEE7', borderColor: '#CE93D8' }}>
-//         <h1 className="text-3xl font-bold mb-2 flex items-center gap-2" style={{ color: '#5A4A61' }}>
-//           Support Team Directory <Sun size={32} />
-//         </h1>
-//         <p style={{ color: '#5A4A61' }}>
-//           Meet the dedicated professionals here to support you throughout your academic journey. Click on any staff member to view their full profile.
-//         </p>
-//       </div>
-
-//       {/* Staff Grid */}
-//       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-//         {staffData.map(staff => (
-//           <SupportStaffCard 
-//             key={staff.id}
-//             staff={staff}
-//             onViewProfile={handleViewProfile}
-//           />
-//         ))}
-//       </div>
-
-//       {/* Quick Contact Information */}
-//       <div className="bg-white rounded-2xl p-8 border" style={{ borderColor: '#E1BEE7' }}>
-//         <h2 className="text-lg font-semibold mb-6 flex items-center gap-2" style={{ color: '#5A4A61' }}>
-//           <Heart size={20} style={{ color: '#CE93D8' }} /> Quick Contact Information
-//         </h2>
-        
-//         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-//           {/* Using a mix of your palette for the contact boxes */}
-//           <div className="rounded-xl p-6" style={{ backgroundColor: '#B3DDB9' }}>
-//             <p className="font-medium mb-1">OAP Office</p>
-//             <p className="font-bold">oap@habib.edu.pk</p>
-//           </div>
-          
-//           <div className="rounded-xl p-6" style={{ backgroundColor: '#E1BEE7' }}>
-//             <p className="font-medium mb-1">Wellness Services</p>
-//             <p className="font-bold">wellness@habib.edu.pk</p>
-//           </div>
-          
-//           <div className="rounded-xl p-6" style={{ backgroundColor: '#CE93D8' }}>
-//             <p className="font-medium mb-1">Ehsas Support</p>
-//             <p className="font-bold">ehsas@habib.edu.pk</p>
-//           </div>
-//         </div>
-//       </div>
-
-//       <SupportStaffModal 
-//         staff={selectedStaff}
-//         isOpen={isModalOpen}
-//         onClose={() => setIsModalOpen(false)}
-//       />
-//     </div>
-//   );
-// }
-
-// export default SupportSupport;
-
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Heart, Sun, ShieldCheck, HeartPulse, GraduationCap, User } from "lucide-react";
 import SupportStaffCard from "../../components/CommunityComponents/StudentSupportCard.jsx";
 import SupportStaffModal from "../../components/CommunityComponents/SupportStaffModal.jsx";
@@ -182,87 +30,58 @@ const C = {
   btnGrad:   "linear-gradient(90deg, #b39ddb 0%, #f8bbd0 100%)",
 };
 
-const staffData = [
-  {
-    id: 1,
-    name: "Zainab Mansoor",
-    role: "OAP Advisor",
-    icon: ShieldCheck,
-    department: "Office of Accessible Programs",
-    email: "ZainabMansoor@habib.edu.pk",
-    location: "Student Services, Room 205",
-    availability: "Mon-Fri 9:00 AM - 5:00 PM",
-    availability_status: "available",
-    bgColor: "#B3DDB9",
-    about: "Zainab focuses on ensuring all students have the necessary accommodations to thrive academically.",
-    expertise: ["ADHD Support", "Executive Functioning", "Accommodation Planning"],
-    batches: ["Class of 2022", "Class of 2023", "Class of 2024", "Class of 2025"],
-  },
-  {
-    id: 2,
-    name: "Omar Siddiqui",
-    role: "Ehsas Counselor",
-    icon: HeartPulse,
-    department: "Ehsas Support Services",
-    email: "OmarSiddiqui@habib.edu.pk",
-    location: "Ehsas Office, Room 102",
-    availability: "Mon-Fri 10:00 AM - 6:00 PM",
-    availability_status: "meeting",
-    bgColor: "#E1BEE7",
-    about: "Omar provides a safe space for students to discuss mental health and emotional well-being.",
-    expertise: ["Mental Health", "Anxiety Management"],
-    batches: ["Class of 2023", "Class of 2024", "Class of 2025"],
-  },
-  {
-    id: 3,
-    name: "Dr. Anum Rashid",
-    role: "Wellness Counselor",
-    icon: HeartPulse,
-    department: "Counseling & Wellness Services",
-    email: "AnumRashid@habib.edu.pk",
-    location: "Wellness Center, Room 3",
-    availability: "Mon-Thu 8:30 AM - 4:30 PM",
-    availability_status: "unavailable",
-    bgColor: "#CE93D8",
-    about: "Dr. Anum specializes in holistic wellness and sensory-friendly therapeutic practices.",
-    expertise: ["Wellness Planning", "Sensory Regulation"],
-    batches: ["Class of 2022", "Class of 2023"],
-  },
-  {
-    id: 4,
-    name: "Prof. Bilal Ahmed",
-    role: "Associate Professor",
-    icon: GraduationCap,
-    department: "Computer Science",
-    email: "bilal.ahmed@habib.edu.pk",
-    location: "Information Processing Lab",
-    availability: "Mon & Wed 2:00 PM - 4:00 PM",
-    availability_status: "available",
-    bgColor: "#B3DDB9",
-    about: "Prof. Bilal is passionate about neuro-inclusive teaching methods in STEM.",
-    expertise: ["Academic Mentoring", "Technical Guidance"],
-    batches: ["Class of 2024", "Class of 2025"],
-  },
-  {
-    id: 5,
-    name: "Mariam Jameel",
-    role: "Student Life Lead",
-    icon: User,
-    department: "Office of Student Life",
-    email: "MariamJameel@habib.edu.pk",
-    location: "Student Life Office 4",
-    availability: "Tue-Fri 11:00 AM - 5:00 PM",
-    availability_status: "away",
-    bgColor: "#E1BEE7",
-    about: "Mariam helps organize low-stimulus social events and parallel-play workshops.",
-    expertise: ["Social Integration", "Event Planning"],
-    batches: ["Class of 2023", "Class of 2024", "Class of 2025"],
-  },
-];
-
 function SupportSupport() {
+  const [staffData, setStaffData] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [selectedStaff, setSelectedStaff] = useState(null);
   const [isModalOpen, setIsModalOpen]     = useState(false);
+
+  // 1. Fetch real OAP accounts from the backend!
+  useEffect(() => {
+    const fetchStaff = async () => {
+      try {
+        const response = await fetch('http://localhost:5000/api/support-staff');
+        if (response.ok) {
+          const data = await response.json();
+          
+          // 2. Map the real database info onto your beautiful UI design
+          const mappedStaff = data.map((member, index) => {
+             const isOAP = member.role === 'oap';
+             const isWellness = member.role === 'wellness-counsellor';
+             
+             return {
+                id: member.staff_id, // We need this to send appointment requests to the right person!
+                staff_id: member.staff_id, 
+                name: member.name,
+                email: member.email,
+                department: member.department || 'Office of Academic Performance',
+                
+                // Formatting the role visually based on the DB string
+                role: isOAP ? 'OAP Advisor' : isWellness ? 'Wellness Counselor' : 'Ehsas Counselor',
+                icon: isOAP ? ShieldCheck : HeartPulse,
+                bgColor: isOAP ? "#B3DDB9" : isWellness ? "#CE93D8" : "#E1BEE7",
+                
+                // Keeping your dummy presentation data so the UI doesn't look empty
+                location: isOAP ? "Student Services, Room 205" : "Ehsas Office, Room 102",
+                availability: "Mon-Fri 9:00 AM - 5:00 PM",
+                availability_status: "available",
+                about: "Academic support professional dedicated to student success and well-being.",
+                expertise: ["Academic Mentoring", "Student Support"],
+                batches: ["Class of 2025", "Class of 2026"],
+             };
+          });
+
+          setStaffData(mappedStaff);
+        }
+      } catch (error) {
+        console.error("Failed to load staff:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchStaff();
+  }, []);
 
   const handleViewProfile = (staff) => {
     setSelectedStaff(staff);
@@ -293,20 +112,26 @@ function SupportSupport() {
       </div>
 
       {/* Staff Grid */}
-      <div style={{
-        display: "grid",
-        gridTemplateColumns: "repeat(auto-fill, minmax(340px, 1fr))",
-        gap: 18,
-        marginBottom: 24,
-      }}>
-        {staffData.map(staff => (
-          <SupportStaffCard
-            key={staff.id}
-            staff={staff}
-            onViewProfile={handleViewProfile}
-          />
-        ))}
-      </div>
+      {isLoading ? (
+         <p style={{ textAlign: 'center', color: C.purple600, padding: '40px 0' }}>Loading Support Team...</p>
+      ) : staffData.length === 0 ? (
+         <p style={{ textAlign: 'center', color: C.purple600, padding: '40px 0' }}>No support staff registered yet.</p>
+      ) : (
+        <div style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fill, minmax(340px, 1fr))",
+          gap: 18,
+          marginBottom: 24,
+        }}>
+          {staffData.map(staff => (
+            <SupportStaffCard
+              key={staff.id}
+              staff={staff}
+              onViewProfile={handleViewProfile}
+            />
+          ))}
+        </div>
+      )}
 
       {/* Quick Contact */}
       <div style={{

@@ -1,3 +1,16 @@
+// ==========================================
+// THE SILENT KILLER TRAP
+// ==========================================
+const originalExit = process.exit;
+process.exit = function(code) {
+    console.error(`\n🚨🚨🚨 CAUGHT THE GHOST! process.exit(${code}) was called! 🚨🚨🚨`);
+    console.trace('Look at the trace below to see EXACTLY which file and line killed the server:');
+    originalExit(code);
+};
+// ==========================================
+
+
+
 const express = require('express');
 const cors = require('cors');
 const pool = require('./db');
@@ -19,7 +32,338 @@ app.use(express.json());
 
 const upload = multer({ storage: multer.memoryStorage() });
 const kulsoom_index = require('./kulsoom_index');
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
 app.use('/api', kulsoom_index);
+
+
+// --- TRAP SILENT CRASHES ---
+process.on('uncaughtException', (err) => {
+    console.error('🚨 CRITICAL CRASH (Uncaught Exception):', err);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('🚨 CRITICAL CRASH (Unhandled Rejection):', reason);
+});
+// ---------------------------
+    
+// ==========================================
+// AUTHENTICATION & APPROVAL ROUTES
+// ==========================================
+
+// 1. REGISTER NEW USER (SENDS TO WAITING ROOM)
+app.post('/api/auth/register', async (req, res) => {
+    try {
+        let { name, email, password, role, cgpa, reason } = req.body; // ✨ Change to 'let'
+        
+        // ✨ SMART EMAIL COMPLETER
+        if (email && !email.includes('@')) {
+            email += '@st.habib.edu.pk';
+        }
+        
+        // Check if user already exists in the VIP users table
+        const userExists = await pool.query("SELECT * FROM users WHERE email = $1", [email]);
+        if (userExists.rows.length > 0) {
+            return res.status(400).json({ error: "Email is already registered." });
+        }
+
+        // Check if they are currently pending
+        const reqExists = await pool.query("SELECT * FROM access_requests WHERE email = $1 AND status = 'pending'", [email]);
+        if (reqExists.rows.length > 0) {
+            return res.status(400).json({ error: "A pending request already exists for this email. Please wait for OAP approval." });
+        }
+
+        // 🔥 THE FIX: Delete any old REJECTED requests for this email so they can try again! 🔥
+        await pool.query("DELETE FROM access_requests WHERE email = $1 AND status = 'rejected'", [email]);
+
+        // Hash the password safely while they wait
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(password, salt);
+
+        // Put them in the waiting room!
+        await pool.query(
+            "INSERT INTO access_requests (full_name, email, password, role, cgpa, reason, status) VALUES ($1, $2, $3, $4, $5, $6, 'pending')",
+            [name, email, hashedPassword, role, cgpa || null, reason || null]
+        );
+
+        res.json({ success: true, message: "Application submitted successfully." });
+
+    } catch (err) {
+        console.error("❌ Registration Error:", err.message);
+        res.status(500).json({ error: "Server Error during registration" });
+    }
+});
+
+// 2. FETCH PENDING REQUESTS (FOR OAP & EHSAS)
+app.get('/api/requests', async (req, res) => {
+    try {
+        // Fetch all pending requests. We alias columns to match your frontend expectations
+        const result = await pool.query(`
+            SELECT id, full_name as name, email, role, cgpa, reason, created_at as "appliedAt", status 
+            FROM access_requests 
+            ORDER BY created_at DESC
+        `);
+        res.json(result.rows);
+    } catch (err) {
+        console.error("❌ Fetch Requests Error:", err);
+        res.status(500).json({ error: "Server Error" });
+    }
+});
+
+// ==========================================
+// OAP DIRECTORY ROUTES
+// ==========================================
+
+// GET ALL REGISTERED STUDENTS
+app.get('/api/oap/all-students', async (req, res) => {
+    try {
+        const query = `
+            SELECT 
+                u.id, 
+                u.full_name as name, 
+                u.email, 
+                sp.major
+            FROM users u
+            JOIN student_profiles sp ON u.id = sp.user_id
+            WHERE u.role = 'student'
+            ORDER BY u.full_name ASC
+        `;
+        const result = await pool.query(query);
+        res.json(result.rows);
+    } catch (err) {
+        console.error("❌ Error fetching directory students:", err.message);
+        res.status(500).json({ error: "Server Error" });
+    }
+});
+
+
+
+// 3. APPROVE A REQUEST
+app.post('/api/requests/approve/:id', async (req, res) => {
+    const { id } = req.params;
+    try {
+        // Start a transaction so if one step fails, they all fail safely
+        await pool.query('BEGIN');
+
+        // Get the user from the waiting room
+        const request = await pool.query("SELECT * FROM access_requests WHERE id = $1", [id]);
+        if (request.rows.length === 0) throw new Error("Request not found");
+        const pendingUser = request.rows[0];
+
+        // 1. Move them to the main VIP users table
+        const newUser = await pool.query(
+            "INSERT INTO users (id, full_name, email, password, role) VALUES (gen_random_uuid(), $1, $2, $3, $4) RETURNING id",
+            [pendingUser.full_name, pendingUser.email, pendingUser.password, pendingUser.role]
+        );
+        const newUserId = newUser.rows[0].id;
+
+        // 2. Create their specific profile based on their role
+        if (pendingUser.role === 'student') {
+            // Extracts "al07412" from "al07412@st.habib.edu.pk"
+            const habibId = pendingUser.email.split('@')[0]; 
+
+            await pool.query(
+                "INSERT INTO student_profiles (id, user_id, student_id) VALUES (gen_random_uuid(), $1, $2)", 
+                [newUserId, habibId]
+            );
+        } else if (pendingUser.role === 'focus-peer') {
+            // FIX: Changed 'student_id' back to 'user_id' to match your actual database schema
+            await pool.query(
+                "INSERT INTO focus_peer_profiles (id, user_id, is_available) VALUES (gen_random_uuid(), $1, true)", 
+                [newUserId]
+            );
+        } else if (['oap', 'wellness-counsellor', 'ehsas-counsellor'].includes(pendingUser.role)) {
+            // Staff profiles usually use user_id, but if this throws an error too, we will know it needs changing!
+            await pool.query(
+                "INSERT INTO staff_profiles (id, user_id, department, role) VALUES (gen_random_uuid(), $1, $2, $3)", 
+                [newUserId, pendingUser.role === 'oap' ? 'OAP' : 'Wellness/Ehsas', pendingUser.role]
+            );
+        }
+
+        // 3. Mark the request as approved
+        await pool.query("UPDATE access_requests SET status = 'approved' WHERE id = $1", [id]);
+
+        await pool.query('COMMIT');
+        res.json({ success: true, message: "User approved and created!" });
+    } catch (err) {
+        await pool.query('ROLLBACK');
+        console.error("❌ Approval Error:", err.message);
+        res.status(500).json({ error: "Server Error during approval" });
+    }
+});
+
+// 4. REJECT A REQUEST
+app.post('/api/requests/reject/:id', async (req, res) => {
+    try {
+        await pool.query("UPDATE access_requests SET status = 'rejected' WHERE id = $1", [req.params.id]);
+        res.json({ success: true, message: "User rejected." });
+    } catch (err) {
+        res.status(500).json({ error: "Server Error during rejection" });
+    }
+});
+
+// 2. LOGIN USER
+app.post('/api/auth/login', async (req, res) => {
+    try {
+        let { email, password } = req.body;
+
+        // ✨ SMART EMAIL COMPLETER
+        if (email) {
+            email = email.trim().toLowerCase(); // Removes accidental spaces
+            if (!email.includes('@')) {
+                email += '@st.habib.edu.pk';
+            }
+        }
+
+        // Find the user by email
+        const userResult = await pool.query("SELECT * FROM users WHERE email = $1", [email]);
+        if (userResult.rows.length === 0) {
+            return res.status(400).json({ error: "Invalid email or password." });
+        }
+
+        const user = userResult.rows[0];
+
+        // Compare entered password with the hashed password in DB
+        const validPassword = await bcrypt.compare(password, user.password);
+        if (!validPassword) {
+            return res.status(400).json({ error: "Invalid email or password." });
+        }
+
+        // Create the JSON Web Token (The digital ID Card)
+        const token = jwt.sign(
+            { id: user.id, role: user.role, name: user.full_name },
+            process.env.JWT_SECRET || "neurozaviya_super_secret_key_2026", 
+            { expiresIn: "24h" }
+        );
+
+        // Send back the token and the clean user profile
+        res.json({
+            success: true,
+            token,
+            user: {
+                id: user.id,
+                name: user.full_name,
+                email: user.email,
+                role: user.role
+            }
+        });
+
+    } catch (err) {
+        console.error("❌ Login Error:", err.message);
+        res.status(500).json({ error: "Server Error during login" });
+    }
+});
+
+
+// ==========================================
+// OAP DASHBOARD STATS
+// ==========================================
+app.get('/api/oap/dashboard-stats/:userId', async (req, res) => {
+    try {
+        // 1. Active Students Count
+        const studentRes = await pool.query("SELECT COUNT(*) FROM users WHERE role = 'student'");
+        const activeStudents = parseInt(studentRes.rows[0].count);
+
+        // 2. Pending Files/Accommodations
+        const filesRes = await pool.query("SELECT COUNT(*) FROM accommodations");
+        const pendingFiles = parseInt(filesRes.rows[0].count);
+
+        // 3. Available Focus Peers
+        const peersRes = await pool.query("SELECT COUNT(*) FROM users WHERE role = 'focus-peer' OR role = 'focuspeer'");
+        const availablePeers = parseInt(peersRes.rows[0].count);
+
+        // 4. Recent Alerts
+        const alertsRes = await pool.query(`
+            SELECT 
+                id, 
+                title as issue, 
+                message as "studentName", 
+                TO_CHAR(created_at, 'YYYY-MM-DD HH24:MI') as date, 
+                'System' as "reportedBy"
+            FROM notifications 
+            WHERE notification_type = 'alert'
+            ORDER BY created_at DESC
+            LIMIT 4
+        `);
+
+        // 5. Upcoming Meetings (GLOBAL OAP APPOINTMENTS)
+        // ✨ FIXED: Now securely querying the correct 'appointments' table!
+        // ✨ FIXED: Added TO_CHAR to format the date cleanly for the UI
+        const meetingsRes = await pool.query(`
+            SELECT 
+                a.id,
+                u.full_name as "studentName",
+                TO_CHAR(a.scheduled_date, 'Mon DD, YYYY') as date,
+                a.start_time as time,
+                a.title
+            FROM appointments a
+            JOIN student_profiles sp ON a.student_id = sp.id
+            JOIN users u ON sp.user_id = u.id
+            WHERE a.status IN ('scheduled', 'confirmed', 'pending') 
+            AND a.scheduled_date >= CURRENT_DATE
+            ORDER BY a.scheduled_date ASC, a.start_time ASC
+            LIMIT 3
+        `);
+
+        res.json({
+            stats: {
+                activeStudents,
+                pendingFiles,
+                availablePeers,
+                openAlerts: alertsRes.rows.length
+            },
+            alerts: alertsRes.rows,
+            meetings: meetingsRes.rows
+        });
+    } catch (err) {
+        console.error("❌ OAP Stats Error:", err.message);
+        res.status(500).json({ error: "Server Error" });
+    }
+});
+
+
+// ==========================================
+// COUNSELOR DASHBOARD STATS
+// ==========================================
+app.get('/api/admin/dashboard-stats', async (req, res) => {
+    try {
+        // 1. Active Students Count
+        const studentRes = await pool.query("SELECT COUNT(*) FROM users WHERE role = 'student'");
+        const activeStudents = parseInt(studentRes.rows[0].count);
+
+        // 2. Active Accommodations Count
+        const accRes = await pool.query("SELECT COUNT(*) FROM accommodations WHERE status = 'active'");
+        const activeAccommodations = parseInt(accRes.rows[0].count);
+
+        // 3. Recent Alerts 
+        // Fetches real alerts from the notifications table!
+        const alertsRes = await pool.query(`
+            SELECT 
+                id, 
+                title as issue, 
+                message as "studentName", 
+                TO_CHAR(created_at, 'YYYY-MM-DD HH24:MI') as date, 
+                'System' as "reportedBy"
+            FROM notifications 
+            WHERE notification_type = 'alert'
+            ORDER BY created_at DESC
+            LIMIT 4
+        `);
+        const recentAlerts = alertsRes.rows;
+        const openAlerts = recentAlerts.length;
+
+        res.json({
+            activeStudents,
+            activeAccommodations,
+            openAlerts,
+            recentAlerts
+        });
+    } catch (err) {
+        console.error("Stats Error:", err);
+        res.status(500).json({ error: "Server Error" });
+    }
+});
+
 
 // ==========================================
 // AI AGENT ROUTE (Gemini)
@@ -121,6 +465,163 @@ app.post('/api/community-posts', async (req, res) => {
     } catch (err) {
         console.error(err.message);
         res.status(500).send("Server Error");
+    }
+});
+
+// ==========================================
+// FOCUS PEER SELECTION (PERSISTENCE)
+// ==========================================
+
+// 1. GET A STUDENT'S SELECTED PEERS
+app.get('/api/my-focus-peers/:userId', async (req, res) => {
+    try {
+        const { userId } = req.params;
+        
+        // Translate user_id to student_profile_id
+        const profileRes = await pool.query("SELECT id FROM student_profiles WHERE user_id = $1", [userId]);
+        if (profileRes.rows.length === 0) return res.json([]);
+        const studentId = profileRes.rows[0].id;
+
+        // Fetch ONLY the peers this specific student has selected
+        const query = `
+            SELECT 
+                fpp.id, 
+                u.full_name, 
+                fpp.major, 
+                fpp.rating, 
+                fpp.bio, 
+                fpp.total_sessions
+            FROM focus_peer_profiles fpp
+            JOIN users u ON fpp.user_id = u.id
+            JOIN student_focus_peers sfp ON fpp.id = sfp.peer_profile_id
+            WHERE sfp.student_profile_id = $1
+        `;
+        const result = await pool.query(query, [studentId]);
+        res.json(result.rows);
+    } catch (err) {
+        console.error("❌ Error fetching selected peers:", err.message);
+        res.status(500).json({ error: "Server Error" });
+    }
+});
+
+// 2. SELECT A NEW FOCUS PEER
+app.post('/api/select-focus-peer', async (req, res) => {
+    try {
+        const { userId, peerProfileId } = req.body;
+
+        // Translate user_id to student_profile_id
+        const profileRes = await pool.query("SELECT id FROM student_profiles WHERE user_id = $1", [userId]);
+        if (profileRes.rows.length === 0) return res.status(404).json({ error: "Student not found" });
+        const studentId = profileRes.rows[0].id;
+
+        // 🛡️ RULE 1: Check if student already has 3 peers
+        const studentCountRes = await pool.query("SELECT COUNT(*) FROM student_focus_peers WHERE student_profile_id = $1", [studentId]);
+        if (parseInt(studentCountRes.rows[0].count) >= 3) {
+            return res.status(400).json({ error: "You have already selected the maximum of 3 Focus Peers." });
+        }
+
+        // 🛡️ RULE 2: Check if peer already has 4 students
+        const peerCountRes = await pool.query("SELECT COUNT(*) FROM student_focus_peers WHERE peer_profile_id = $1", [peerProfileId]);
+        if (parseInt(peerCountRes.rows[0].count) >= 4) {
+            return res.status(400).json({ error: "This Focus Peer is currently full (maximum 4 students)." });
+        }
+
+        // Save the relationship permanently!
+        await pool.query(
+            "INSERT INTO student_focus_peers (student_profile_id, peer_profile_id) VALUES ($1, $2)",
+            [studentId, peerProfileId]
+        );
+
+        res.json({ success: true });
+    } catch (err) {
+        // If they click the button twice fast, PostgreSQL blocks the duplicate gracefully
+        if (err.code === '23505') {
+            return res.status(400).json({ error: "You have already selected this Focus Peer." });
+        }
+        console.error("❌ Error selecting peer:", err.message);
+        res.status(500).json({ error: "Server Error" });
+    }
+});
+
+
+// ==========================================
+// COUNSELOR/ADMIN "GOD VIEW" ROUTES
+// ==========================================
+
+// 1. GET ALL APPOINTMENTS (Global)
+app.get('/api/monitor/appointments', async (req, res) => {
+    try {
+        const query = `
+            SELECT 
+                fs.id,
+                u_student.full_name AS student_name,
+                u_peer.full_name AS peer_name,
+                TO_CHAR(fs.scheduled_date, 'YYYY-MM-DD') as date,
+                TO_CHAR(fs.start_time, 'HH12:MI AM') as start_time,
+                TO_CHAR(fs.end_time, 'HH12:MI AM') as end_time,
+                fs.status
+            FROM focus_sessions fs
+            JOIN student_profiles sp ON fs.student_id = sp.id
+            JOIN users u_student ON sp.user_id = u_student.id
+            JOIN focus_peer_profiles fpp ON fs.peer_id = fpp.id
+            JOIN users u_peer ON fpp.user_id = u_peer.id
+            ORDER BY fs.scheduled_date DESC, fs.start_time DESC
+        `;
+        const result = await pool.query(query);
+        res.json(result.rows);
+    } catch (err) {
+        console.error("Monitor Appointments Error:", err);
+        res.status(500).json({ error: "Server Error" });
+    }
+});
+
+// 2. GET ALL PEER SCHEDULES (Global)
+app.get('/api/monitor/schedules', async (req, res) => {
+    try {
+        const query = `
+            SELECT 
+                pa.id,
+                u_peer.full_name AS peer_name,
+                pa.day_of_week,
+                TO_CHAR(pa.start_time, 'HH12:MI AM') as start_time,
+                TO_CHAR(pa.end_time, 'HH12:MI AM') as end_time
+            FROM peer_availability pa
+            JOIN focus_peer_profiles fpp ON pa.peer_id = fpp.id
+            JOIN users u_peer ON fpp.user_id = u_peer.id
+            ORDER BY u_peer.full_name, pa.day_of_week, pa.start_time
+        `;
+        const result = await pool.query(query);
+        res.json(result.rows);
+    } catch (err) {
+        console.error("Monitor Schedules Error:", err);
+        res.status(500).json({ error: "Server Error" });
+    }
+});
+
+// 3. GET ALL FEEDBACK (Global)
+app.get('/api/monitor/feedback', async (req, res) => {
+    try {
+        const query = `
+            SELECT 
+                sf.id,
+                sf.rating,
+                sf.feedback_text,
+                TO_CHAR(sf.created_at, 'Mon DD, YYYY') as date,
+                u_student.full_name AS student_name,
+                u_peer.full_name AS peer_name
+            FROM session_feedback sf
+            JOIN focus_sessions fs ON sf.session_id = fs.id
+            JOIN student_profiles sp ON fs.student_id = sp.id
+            JOIN users u_student ON sp.user_id = u_student.id
+            JOIN focus_peer_profiles fpp ON fs.peer_id = fpp.id
+            JOIN users u_peer ON fpp.user_id = u_peer.id
+            ORDER BY sf.created_at DESC
+        `;
+        const result = await pool.query(query);
+        res.json(result.rows);
+    } catch (err) {
+        console.error("Monitor Feedback Error:", err);
+        res.status(500).json({ error: "Server Error" });
     }
 });
 
@@ -502,6 +1003,152 @@ app.patch('/api/sessions/:sessionId/status', async (req, res) => {
     }
 });
 
+
+// ==========================================
+// OAP / STAFF APPOINTMENTS
+// ==========================================
+
+// 1. GET ALL SUPPORT STAFF (For Student "Support" Tab)
+app.get('/api/support-staff', async (req, res) => {
+    try {
+        const query = `
+            SELECT 
+                sp.id as staff_id, 
+                u.full_name as name, 
+                u.email, 
+                sp.department, 
+                sp.role
+            FROM staff_profiles sp
+            JOIN users u ON sp.user_id = u.id
+        `;
+        const result = await pool.query(query);
+        res.json(result.rows);
+    } catch (err) {
+        console.error("❌ Error fetching staff:", err.message);
+        res.status(500).json({ error: "Server Error" });
+    }
+});
+
+// 2. CREATE A NEW APPOINTMENT REQUEST (Student -> Staff)
+app.post('/api/appointments', async (req, res) => {
+    try {
+        const { userId, staffId, subject, description, slot } = req.body;
+
+        const profileQuery = "SELECT id FROM student_profiles WHERE user_id = $1";
+        const profileResult = await pool.query(profileQuery, [userId]);
+
+        if (profileResult.rows.length === 0) {
+            return res.status(404).json({ error: "Student profile not found" });
+        }
+        const studentId = profileResult.rows[0].id;
+
+        // --- ✨ THE FIX: SMART TIME & DATE PARSER ✨ ---
+        let parsedTime = '09:00:00';
+        let parsedDate = new Date(); 
+
+        if (slot) {
+            // 1. Extract Time (e.g., "2:00 PM" -> "14:00:00")
+            const timeMatch = slot.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
+            if (timeMatch) {
+                let hours = parseInt(timeMatch[1]);
+                const mins = timeMatch[2];
+                const ampm = timeMatch[3].toUpperCase();
+                if (ampm === 'PM' && hours < 12) hours += 12;
+                if (ampm === 'AM' && hours === 12) hours = 0;
+                parsedTime = `${hours.toString().padStart(2, '0')}:${mins}:00`;
+            }
+
+            // 2. Extract Day (e.g., "Tue" -> Next Tuesday's Date)
+            const dayMatch = slot.match(/^(Mon|Tue|Wed|Thu|Fri|Sat|Sun)/i);
+            if (dayMatch) {
+                const days = { "SUN": 0, "MON": 1, "TUE": 2, "WED": 3, "THU": 4, "FRI": 5, "SAT": 6 };
+                const targetDay = days[dayMatch[1].toUpperCase()];
+                const currentDay = parsedDate.getDay();
+                let distance = targetDay - currentDay;
+                if (distance <= 0) distance += 7; // Push to next week if day already passed
+                parsedDate.setDate(parsedDate.getDate() + distance);
+            }
+        }
+
+        const formattedDate = parsedDate.toISOString().split('T')[0];
+
+        // Add 30 mins to start time for the end_time
+        let endHours = parseInt(parsedTime.split(':')[0]);
+        let endMins = parseInt(parsedTime.split(':')[1]) + 30;
+        if (endMins >= 60) { endHours += 1; endMins -= 60; }
+        const parsedEndTime = `${endHours.toString().padStart(2, '0')}:${endMins.toString().padStart(2, '0')}:00`;
+
+        const insertQuery = `
+            INSERT INTO appointments 
+            (student_id, staff_id, title, description, notes, scheduled_date, start_time, end_time, status)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'pending')
+            RETURNING id
+        `;
+        
+        const slotNote = `Requested Time Slot: ${slot}`;
+        const result = await pool.query(insertQuery, [
+            studentId, staffId, subject, description, slotNote, 
+            formattedDate, parsedTime, parsedEndTime
+        ]);
+
+        res.json({ success: true, appointmentId: result.rows[0].id });
+    } catch (err) {
+        console.error("❌ Error creating appointment:", err.message);
+        res.status(500).json({ error: "Server Error" });
+    }
+});
+
+// 3. GET APPOINTMENTS FOR SPECIFIC STAFF MEMBER (For OAP Scheduling Tab)
+app.get('/api/appointments/staff/:userId', async (req, res) => {
+    try {
+        const { userId } = req.params;
+
+        const staffQuery = "SELECT id FROM staff_profiles WHERE user_id = $1";
+        const staffResult = await pool.query(staffQuery, [userId]);
+
+        if (staffResult.rows.length === 0) return res.json([]);
+        const staffId = staffResult.rows[0].id;
+
+        // Fetch requests and pull the real database date out as 'db_date'
+        const aptQuery = `
+            SELECT 
+                a.id, 
+                a.title as subject, 
+                a.description, 
+                a.notes as preferred_slot, 
+                TO_CHAR(a.scheduled_date, 'YYYY-MM-DD') as db_date,
+                a.status, 
+                a.created_at,
+                u.full_name as student_name
+            FROM appointments a
+            JOIN student_profiles sp ON a.student_id = sp.id
+            JOIN users u ON sp.user_id = u.id
+            WHERE a.staff_id = $1
+            ORDER BY a.created_at ASC
+        `;
+        const result = await pool.query(aptQuery, [staffId]);
+        res.json(result.rows);
+    } catch (err) {
+        console.error("❌ Error fetching appointments:", err.message);
+        res.status(500).json({ error: "Server Error" });
+    }
+});
+
+// 4. UPDATE APPOINTMENT STATUS (Approve/Decline)
+app.patch('/api/appointments/:id/status', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { status } = req.body; // 'confirmed' or 'declined'
+
+        await pool.query("UPDATE appointments SET status = $1 WHERE id = $2", [status, id]);
+        res.json({ success: true });
+    } catch (err) {
+        console.error("❌ Error updating appointment:", err.message);
+        res.status(500).json({ error: "Server Error" });
+    }
+});
+
+
 // ==========================================
 // FEEDBACK SYSTEM
 // ==========================================
@@ -836,17 +1483,43 @@ app.get('/api/weekly-progress/:studentId', async (req, res) => {
 app.post('/api/checkups', async (req, res) => {
     try {
         const { title, description, scheduled_datetime, studentId, studentName, peerUserId } = req.body;
-        console.log('📝 Creating check-in for student:', studentName);
+        console.log('📝 Attempting to create check-in using ID:', studentId);
 
-        // FIXED: Translate the incoming user_id into the actual student_profile id!
-        const studentProfileQuery = "SELECT id FROM student_profiles WHERE user_id = $1";
-        const studentProfileResult = await pool.query(studentProfileQuery, [studentId]);
+        let realStudentProfileId;
+        let realStudentUserId;
+
+        // ✨ THE BULLETPROOF ID RESOLVER:
+        // UUIDs are unique, so we can check all 3 tables to see what kind of ID the frontend actually sent us!
         
-        if (studentProfileResult.rows.length === 0) {
-            return res.status(404).json({ error: "Student profile not found" });
-        }
-        const realStudentProfileId = studentProfileResult.rows[0].id;
+        // Possibility 1: The frontend sent a Session ID
+        const sessionCheck = await pool.query(`
+            SELECT sp.id as profile_id, sp.user_id 
+            FROM focus_sessions fs
+            JOIN student_profiles sp ON fs.student_id = sp.id
+            WHERE fs.id = $1
+        `, [studentId]);
 
+        if (sessionCheck.rows.length > 0) {
+            realStudentProfileId = sessionCheck.rows[0].profile_id;
+            realStudentUserId = sessionCheck.rows[0].user_id;
+        } else {
+            // Possibility 2 & 3: The frontend sent a Student Profile ID OR a User ID
+            const profileCheck = await pool.query(`
+                SELECT id as profile_id, user_id 
+                FROM student_profiles 
+                WHERE id = $1 OR user_id = $1
+            `, [studentId]);
+
+            if (profileCheck.rows.length > 0) {
+                realStudentProfileId = profileCheck.rows[0].profile_id;
+                realStudentUserId = profileCheck.rows[0].user_id;
+            } else {
+                console.log("❌ Could not resolve ID:", studentId);
+                return res.status(404).json({ error: "Student profile not found" });
+            }
+        }
+
+        // Find the Focus Peer's profile ID using their logged-in User ID
         const peerQuery = `
             SELECT fpp.id as peer_id, u.full_name as peer_name 
             FROM focus_peer_profiles fpp JOIN users u ON fpp.user_id = u.id WHERE fpp.user_id = $1
@@ -856,18 +1529,18 @@ app.post('/api/checkups', async (req, res) => {
         
         const { peer_id, peer_name } = peerResult.rows[0];
 
-        // Insert using the translated realStudentProfileId
+        // Insert the checkup securely
         const insertQuery = `
             INSERT INTO checkups (student_id, student_name, peer_id, peer_name, title, description, scheduled_datetime)
             VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id
         `;
         const checkupResult = await pool.query(insertQuery, [realStudentProfileId, studentName, peer_id, peer_name, title, description, scheduled_datetime]);
 
-        // Trigger notification (Notifications table uses user_id, so we use the original studentId here)
+        // Trigger notification directly to the student's User ID
         await pool.query(`
             INSERT INTO notifications (user_id, title, message, notification_type, related_entity_type, related_entity_id)
             VALUES ($1, $2, $3, 'event', 'checkup', $4)
-        `, [studentId, `New Check-in Scheduled`, `${peer_name} has scheduled a check-in with you: ${title}`, checkupResult.rows[0].id]);
+        `, [realStudentUserId, `New Check-in Scheduled`, `${peer_name} has scheduled a check-in with you: ${title}`, checkupResult.rows[0].id]);
 
         console.log('✅ Check-in created successfully!');
         res.json({ success: true, checkupId: checkupResult.rows[0].id });
@@ -1063,7 +1736,7 @@ app.get('/api/tasks/upcoming/:userId', async (req, res) => {
 
 
 // ==========================================
-// GET CALENDAR EVENTS (Tasks & Subtasks)
+// GET CALENDAR EVENTS (Tasks, Subtasks & Appointments)
 // ==========================================
 app.get('/api/calendar/:userId', async (req, res) => {
     try {
@@ -1073,7 +1746,7 @@ app.get('/api/calendar/:userId', async (req, res) => {
         if (profileResult.rows.length === 0) return res.json([]);
         const studentId = profileResult.rows[0].id;
 
-        // 1. Fetch Parent Tasks (For the "Upcoming" strip and "All Day" slots)
+        // 1. Fetch Parent Tasks
         const tasksQuery = `
             SELECT 
                 t.id::text, 
@@ -1095,7 +1768,7 @@ app.get('/api/calendar/:userId', async (req, res) => {
         `;
         const tasksResult = await pool.query(tasksQuery, [studentId]);
 
-        // 2. Fetch Scheduled Subtasks (For the specific hourly calendar slots)
+        // 2. Fetch Scheduled Subtasks
         const subtasksQuery = `
             SELECT 
                 'sub-' || s.id as id,
@@ -1113,8 +1786,26 @@ app.get('/api/calendar/:userId', async (req, res) => {
         `;
         const subtasksResult = await pool.query(subtasksQuery, [studentId]);
 
-        // Combine both into one array for the frontend
-        const allEvents = [...tasksResult.rows, ...subtasksResult.rows];
+        // 3. Fetch OAP/Staff Appointments (🔥 NEW 🔥)
+        const appointmentsQuery = `
+            SELECT 
+                'apt-' || a.id as id,
+                'Meeting: ' || a.title as title,
+                COALESCE(sp.role, 'Staff') || ' Appointment - ' || a.description as notes,
+                TO_CHAR(a.scheduled_date, 'YYYY-MM-DD') as "dueDate",
+                TO_CHAR(a.start_time, 'HH24:MI') as time,
+                '30 min' as duration,
+                a.status,
+                'High Priority' as priority,
+                0 as progress
+            FROM appointments a
+            JOIN staff_profiles sp ON a.staff_id = sp.id
+            WHERE a.student_id = $1 AND a.status = 'confirmed'
+        `;
+        const appointmentsResult = await pool.query(appointmentsQuery, [studentId]);
+
+        // Combine all three into one array for the frontend
+        const allEvents = [...tasksResult.rows, ...subtasksResult.rows, ...appointmentsResult.rows];
         
         // Ensure progress is a clean number
         const mapped = allEvents.map(r => ({...r, progress: Number(r.progress)}));

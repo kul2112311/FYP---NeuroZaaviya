@@ -1,4 +1,4 @@
-import { Search, Bell, ChevronDown, ChevronUp } from 'lucide-react';
+import { Search, Bell, ChevronDown, ChevronUp, ShieldCheck } from 'lucide-react';
 import { useState } from 'react';
 import AlertCard from '../../components/CommunityComponents/AlertCard.jsx';
 
@@ -28,59 +28,6 @@ const C = {
   pageBg:    "#f5eef8",
   btnGrad:   "linear-gradient(90deg, #b39ddb 0%, #f8bbd0 100%)",
 };
-
-const INITIAL_ALERTS = [
-  {
-    id: '1',
-    studentName: 'Ushna Batool',
-    status: 'open',
-    title: 'Student struggling with assignment organization',
-    raisedBy: 'Sarah Ahmed (Focus Peer)',
-    date: '15/12/2024, 10:30:00',
-    assignedTo: 'Dr. Fatima Khan',
-    description: 'During our session, Ushna expressed feeling overwhelmed with multiple upcoming deadlines. She mentioned difficulty breaking down larger projects into manageable tasks. Recommend check-in with OAP advisor to discuss additional support strategies.'
-  },
-  {
-    id: '2',
-    studentName: 'Sara Hassan',
-    status: 'in-progress',
-    title: 'Increased anxiety about upcoming exams',
-    raisedBy: 'Jordan Lee (Focus Peer)',
-    date: '14/12/2024, 14:15:00',
-    assignedTo: 'Dr. James Wilson',
-    description: 'Sara has been showing signs of exam anxiety. Recommended relaxation techniques and study planning strategies.'
-  },
-  {
-    id: '3',
-    studentName: 'Zainab Ahmed',
-    status: 'open',
-    title: 'Missed multiple classes in Biology 405',
-    raisedBy: 'Asad Ali (Focus Peer)',
-    date: '10/12/2024, 09:20:00',
-    assignedTo: 'Dr. Fatima Khan',
-    description: 'Student has missed several Biology 405 lectures. Need to follow up on reasons and discuss attendance policy.'
-  },
-  {
-    id: '4',
-    studentName: 'Ali Zaidi',
-    status: 'open',
-    title: 'Student expressing burnout symptoms',
-    raisedBy: 'Sarah Ahmed (Focus Peer)',
-    date: '16/12/2024, 11:45:00',
-    assignedTo: 'Sara Ali',
-    description: 'Ali mentioned feeling exhausted and overwhelmed. Discussed workload management and self-care strategies.'
-  },
-  {
-    id: '5',
-    studentName: 'Fatima Khan',
-    status: 'resolved',
-    title: 'Struggling with time management',
-    raisedBy: 'Jordan Lee (Focus Peer)',
-    date: '08/12/2024, 16:00:00',
-    assignedTo: 'Dr. Sarah Kim',
-    description: 'Successfully connected with OAP advisor. Student now using time management tools.'
-  }
-];
 
 const STATUS_CONFIG = {
   open:          { label: 'Open',        color: C.red,   bg: C.redBg,   border: `1px solid ${C.red}33`   },
@@ -202,11 +149,12 @@ function StatusSection({ statusKey, alerts, onStatusChange }) {
 
 // ── Main ──────────────────────────────────────────────────────────────────────
 function Alerts() {
-  const [alerts, setAlerts]             = useState(INITIAL_ALERTS);
-  const [search, setSearch]             = useState('');
+  // CLEAN SLATE! No more INITIAL_ALERTS
+  const [alerts, setAlerts] = useState([]);
+  
+  const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
 
-  // Passed down to AlertCard — mutates the alert's status in state
   const handleStatusChange = (id, newStatus) => {
     setAlerts(prev =>
       prev.map(a => a.id === id ? { ...a, status: newStatus } : a)
@@ -300,8 +248,14 @@ function Alerts() {
           />
         </div>
 
-        {filtered.length === 0 ? (
-          <p style={{ textAlign: 'center', color: C.purple400, padding: '32px 0' }}>
+        {alerts.length === 0 ? (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '60px 0', border: `2px dashed ${C.purple300}`, borderRadius: 16 }}>
+            <ShieldCheck size={48} style={{ color: C.green, opacity: 0.6, marginBottom: 12 }} />
+            <h3 style={{ margin: 0, color: C.purple800, fontSize: 18, fontWeight: 600 }}>All Clear!</h3>
+            <p style={{ margin: '8px 0 0', color: C.purple600, fontSize: 14 }}>There are no active alerts in the system right now.</p>
+          </div>
+        ) : filtered.length === 0 ? (
+           <p style={{ textAlign: 'center', color: C.purple400, padding: '32px 0' }}>
             No alerts found matching your filters.
           </p>
         ) : (

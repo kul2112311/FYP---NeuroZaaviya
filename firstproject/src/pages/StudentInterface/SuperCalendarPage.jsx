@@ -4,6 +4,8 @@ import {
   ChevronLeft, ChevronRight, Calendar, Clock, TrendingUp,
   Sparkles, X, Edit2, CheckCircle2, AlertCircle, Flame, Target, Zap, ListTodo
 } from "lucide-react";
+// 1. IMPORT USER CONTEXT
+import { useUser } from "../../styles/SignInLandingPage/usercontext.jsx";
 
 const PRIORITY_COLORS = {
   "High Priority":   { bg: "#ffebee", text: "#c62828", dot: "#ef4444" },
@@ -21,8 +23,20 @@ const QUADRANT_ICONS = {
 const DAY_LABELS_MON = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
 const HOURS = Array.from({ length: 15 }, (_, i) => 7 + i); // 7am–9pm
 
+const formatTime = (time24) => {
+  if (!time24 || !time24.includes(":")) return time24;
+  const [h, m] = time24.split(":");
+  let hour = parseInt(h);
+  const ampm = hour >= 12 ? "PM" : "AM";
+  hour = hour % 12 || 12;
+  return `${hour}:${m} ${ampm}`;
+};
+
+
 function SuperCalendarPage() {
   const navigate = useNavigate();
+  const { user } = useUser(); // 2. GRAB LOGGED-IN STUDENT
+
   const [viewMode, setViewMode] = useState("week");
   const [currentDate, setCurrentDate] = useState(new Date());
   const [assignments, setAssignments] = useState([]);
@@ -30,12 +44,11 @@ function SuperCalendarPage() {
   const [selectedAssignment, setSelectedAssignment] = useState(null);
   const scrollRef = useRef(null);
 
-  // Load from localStorage — same key as Dashboard, DetailedProgress, AI breakdown
-// Load directly from PostgreSQL Database
+  // Load directly from PostgreSQL Database
   const load = async () => {
+    if (!user || !user.id) return; // Safety check
     try {
-      const userId = "a1111111-1111-1111-1111-111111111111"; // Ushna's ID
-      const response = await fetch(`http://127.0.0.1:5000/api/calendar/${userId}`);
+      const response = await fetch(`http://127.0.0.1:5000/api/calendar/${user.id}`);
       if (response.ok) {
         const data = await response.json();
         setAssignments(data);
@@ -50,7 +63,7 @@ function SuperCalendarPage() {
     window.addEventListener("eisenhowerSaved", load);
     const t = setInterval(load, 2000); // Poll every 2 seconds to stay synced
     return () => { window.removeEventListener("eisenhowerSaved", load); clearInterval(t); };
-  }, []);
+  }, [user]);
 
   // Scroll to 8am on mount
   useEffect(() => {
@@ -102,7 +115,7 @@ function SuperCalendarPage() {
 
   // Progress for a date (avg of assignments' progress)
   const progressOnDate = (d) => {
-    const list = assignmentsOnDate(d);
+    const list = assignmentsOnDate(d).filter(a => a.progress !== undefined && !a.id.toString().startsWith('apt-')); // Exclude appointments from progress bar math
     if (!list.length) return 0;
     return Math.round(list.reduce((s, a) => s + (a.progress || 0), 0) / list.length);
   };
@@ -266,11 +279,11 @@ function SuperCalendarPage() {
                             const pc = priorityColor(a.priority);
                             return (
                               <button key={a.id}
-                                onClick={() => setSelectedAssignment(a)}
+                                onClick={() => setSelectedAssignment(a)}  
                                 className="w-full text-left rounded-lg px-2 py-1 mb-1 hover:opacity-90 transition-opacity"
                                 style={{ background: pc.bg, border: `1px solid ${pc.dot}22` }}>
                                 <div className="text-[10px] font-semibold truncate" style={{ color: pc.text }}>{a.title}</div>
-                                {a.time && <div className="text-[9px]" style={{ color: pc.text, opacity: 0.7 }}>{a.time}{a.duration ? ` · ${a.duration}` : ""}</div>}
+                                {a.time && <div className="text-[9px]" style={{ color: pc.text, opacity: 0.7 }}>{formatTime(a.time)}{a.duration ? ` · ${a.duration}` : ""}</div>}
                                 {!a.time && <div className="text-[9px]" style={{ color: pc.text, opacity: 0.6 }}>All day</div>}
                               </button>
                             );
@@ -382,15 +395,10 @@ function SuperCalendarPage() {
         <div className="rounded-3xl p-5 shadow-sm" style={{ background: "#fff", border: "1px solid rgba(179,157,219,0.2)" }}>
           <div className="flex items-center gap-2 mb-4">
             <Sparkles className="h-4 w-4" style={{ color: "#b39ddb" }} />
-            <span className="font-semibold text-sm" style={{ color: "#5a4a61" }}>Upcoming Assignments</span>
+            <span className="font-semibold text-sm" style={{ color: "#5a4a61" }}>Upcoming Tasks & Meetings</span>
             <span className="ml-1 text-xs px-2 py-0.5 rounded-full" style={{ background: "#f3e5f5", color: "#b39ddb" }}>
               {assignments.filter(a => (a.progress ?? 0) < 100 && a.status !== "Completed").length}
             </span>
-            <button onClick={() => navigate("/detailed-progress")}
-              className="ml-auto text-xs px-3 py-1 rounded-full hover:opacity-80"
-              style={{ background: "#f3e5f5", color: "#b39ddb" }}>
-              Manage in Weekly Progress →
-            </button>
           </div>
           <div className="flex gap-3 overflow-x-auto pb-2">
             {assignments
@@ -402,15 +410,26 @@ function SuperCalendarPage() {
                 const due = a.dueDate ? new Date(a.dueDate + "T12:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric"}) : null;
                 return (
                   <button key={a.id}
-                    onClick={() => navigate(`/detailed-progress?id=${a.id}`)}
+                    onClick={() => {
+                        // Only let them update progress if it's an actual task, not a meeting
+                        if(!a.id.toString().startsWith('apt-')) {
+                           navigate(`/detailed-progress?id=${a.id}`);
+                        } else {
+                           setSelectedAssignment(a);
+                        }
+                    }}
                     className="flex-shrink-0 rounded-2xl p-3 text-left hover:shadow-md transition-all w-44"
                     style={{ background: pc.bg, border: `1px solid ${pc.dot}33` }}>
                     <div className="text-xs font-semibold mb-1 line-clamp-2" style={{ color: pc.text }}>{a.title}</div>
                     {due && <div className="text-[10px] mb-2" style={{ color: pc.text, opacity: 0.7 }}>Due {due}</div>}
-                    <div className="w-full h-1.5 rounded-full overflow-hidden" style={{ background: "rgba(0,0,0,0.08)" }}>
-                      <div className="h-full rounded-full" style={{ width: `${a.progress ?? 0}%`, background: pc.dot }} />
-                    </div>
-                    <div className="text-[9px] mt-1" style={{ color: pc.text, opacity: 0.6 }}>{a.progress ?? 0}% done</div>
+                    {!a.id.toString().startsWith('apt-') && (
+                       <>
+                         <div className="w-full h-1.5 rounded-full overflow-hidden" style={{ background: "rgba(0,0,0,0.08)" }}>
+                           <div className="h-full rounded-full" style={{ width: `${a.progress ?? 0}%`, background: pc.dot }} />
+                         </div>
+                         <div className="text-[9px] mt-1" style={{ color: pc.text, opacity: 0.6 }}>{a.progress ?? 0}% done</div>
+                       </>
+                    )}
                   </button>
                 );
               })}
@@ -423,7 +442,7 @@ function SuperCalendarPage() {
         </div>
       </div>
 
-      {/* ── Assignment Detail Modal ── */}
+      {/* ── Assignment/Meeting Detail Modal ── */}
       {selectedAssignment && (
         <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: "rgba(90,74,97,0.4)" }}
           onClick={() => setSelectedAssignment(null)}>
@@ -472,22 +491,24 @@ function SuperCalendarPage() {
                 {selectedAssignment.time && (
                   <div className="flex items-center gap-1.5">
                     <Clock className="h-4 w-4" style={{ color: "#b39ddb" }} />
-                    <span>{selectedAssignment.time}</span>
+                    <span>{formatTime(selectedAssignment.time)}</span>
                   </div>
                 )}
               </div>
 
-              {/* Progress bar */}
-              <div>
-                <div className="flex justify-between text-xs mb-1.5" style={{ color: "#9575a3" }}>
-                  <span>Progress</span>
-                  <span className="font-semibold" style={{ color: "#b39ddb" }}>{selectedAssignment.progress ?? 0}%</span>
+              {/* Progress bar (Hide for meetings) */}
+              {!selectedAssignment.id.toString().startsWith('apt-') && (
+                <div>
+                  <div className="flex justify-between text-xs mb-1.5" style={{ color: "#9575a3" }}>
+                    <span>Progress</span>
+                    <span className="font-semibold" style={{ color: "#b39ddb" }}>{selectedAssignment.progress ?? 0}%</span>
+                  </div>
+                  <div className="w-full h-2.5 rounded-full overflow-hidden" style={{ background: "#e1bee7" }}>
+                    <div className="h-full rounded-full transition-all"
+                      style={{ width: `${selectedAssignment.progress ?? 0}%`, background: "linear-gradient(90deg, #ce93d8, #b39ddb)" }} />
+                  </div>
                 </div>
-                <div className="w-full h-2.5 rounded-full overflow-hidden" style={{ background: "#e1bee7" }}>
-                  <div className="h-full rounded-full transition-all"
-                    style={{ width: `${selectedAssignment.progress ?? 0}%`, background: "linear-gradient(90deg, #ce93d8, #b39ddb)" }} />
-                </div>
-              </div>
+              )}
 
               {/* Duration */}
               {selectedAssignment.duration && (
@@ -506,14 +527,16 @@ function SuperCalendarPage() {
 
             {/* Actions */}
             <div className="flex gap-2 mt-5">
-              <button
-                onClick={() => { navigate(`/detailed-progress?id=${selectedAssignment.id}`); setSelectedAssignment(null); }}
-                className="flex-1 py-2.5 rounded-xl text-sm font-medium text-white hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
-                style={{ background: "#b39ddb" }}>
-                <Edit2 className="h-4 w-4" /> Update Progress
-              </button>
+              {!selectedAssignment.id.toString().startsWith('apt-') && (
+                <button
+                  onClick={() => { navigate(`/detailed-progress?id=${selectedAssignment.id}`); setSelectedAssignment(null); }}
+                  className="flex-1 py-2.5 rounded-xl text-sm font-medium text-white hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
+                  style={{ background: "#b39ddb" }}>
+                  <Edit2 className="h-4 w-4" /> Update Progress
+                </button>
+              )}
               <button onClick={() => setSelectedAssignment(null)}
-                className="px-4 py-2.5 rounded-xl text-sm font-medium hover:opacity-80 transition-opacity"
+                className="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium hover:opacity-80 transition-opacity"
                 style={{ background: "#f3e5f5", color: "#9575a3" }}>
                 Close
               </button>

@@ -1,38 +1,44 @@
-import { Users, FileText, Bell, AlertCircle, Calendar } from 'lucide-react';
+import { Users, FileText, Bell, AlertCircle, Calendar, UserPlus } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useUser } from '../../styles/SignInLandingPage/usercontext.jsx';
 
 function WellnessDashboard() {
-  const recentAlerts = [
-    {
-      id: 1,
-      studentName: "Ushna Batool",
-      issue: "Student struggling with assignment organization",
-      reportedBy: "Sarah Ahmed",
-      date: "2024-12-15 10:30:00"
-    },
-    {
-      id: 2,
-      studentName: "Sara Hassan",
-      issue: "Increased anxiety about upcoming exams",
-      reportedBy: "Jordan Lee",
-      date: "2024-12-14 14:15:00"
-    },
-    {
-      id: 3,
-      studentName: "Zainab Ahmed",
-      issue: "Missed multiple classes in Biology 405",
-      reportedBy: "Asad Ali",
-      date: "2024-12-10 09:20:00"
-    },
-    {
-      id: 4,
-      studentName: "Ali Zaidi",
-      issue: "Student expressing burnout symptoms",
-      reportedBy: "Sarah Ahmed",
-      date: "2024-12-16 11:45:00"
-    }
-  ];
+  const navigate = useNavigate();
+  const { user } = useUser();
 
-  const openAlerts = recentAlerts.length;
+  const [pendingFPCount, setPendingFPCount] = useState(0);
+  const [stats, setStats] = useState({
+    activeStudents: 0,
+    activeAccommodations: 0,
+    openAlerts: 0,
+    recentAlerts: []
+  });
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        // Fetch FP Requests
+        const reqRes = await fetch('http://127.0.0.1:5000/api/requests');
+        if (reqRes.ok) {
+          const data = await reqRes.json();
+          setPendingFPCount(data.filter(r => (r.role === 'focuspeer' || r.role === 'focus-peer') && r.status === 'pending').length);
+        }
+        
+        // Fetch Dashboard Stats
+        const statsRes = await fetch('http://127.0.0.1:5000/api/admin/dashboard-stats');
+        if (statsRes.ok) {
+          setStats(await statsRes.json());
+        }
+      } catch (e) {
+        console.error("Failed to fetch dashboard data", e);
+      }
+    };
+    
+    fetchData();
+    const interval = setInterval(fetchData, 5000); // Live update every 5s
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <div className="p-6 pl-12 space-y-6" style={{ width: '80vw', minHeight: '100vh', background: '#f3eeff' }}>
@@ -41,7 +47,7 @@ function WellnessDashboard() {
       <div className="rounded-3xl p-6 bg-white">
         <div className="flex flex-col">
           <h1 className="text-2xl font-bold mb-2" style={{ color: '#2d2d3a' }}>
-            Welcome back, Zainab! 👋
+            Welcome back, {user?.name || 'Counselor'}! 👋
           </h1>
           <p className="text-sm mb-1 font-medium" style={{ color: '#9575cd' }}>
             Wellness Counselor • Wellness Support Services
@@ -53,7 +59,7 @@ function WellnessDashboard() {
       </div>
 
       {/* Quick Action Cards */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-4 gap-4">
 
         {/* Active Students */}
         <div className="rounded-2xl p-5 bg-white border border-gray-100 shadow-sm">
@@ -61,7 +67,7 @@ function WellnessDashboard() {
             <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: '#ede7f6' }}>
               <Users size={20} style={{ color: '#9575cd' }} />
             </div>
-            <span className="text-3xl font-bold" style={{ color: '#2d2d3a' }}>8</span>
+            <span className="text-3xl font-bold" style={{ color: '#2d2d3a' }}>{stats.activeStudents}</span>
           </div>
           <p className="text-sm font-medium" style={{ color: '#a0a0b0' }}>Active Students</p>
         </div>
@@ -72,7 +78,7 @@ function WellnessDashboard() {
             <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: '#fce4ec' }}>
               <FileText size={20} style={{ color: '#e91e8c' }} />
             </div>
-            <span className="text-3xl font-bold" style={{ color: '#2d2d3a' }}>11</span>
+            <span className="text-3xl font-bold" style={{ color: '#2d2d3a' }}>{stats.activeAccommodations}</span>
           </div>
           <p className="text-sm font-medium" style={{ color: '#a0a0b0' }}>Active Accommodations</p>
         </div>
@@ -83,10 +89,32 @@ function WellnessDashboard() {
             <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: '#fff3e0' }}>
               <Bell size={20} style={{ color: '#fb8c00' }} />
             </div>
-            <span className="text-3xl font-bold" style={{ color: '#2d2d3a' }}>4</span>
+            <span className="text-3xl font-bold" style={{ color: '#2d2d3a' }}>{stats.openAlerts}</span>
           </div>
           <p className="text-sm font-medium" style={{ color: '#a0a0b0' }}>Open Alerts</p>
         </div>
+
+        {/* FP Applications */}
+        <button
+          onClick={() => navigate('/ehsas-fp-management')}
+          className="rounded-2xl p-5 bg-white border shadow-sm text-left transition-all hover:shadow-md"
+          style={{ borderColor: pendingFPCount > 0 ? 'rgba(179,157,219,0.5)' : '#f3f4f6', position: 'relative', cursor: 'pointer' }}
+        >
+          {pendingFPCount > 0 && (
+            <span style={{ position: 'absolute', top: 12, right: 12, background: '#ef4444', color: '#fff', fontSize: 10, fontWeight: 700, borderRadius: 999, padding: '2px 7px' }}>
+              {pendingFPCount} new
+            </span>
+          )}
+          <div className="flex items-center justify-between mb-3">
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: 'rgba(179,157,219,0.15)' }}>
+              <UserPlus size={20} style={{ color: '#b39ddb' }} />
+            </div>
+            <span className="text-3xl font-bold" style={{ color: pendingFPCount > 0 ? '#b39ddb' : '#2d2d3a' }}>
+              {pendingFPCount}
+            </span>
+          </div>
+          <p className="text-sm font-medium" style={{ color: '#a0a0b0' }}>FP Applications</p>
+        </button>
 
       </div>
 
@@ -101,36 +129,29 @@ function WellnessDashboard() {
               <h2 className="text-base font-semibold" style={{ color: '#2d2d3a' }}>Recent Alerts</h2>
             </div>
             <span className="text-xs font-semibold px-3 py-1 rounded-full" style={{ background: '#fff3e0', color: '#fb8c00' }}>
-              {openAlerts} Open
+              {stats.openAlerts} Open
             </span>
           </div>
 
           <div className="space-y-3">
-            {recentAlerts.map((alert) => (
-              <div
-                key={alert.id}
-                className="rounded-2xl p-4 flex items-start gap-3"
-                style={{ backgroundColor: '#fdf6ff', border: '1px solid #f0e6ff' }}
-              >
-                <div
-                  className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
-                  style={{ backgroundColor: '#fff3e0' }}
-                >
-                  <AlertCircle size={18} style={{ color: '#fb8c00' }} />
+            {stats.recentAlerts.length === 0 ? (
+               <div className="flex flex-col items-center justify-center py-8">
+                 <p className="text-sm font-medium" style={{ color: '#a0a0b0' }}>No recent alerts to display.</p>
+               </div>
+            ) : (
+              stats.recentAlerts.map((alert) => (
+                <div key={alert.id} className="rounded-2xl p-4 flex items-start gap-3" style={{ backgroundColor: '#fdf6ff', border: '1px solid #f0e6ff' }}>
+                  <div className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#fff3e0' }}>
+                    <AlertCircle size={18} style={{ color: '#fb8c00' }} />
+                  </div>
+                  <div className="flex-1">
+                    <span className="font-semibold text-sm" style={{ color: '#2d2d3a' }}>{alert.studentName}</span>
+                    <p className="text-xs mt-0.5 mb-1" style={{ color: '#5a5a72' }}>{alert.issue}</p>
+                    <p className="text-xs" style={{ color: '#a0a0b0' }}>by {alert.reportedBy} • {alert.date}</p>
+                  </div>
                 </div>
-                <div className="flex-1">
-                  <span className="font-semibold text-sm" style={{ color: '#2d2d3a' }}>
-                    {alert.studentName}
-                  </span>
-                  <p className="text-xs mt-0.5 mb-1" style={{ color: '#5a5a72' }}>
-                    {alert.issue}
-                  </p>
-                  <p className="text-xs" style={{ color: '#a0a0b0' }}>
-                    by {alert.reportedBy} • {alert.date}
-                  </p>
-                </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </div>
 
@@ -147,10 +168,7 @@ function WellnessDashboard() {
           </div>
 
           <div className="flex flex-col items-center justify-center py-12">
-            <div
-              className="w-16 h-16 rounded-full flex items-center justify-center mb-3"
-              style={{ backgroundColor: '#ede7f6' }}
-            >
+            <div className="w-16 h-16 rounded-full flex items-center justify-center mb-3" style={{ backgroundColor: '#ede7f6' }}>
               <Calendar size={28} style={{ color: '#b39ddb' }} />
             </div>
             <p className="text-sm font-medium" style={{ color: '#a0a0b0' }}>No upcoming meetings scheduled</p>
@@ -162,4 +180,4 @@ function WellnessDashboard() {
   );
 }
 
-export default WellnessDashboard;
+export default WellnessDashboard; 

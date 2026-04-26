@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Clock, X, Plus, Loader } from 'lucide-react';
+import { useUser } from '../../../styles/SignInLandingPage/usercontext.jsx';
 
 function Schedule() {
   // ✅ FIXED: Now using Sarah Ahmed's real Focus Peer ID
-  const PEER_USER_ID = "b1111111-1111-1111-1111-111111111111";
+  const { user } = useUser();
   
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedDay, setSelectedDay] = useState('Monday');
@@ -44,13 +45,15 @@ function Schedule() {
   };
 
   useEffect(() => {
-    fetchSchedule();
-  }, []);
+    if (user && user.id) {
+      fetchSchedule();
+    }
+  }, [user]);
 
   const fetchSchedule = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch(`http://127.0.0.1:5000/api/peer-schedule/${PEER_USER_ID}`);
+      const response = await fetch(`http://127.0.0.1:5000/api/peer-schedule/${user.id}`);
       if (!response.ok) throw new Error("Failed to fetch");
       const data = await response.json();
       
@@ -91,7 +94,7 @@ function Schedule() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          user_id: PEER_USER_ID,
+          user_id: user.id,
           day_of_week: dayToNumber[selectedDay],
           start_time: startTime,
           end_time: endTime

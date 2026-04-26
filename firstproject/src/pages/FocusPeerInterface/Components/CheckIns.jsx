@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Calendar, User, FileText, Clock, X } from "lucide-react";
+import { useUser } from '../../../styles/SignInLandingPage/usercontext.jsx';
 
 function CheckupCard({ checkup }) {
   const dateObj = new Date(checkup.date);
@@ -50,16 +51,15 @@ function CheckupCard({ checkup }) {
 }
 
 export default function UpcomingCheckups() {
+  const { user } = useUser();
   const [checkins, setCheckins] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // FIXED: Now using Sarah Ahmed's actual Focus Peer ID
-  const PEER_USER_ID = "b1111111-1111-1111-1111-111111111111";
-
   useEffect(() => {
     const fetchCheckins = async () => {
+      if (!user || !user.id) return; // ✨ Wait for user to load
       try {
-        const response = await fetch(`http://127.0.0.1:5000/api/checkups/peer/${PEER_USER_ID}`);
+        const response = await fetch(`http://127.0.0.1:5000/api/checkups/peer/${user.id}`);
         const data = await response.json();
         
         if (response.ok) {

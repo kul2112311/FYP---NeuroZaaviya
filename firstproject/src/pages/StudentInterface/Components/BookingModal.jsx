@@ -416,7 +416,10 @@ export function SelectPeersModal({ isOpen, onClose, onConfirm, allPeers = [], cu
           <div className="grid grid-cols-2 gap-4">
             {allPeers.map(peer => {
               const isSelected = selected.has(peer.id);
-              const isDisabled = !isSelected && count >= MAX_PEERS;
+              // ✨ 1. Check if the peer is already owned by the student
+              const isAlreadyOwned = currentPeerIds.includes(peer.id);
+              // ✨ 2. Disable clicking if max is reached OR if already owned
+              const isDisabled = (!isSelected && count >= MAX_PEERS) || isAlreadyOwned;
               const isExpanded = expandedId === peer.id;
 
               return (
@@ -449,7 +452,12 @@ export function SelectPeersModal({ isOpen, onClose, onConfirm, allPeers = [], cu
                         <span className="font-semibold text-sm truncate" style={{ color: "#5a4a61" }}>
                           {peer.name}
                         </span>
-                        {isSelected && (
+                        {isAlreadyOwned ? (
+                          // ✨ Shows a nice badge if they already own this peer
+                          <span style={{ fontSize: '10px', color: '#9575a3', fontWeight: 'bold', background: 'rgba(179,157,219,0.15)', padding: '4px 8px', borderRadius: '6px' }}>
+                            Already Added
+                          </span>
+                        ) : isSelected && (
                           <span className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0"
                             style={{ background: "#b39ddb" }}>
                             <Check size={11} color="#fff" strokeWidth={3} />

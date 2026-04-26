@@ -1,62 +1,77 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { UserPlus, Mail, Users, Trash2, CheckCircle, X, Send, Edit3 } from "lucide-react";
+import { useUser } from "../../styles/SignInLandingPage/usercontext.jsx";
 
 export function FocusPeerManagement() {
-  const [focusPeers, setFocusPeers] = useState(() => {
-    const saved = localStorage.getItem("focusPeers");
-    return saved ? JSON.parse(saved) : [];
-  });
+  // 👇 1. HOOKS MUST GO INSIDE THE FUNCTION BLOCK! 👇
+  const { user } = useUser(); 
 
-  const [requests, setRequests] = useState(() => {
-    const saved = localStorage.getItem("accessRequests");
-    const allRequests = saved ? JSON.parse(saved) : [];
-    return allRequests.filter((req) => req.role === "focuspeer");
-  });
+  // 👇 2. Dynamic variables stay inside too
+  const isWellness = user?.role?.toLowerCase().includes('wellness');
+  const deptEmail = isWellness ? 'wellness@habib.edu.pk' : 'ehsas@habib.edu.pk';
+  const deptName = isWellness ? 'Wellness Support Services' : 'Ehsas Support Services';
 
-  const [newPeerEmail, setNewPeerEmail] = useState("");
-  const [selectedStudents, setSelectedStudents] = useState([]);
+  // 3. Keep your existing state below that
+  const [focusPeers, setFocusPeers] = useState([]);
+  const [requests, setRequests] = useState([]);
+
   const [showSuccessToast, setShowSuccessToast] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
-  // ── Email modal state (now includes editable body) ────────────────────────
-  const [emailModal, setEmailModal] = useState(null); // { type, app, body }
+  const [emailModal, setEmailModal] = useState(null); 
 
-  const ndStudents = [
-    { id: "1", name: "Sarah Ahmed",  email: "sarah.ahmed@university.edu"  },
-    { id: "2", name: "Ali Hassan",   email: "ali.hassan@university.edu"   },
-    { id: "3", name: "Fatima Khan",  email: "fatima.khan@university.edu"  },
-    { id: "4", name: "Omar Ibrahim", email: "omar.ibrahim@university.edu" },
-    { id: "5", name: "Zainab Malik", email: "zainab.malik@university.edu" },
-    { id: "6", name: "Hassan Ali",   email: "hassan.ali@university.edu"   },
-  ];
+  // ✨ Fetch real data from the backend
+  const fetchData = async () => {
+    try {
+      // Fetch Applications
+      const reqRes = await fetch("http://127.0.0.1:5000/api/requests");
+      if (reqRes.ok) {
+        const data = await reqRes.json();
+        // Filter for only focus peer requests
+        setRequests(data.filter(r => r.role === "focuspeer" || r.role === "focus-peer"));
+      }
+      
+      // Fetch Active Focus Peers
+      const peerRes = await fetch("http://127.0.0.1:5000/api/focus-peers");
+      if (peerRes.ok) {
+        setFocusPeers(await peerRes.json());
+      }
+    } catch (err) {
+      console.error("Error fetching management data:", err);
+    }
+  };
 
-  // ── Email templates ────────────────────────────────────────────────────────
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  // ── ✨ 3. Dynamic Email templates ──────────────────────────────────────────
   const approvalEmailTemplate = (app) =>
-`Dear ${app.name || app.email},
+    `Dear ${app.name || app.email},
 
-We are pleased to inform you that your application to become a Focus Peer at Habib University has been approved.
+    We are pleased to inform you that your application to become a Focus Peer at Habib University has been approved.
 
-You can now log in to the NeuroZaviya platform using your registered email and password to access the Focus Peer dashboard.
+    You can now log in to the NeuroZaviya platform using your registered email and password to access the Focus Peer dashboard.
 
-If you have any questions, please reach out to us at ehsas@habib.edu.pk.
+    If you have any questions, please reach out to us at ${deptEmail}.
 
-Warm regards,
-Ehsas Support Services
-Habib University`;
+    Warm regards,
+    ${deptName}
+    Habib University`;
 
-  const rejectionEmailTemplate = (app) =>
-`Dear ${app.name || app.email},
+      const rejectionEmailTemplate = (app) =>
+    `Dear ${app.name || app.email},
 
-Thank you for your interest in the Focus Peer programme at Habib University.
+    Thank you for your interest in the Focus Peer programme at Habib University.
 
-After careful review, we regret to inform you that your application has not been selected at this time. This decision does not reflect negatively on you — we encourage you to reapply in a future cycle.
+    After careful review, we regret to inform you that your application has not been selected at this time. This decision does not reflect negatively on you — we encourage you to reapply in a future cycle.
 
-For feedback or further queries, contact ehsas@habib.edu.pk.
+    For feedback or further queries, contact ${deptEmail}.
 
-Kind regards,
-Ehsas Support Services
-Habib University`;
+    Kind regards,
+    ${deptName}
+    Habib University`;
 
   const toggleStudentSelection = (studentId) => {
     setSelectedStudents((prev) =>
@@ -91,57 +106,61 @@ Habib University`;
   const handleApproveClick = (app) => setEmailModal({ type: "approve", app, body: approvalEmailTemplate(app) });
   const handleRejectClick  = (app) => setEmailModal({ type: "reject",  app, body: rejectionEmailTemplate(app) });
 
-  // ── Commit approve: creates registeredUsers entry so they can sign in ─────
-  const commitApprove = (application) => {
-    // Update accessRequests status
-    const allReqs = JSON.parse(localStorage.getItem("accessRequests") || "[]");
-    const updatedReqs = allReqs.map((req) =>
-      req.id === application.id ? { ...req, status: "approved", reviewedAt: new Date().toISOString() } : req
-    );
-    localStorage.setItem("accessRequests", JSON.stringify(updatedReqs));
-    setRequests(updatedReqs.filter((r) => r.role === "focuspeer"));
-
-    // Create login account in registeredUsers
-    const users = JSON.parse(localStorage.getItem("registeredUsers") || "[]");
-    if (!users.find((u) => u.email === application.email)) {
-      users.push({
-        id: Date.now().toString(),
-        name: application.name,
-        email: application.email,
-        password: application.password,
-        role: "focus-peer", // matches menuConfig key in App.jsx
-        createdAt: new Date().toISOString(),
-      });
-      localStorage.setItem("registeredUsers", JSON.stringify(users));
+  // ✨ FIXED: Send real Approval to Database
+  const commitApprove = async (application) => {
+    try {
+      const response = await fetch(`http://127.0.0.1:5000/api/requests/approve/${application.id}`, { method: 'POST' });
+      if (response.ok) {
+        setEmailModal(null);
+        fetchData(); // Refresh the lists!
+        setShowSuccessToast(true);
+        setTimeout(() => setShowSuccessToast(false), 3000);
+      } else {
+        const err = await response.json();
+        setErrorMessage(err.error);
+        setShowErrorModal(true);
+      }
+    } catch (error) {
+      console.error("Error approving:", error);
     }
-
-    // Update focusPeers list
-    const existingIdx = focusPeers.findIndex((p) => p.email === application.email);
-    let updatedPeers = [...focusPeers];
-    if (existingIdx >= 0) {
-      updatedPeers[existingIdx] = { ...updatedPeers[existingIdx], status: "registered", registeredAt: new Date().toISOString() };
-    } else {
-      updatedPeers.push({ id: Date.now().toString(), email: application.email, name: application.name, assignedStudents: [], status: "registered", registeredAt: new Date().toISOString() });
-    }
-    setFocusPeers(updatedPeers);
-    localStorage.setItem("focusPeers", JSON.stringify(updatedPeers));
-    setEmailModal(null);
   };
 
-  // ── Commit reject: clears status so they can reapply ─────────────────────
-  const commitReject = (appId) => {
-    const allReqs = JSON.parse(localStorage.getItem("accessRequests") || "[]");
-    // Mark as rejected but DON'T permanently block — they can submit a new request
-    const updatedReqs = allReqs.map((req) =>
-      req.id === appId ? { ...req, status: "rejected", reviewedAt: new Date().toISOString() } : req
-    );
-    localStorage.setItem("accessRequests", JSON.stringify(updatedReqs));
-    setRequests(updatedReqs.filter((r) => r.role === "focuspeer"));
-    setEmailModal(null);
+  // ✨ FIXED: Send real Rejection to Database
+  const commitReject = async (appId) => {
+    try {
+      const response = await fetch(`http://127.0.0.1:5000/api/requests/reject/${appId}`, { method: 'POST' });
+      if (response.ok) {
+        setEmailModal(null);
+        fetchData(); // Refresh the lists!
+      }
+    } catch (error) {
+      console.error("Error rejecting:", error);
+    }
+  };
+
+  // 🔥 THE OUTLOOK WEB MAGIC: Opens Outlook directly in a new browser tab! 🔥
+  const handleSendAndProcess = () => {
+    if (!emailModal) return;
+
+    const isApprove = emailModal.type === "approve";
+    const subject = isApprove ? "Focus Peer Application Approved" : "Focus Peer Application Update";
+    
+    // Microsoft's official deep link for opening a pre-filled compose window in Outlook Web
+    const outlookWebUrl = `https://outlook.office.com/mail/deeplink/compose?to=${emailModal.app.email}&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(emailModal.body)}`;
+    
+    // Open in a new Chrome tab so they don't lose their place on the dashboard
+    window.open(outlookWebUrl, '_blank');
+    
+    // Execute the database approval/rejection
+    if (isApprove) {
+      commitApprove(emailModal.app);
+    } else {
+      commitReject(emailModal.app.id);
+    }
   };
 
   const pendingApplications = requests.filter((req) => req.status === "pending");
-  const allApplications = requests; // show all for history
+  const allApplications = requests;
 
   return (
     <div className="min-h-screen" style={{ background: "#f5eef8", padding: "2vw 2.5vw" }}>
@@ -240,37 +259,21 @@ Habib University`;
             Active Focus Peers
           </h2>
 
-          {focusPeers.filter(p => p.status === "registered").length === 0 ? (
+          {focusPeers.length === 0 ? (
             <p style={{ color: "#c0b4cc", fontSize: "0.9rem", textAlign: "center", padding: "2rem 0" }}>No active Focus Peers yet</p>
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-              {focusPeers.filter(p => p.status === "registered").map((peer) => (
+              {focusPeers.map((peer) => (
                 <div key={peer.id} style={{ border: "1px solid rgba(179,157,219,0.2)", borderRadius: 14, padding: "14px 16px" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
                     <div>
-                      <p style={{ fontWeight: 700, color: "#5a4a61", margin: 0, fontSize: "0.9rem" }}>{peer.name || peer.email}</p>
-                      <p style={{ color: "#9575a3", margin: "2px 0 0", fontSize: "0.78rem" }}>{peer.email}</p>
+                      {/* 🔥 FIXED: Now using the database's full_name and major columns */}
+                      <p style={{ fontWeight: 700, color: "#5a4a61", margin: 0, fontSize: "0.9rem" }}>{peer.full_name}</p>
+                      <p style={{ color: "#9575a3", margin: "2px 0 0", fontSize: "0.78rem" }}>Major: {peer.major || "N/A"}</p>
                     </div>
-                    <button onClick={() => handleDeletePeer(peer.id)} style={{ background: "none", border: "none", cursor: "pointer", color: "#ef4444", padding: 4 }}>
-                      <Trash2 size={15} />
-                    </button>
                   </div>
                   <div style={{ borderTop: "1px solid rgba(179,157,219,0.15)", paddingTop: 10 }}>
-                    <p style={{ color: "#9575a3", fontSize: "0.75rem", marginBottom: 6 }}>Assigned Students ({peer.assignedStudents?.length || 0})</p>
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
-                      {(peer.assignedStudents || []).length === 0 ? (
-                        <p style={{ color: "#c0b4cc", fontSize: "0.72rem", fontStyle: "italic" }}>None assigned</p>
-                      ) : (
-                        (peer.assignedStudents || []).map((studentId) => {
-                          const student = ndStudents.find((s) => s.id === studentId);
-                          return student ? (
-                            <span key={studentId} style={{ padding: "2px 10px", borderRadius: 999, background: "rgba(179,157,219,0.12)", color: "#b39ddb", fontSize: "0.72rem" }}>
-                              {student.name}
-                            </span>
-                          ) : null;
-                        })
-                      )}
-                    </div>
+                     <p style={{ color: "#b39ddb", fontSize: "0.75rem", fontWeight: 600 }}>Active Status: Available for Bookings</p>
                   </div>
                 </div>
               ))}
@@ -311,7 +314,7 @@ Habib University`;
                 </div>
                 <div style={{ display: "flex", gap: 8 }}>
                   <span style={{ color: "#9575a3", minWidth: 36 }}>From:</span>
-                  <span style={{ color: "#5a4a61", fontWeight: 600 }}>ehsas@habib.edu.pk</span>
+                  <span style={{ color: "#5a4a61", fontWeight: 600 }}>{deptEmail}</span>
                 </div>
               </div>
             </div>
@@ -342,7 +345,7 @@ Habib University`;
                 Cancel
               </button>
               <button
-                onClick={() => emailModal.type === "approve" ? commitApprove(emailModal.app) : commitReject(emailModal.app.id)}
+                onClick={handleSendAndProcess}
                 style={{ padding: "10px 22px", borderRadius: 10, border: "none", cursor: "pointer", fontWeight: 700, fontSize: "0.85rem", color: "#fff", background: emailModal.type === "approve" ? "#22c55e" : "#ef4444", display: "flex", alignItems: "center", gap: 7, transition: "all 0.18s" }}
                 onMouseEnter={e => { e.currentTarget.style.filter = "brightness(1.08)"; e.currentTarget.style.transform = "translateY(-1px)"; }}
                 onMouseLeave={e => { e.currentTarget.style.filter = "brightness(1)"; e.currentTarget.style.transform = "none"; }}>

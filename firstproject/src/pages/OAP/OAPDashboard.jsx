@@ -1,137 +1,152 @@
-import { Users, FileText, Bell, AlertCircle, Calendar } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Users, FileText, Bell, AlertCircle, Calendar, CheckCircle, Clock } from 'lucide-react';
+import { useUser } from '../../styles/SignInLandingPage/usercontext.jsx';
 
 function OAPDashboard() {
-  const recentAlerts = [
-    {
-      id: 1,
-      studentName: "Ushna Batool",
-      issue: "Student struggling with assignment organization",
-      reportedBy: "Sarah Ahmed",
-      date: "2024-12-15 10:30:00"
-    },
-    {
-      id: 2,
-      studentName: "Sara Hassan",
-      issue: "Increased anxiety about upcoming exams",
-      reportedBy: "Jordan Lee",
-      date: "2024-12-14 14:15:00"
-    },
-    {
-      id: 3,
-      studentName: "Zainab Ahmed",
-      issue: "Missed multiple classes in Biology 405",
-      reportedBy: "Asad Ali",
-      date: "2024-12-10 09:20:00"
-    },
-    {
-      id: 4,
-      studentName: "Ali Zaidi",
-      issue: "Student expressing burnout symptoms",
-      reportedBy: "Sarah Ahmed",
-      date: "2024-12-16 11:45:00"
-    }
-  ];
+  const { user } = useUser();
 
-  const openAlerts = recentAlerts.length;
+  const [recentAlerts, setRecentAlerts] = useState([]);
+  const [upcomingMeetings, setUpcomingMeetings] = useState([]);
+  const [stats, setStats] = useState({
+    activeStudents: 0,
+    pendingFiles: 0,
+    availablePeers: 0,
+    openAlerts: 0
+  });
+
+  // ✨ Fetch real data from our new backend endpoint!
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      if (!user || !user.id) return;
+      try {
+        const res = await fetch(`http://127.0.0.1:5000/api/oap/dashboard-stats/${user.id}`);
+        if (res.ok) {
+          const data = await res.json();
+          setRecentAlerts(data.alerts || []);
+          setUpcomingMeetings(data.meetings || []);
+          setStats(data.stats || { activeStudents: 0, pendingFiles: 0, availablePeers: 0, openAlerts: 0 });
+        }
+      } catch (error) {
+        console.error("Failed to fetch OAP dashboard stats:", error);
+      }
+    };
+
+    fetchDashboardData();
+    const interval = setInterval(fetchDashboardData, 5000); // Live update every 5s
+    return () => clearInterval(interval);
+  }, [user]);
+
+  const openAlerts = stats.openAlerts;
 
   return (
-    <div className="p-6 pl-12 space-y-6" style={{ width: '80vw', minHeight: '100vh', background: '#f3eeff' }}>
-
-      {/* Welcome Header */}
-      <div className="rounded-3xl p-6 bg-white">
-        <div className="flex flex-col">
-          <h1 className="text-2xl font-bold mb-2" style={{ color: '#2d2d3a' }}>
-            Welcome back, Dr. Fatima Khan! 👋
+    <div className="p-8 max-w-7xl mx-auto">
+      {/* Header Section */}
+      <div className="flex justify-between items-center mb-8">
+        <div>
+          <h1 className="text-3xl font-bold" style={{ color: '#2d2d3a' }}>
+            Welcome back, {user?.name || 'Admin'}!
           </h1>
-          <p className="text-sm mb-1 font-medium" style={{ color: '#9575cd' }}>
-            OAP Advisor • Office of Academic Performance
-          </p>
-          <p className="text-xs" style={{ color: '#a0a0b0' }}>
-            Here's an overview of student support activities
-          </p>
+          <p className="text-sm mt-1" style={{ color: '#9575a3' }}>Here is your live overview of the student body.</p>
+        </div>
+        <div className="flex gap-3">
+          <button className="flex items-center gap-2 px-4 py-2 bg-white rounded-xl shadow-sm border border-gray-100 text-sm font-semibold" style={{ color: '#5a4a61' }}>
+            <FileText size={16} />
+            Generate Report
+          </button>
+          <button className="flex items-center gap-2 px-4 py-2 rounded-xl text-white text-sm font-semibold" style={{ background: '#b39ddb' }}>
+            <Bell size={16} />
+            Send Announcement
+          </button>
         </div>
       </div>
 
-      {/* Quick Action Cards */}
-      <div className="grid grid-cols-3 gap-4">
-
-        {/* Active Students */}
-        <div className="rounded-2xl p-5 bg-white border border-gray-100 shadow-sm">
-          <div className="flex items-center justify-between mb-3">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: '#ede7f6' }}>
-              <Users size={20} style={{ color: '#9575cd' }} />
+      {/* Quick Stats - Now reflecting reality! */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
+          <div className="flex items-center gap-4">
+            <div className="p-3 rounded-2xl" style={{ backgroundColor: '#ede7f6' }}>
+              <Users size={24} style={{ color: '#9575cd' }} />
             </div>
-            <span className="text-3xl font-bold" style={{ color: '#2d2d3a' }}>8</span>
-          </div>
-          <p className="text-sm font-medium" style={{ color: '#a0a0b0' }}>Active Students</p>
-        </div>
-
-        {/* Active Accommodations */}
-        <div className="rounded-2xl p-5 bg-white border border-gray-100 shadow-sm">
-          <div className="flex items-center justify-between mb-3">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: '#fce4ec' }}>
-              <FileText size={20} style={{ color: '#e91e8c' }} />
+            <div>
+              <p className="text-sm font-semibold" style={{ color: '#9575a3' }}>Active Students</p>
+              <p className="text-2xl font-bold" style={{ color: '#2d2d3a' }}>{stats.activeStudents}</p>
             </div>
-            <span className="text-3xl font-bold" style={{ color: '#2d2d3a' }}>11</span>
           </div>
-          <p className="text-sm font-medium" style={{ color: '#a0a0b0' }}>Active Accommodations</p>
         </div>
-
-        {/* Open Alerts */}
-        <div className="rounded-2xl p-5 bg-white border border-gray-100 shadow-sm">
-          <div className="flex items-center justify-between mb-3">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: '#fff3e0' }}>
-              <Bell size={20} style={{ color: '#fb8c00' }} />
+        <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
+          <div className="flex items-center gap-4">
+            <div className="p-3 rounded-2xl" style={{ backgroundColor: '#fff3e0' }}>
+              <FileText size={24} style={{ color: '#ffb74d' }} />
             </div>
-            <span className="text-3xl font-bold" style={{ color: '#2d2d3a' }}>4</span>
+            <div>
+              <p className="text-sm font-semibold" style={{ color: '#9575a3' }}>Pending Files</p>
+              <p className="text-2xl font-bold" style={{ color: '#2d2d3a' }}>{stats.pendingFiles}</p>
+            </div>
           </div>
-          <p className="text-sm font-medium" style={{ color: '#a0a0b0' }}>Open Alerts</p>
         </div>
-
+        <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
+          <div className="flex items-center gap-4">
+            <div className="p-3 rounded-2xl" style={{ backgroundColor: '#e8f5e9' }}>
+              <Users size={24} style={{ color: '#81c784' }} />
+            </div>
+            <div>
+              <p className="text-sm font-semibold" style={{ color: '#9575a3' }}>Available Focus Peers</p>
+              <p className="text-2xl font-bold" style={{ color: '#2d2d3a' }}>{stats.availablePeers}</p>
+            </div>
+          </div>
+        </div>
+        <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
+          <div className="flex items-center gap-4">
+            <div className="p-3 rounded-2xl" style={{ backgroundColor: '#ffebee' }}>
+              <AlertCircle size={24} style={{ color: '#e57373' }} />
+            </div>
+            <div>
+              <p className="text-sm font-semibold" style={{ color: '#9575a3' }}>Open Alerts</p>
+              <p className="text-2xl font-bold" style={{ color: '#2d2d3a' }}>{openAlerts}</p>
+            </div>
+          </div>
+        </div>
       </div>
 
-      {/* Bottom Row */}
-      <div className="grid grid-cols-2 gap-6">
-
-        {/* Recent Alerts */}
-        <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100">
-          <div className="flex items-center justify-between mb-4">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Recent Alerts List */}
+        <div className="lg:col-span-2 bg-white rounded-3xl p-6 shadow-sm border border-gray-100">
+          <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-2">
-              <Bell size={18} style={{ color: '#fb8c00' }} />
-              <h2 className="text-base font-semibold" style={{ color: '#2d2d3a' }}>Recent Alerts</h2>
+              <Bell size={20} style={{ color: '#e57373' }} />
+              <h2 className="text-lg font-bold" style={{ color: '#2d2d3a' }}>Recent Alerts</h2>
             </div>
-            <span className="text-xs font-semibold px-3 py-1 rounded-full" style={{ background: '#fff3e0', color: '#fb8c00' }}>
-              {openAlerts} Open
-            </span>
           </div>
-
-          <div className="space-y-3">
-            {recentAlerts.map((alert) => (
-              <div
-                key={alert.id}
-                className="rounded-2xl p-4 flex items-start gap-3"
-                style={{ backgroundColor: '#fdf6ff', border: '1px solid #f0e6ff' }}
-              >
-                <div
-                  className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
-                  style={{ backgroundColor: '#fff3e0' }}
-                >
-                  <AlertCircle size={18} style={{ color: '#fb8c00' }} />
-                </div>
-                <div className="flex-1">
-                  <span className="font-semibold text-sm" style={{ color: '#2d2d3a' }}>
-                    {alert.studentName}
-                  </span>
-                  <p className="text-xs mt-0.5 mb-1" style={{ color: '#5a5a72' }}>
-                    {alert.issue}
-                  </p>
-                  <p className="text-xs" style={{ color: '#a0a0b0' }}>
-                    by {alert.reportedBy} • {alert.date}
-                  </p>
-                </div>
+          
+          {recentAlerts.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 border-2 border-dashed border-gray-100 rounded-2xl">
+              <div className="w-16 h-16 rounded-full flex items-center justify-center mb-3" style={{ backgroundColor: '#e8f5e9' }}>
+                <CheckCircle size={28} style={{ color: '#81c784' }} />
               </div>
-            ))}
-          </div>
+              <p className="text-sm font-medium" style={{ color: '#5a4a61' }}>No active alerts</p>
+              <p className="text-xs mt-1" style={{ color: '#9575a3' }}>All student systems are currently nominal.</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {recentAlerts.map(alert => (
+                <div key={alert.id} className="flex gap-4 p-4 rounded-2xl border border-gray-50 hover:bg-gray-50 transition-colors">
+                  <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: '#ffebee' }}>
+                    <AlertCircle size={18} style={{ color: '#e57373' }} />
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex justify-between items-start mb-1">
+                      <h3 className="font-semibold text-sm" style={{ color: '#2d2d3a' }}>{alert.studentName}</h3>
+                      <span className="text-xs font-semibold px-2 py-1 rounded-md" style={{ background: '#ffebee', color: '#e57373' }}>
+                        High Priority
+                      </span>
+                    </div>
+                    <p className="text-sm mb-2" style={{ color: '#5a4a61' }}>{alert.issue}</p>
+                    <p className="text-xs" style={{ color: '#a0a0b0' }}>by {alert.reportedBy} • {alert.date}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Upcoming Meetings */}
@@ -142,21 +157,37 @@ function OAPDashboard() {
               <h2 className="text-base font-semibold" style={{ color: '#2d2d3a' }}>Upcoming Meetings</h2>
             </div>
             <span className="text-xs font-semibold px-3 py-1 rounded-full" style={{ background: '#ede7f6', color: '#9575cd' }}>
-              0 Scheduled
+              {upcomingMeetings.length} Scheduled
             </span>
           </div>
 
-          <div className="flex flex-col items-center justify-center py-12">
-            <div
-              className="w-16 h-16 rounded-full flex items-center justify-center mb-3"
-              style={{ backgroundColor: '#ede7f6' }}
-            >
-              <Calendar size={28} style={{ color: '#b39ddb' }} />
+          {upcomingMeetings.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 border-2 border-dashed border-gray-100 rounded-2xl">
+              <div className="w-16 h-16 rounded-full flex items-center justify-center mb-3" style={{ backgroundColor: '#ede7f6' }}>
+                <Calendar size={28} style={{ color: '#b39ddb' }} />
+              </div>
+              <p className="text-sm font-medium" style={{ color: '#5a4a61' }}>No upcoming meetings</p>
+              <p className="text-xs mt-1" style={{ color: '#9575a3' }}>Your schedule is clear for today.</p>
             </div>
-            <p className="text-sm font-medium" style={{ color: '#a0a0b0' }}>No upcoming meetings scheduled</p>
-          </div>
+          ) : (
+            <div className="space-y-3 mt-2">
+              {upcomingMeetings.map(meeting => (
+                <div key={meeting.id} className="flex gap-4 p-4 rounded-2xl border border-gray-100 bg-gray-50 hover:bg-gray-100 transition-colors">
+                  <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: '#ede7f6' }}>
+                    <Calendar size={18} style={{ color: '#9575cd' }} />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-sm text-gray-800">{meeting.studentName}</h3>
+                    <div className="flex items-center gap-3 text-xs text-gray-500 mt-1">
+                      <span className="flex items-center gap-1"><Calendar size={12}/> {meeting.date}</span>
+                      <span className="flex items-center gap-1"><Clock size={12}/> {meeting.time?.substring(0,5)}</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
-
       </div>
     </div>
   );
