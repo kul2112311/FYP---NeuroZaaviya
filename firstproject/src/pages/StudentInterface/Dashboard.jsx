@@ -1,43 +1,307 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Star, Award, TrendingUp, Calendar, ChevronLeft, ChevronRight, Sparkles, Brain, Grid3x3, Clock } from "lucide-react";
-// ADD THIS LINE:
+import {
+  Star, Award, TrendingUp, Calendar, ChevronLeft, ChevronRight,
+  Sparkles, Brain, Grid3x3, Clock, Link2, CheckCircle2, Circle,
+  AlertCircle, BookOpen, Zap
+} from "lucide-react";
 import { useUser } from "../../styles/SignInLandingPage/usercontext.jsx";
 
 
+// ─── Canvas Integration Card ─────────────────────────────────────────────────
+function CanvasIntegrationCard({ onConnected }) {
+  const navigate = useNavigate();
+  const [status, setStatus] = useState(() => localStorage.getItem("canvasConnected") || "idle");
+  // "idle" | "connecting" | "connected"
+
+  const handleConnect = () => {
+    navigate("/canvas-integration");
+  };
+
+  const handleDisconnect = () => {
+    setStatus("idle");
+    localStorage.removeItem("canvasConnected");
+  };
+
+  return (
+    <div className="rounded-3xl p-8 shadow-sm" style={{ background: "#ffffff", border: "1px solid rgba(179,157,219,0.2)" }}>
+      <div className="flex items-center gap-4 mb-5">
+        <div className="w-12 h-12 rounded-xl flex items-center justify-center shadow-sm"
+          style={{ background: status === "connected" ? "#e8f5e9" : "#e8f4fd" }}>
+          {status === "connected"
+            ? <CheckCircle2 className="h-6 w-6" style={{ color: "#43a047" }} />
+            : <Link2 className="h-6 w-6" style={{ color: "#42a5f5" }} />}
+        </div>
+        <div>
+          <h3 className="text-xl font-semibold" style={{ color: "#5a4a61" }}>Canvas Integration</h3>
+          <p className="text-sm" style={{ color: "#9575a3" }}>Import assignments automatically</p>
+        </div>
+        {status === "connected" && (
+          <span className="ml-auto text-xs px-3 py-1 rounded-full font-semibold"
+            style={{ background: "#e8f5e9", color: "#43a047" }}>
+            ● Connected
+          </span>
+        )}
+      </div>
+
+      {status !== "connected" ? (
+        <>
+          <p className="text-sm mb-5" style={{ color: "#9575a3" }}>
+            Connect your Habib University Canvas account to automatically pull assignments and generate AI task breakdowns.
+          </p>
+          <button
+            onClick={handleConnect}
+            disabled={status === "connecting"}
+            className="w-full flex items-center justify-between px-6 py-4 rounded-2xl font-semibold text-white transition-all hover:opacity-90 active:scale-95"
+            style={{
+              background: status === "connecting"
+                ? "linear-gradient(135deg, #81c784, #4caf50)"
+                : "linear-gradient(135deg, #26a69a, #00897b)",
+              cursor: status === "connecting" ? "wait" : "pointer",
+              boxShadow: "0 4px 15px rgba(0,137,123,0.3)"
+            }}>
+            <span>{status === "connecting" ? "Connecting to Canvas…" : "Connect Canvas Account"}</span>
+            {status === "connecting"
+              ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              : <ChevronRight className="h-5 w-5" />}
+          </button>
+        </>
+      ) : (
+        <div className="space-y-3">
+          <div className="flex items-center gap-3 p-4 rounded-2xl" style={{ background: "#f1f8e9" }}>
+            <BookOpen className="h-5 w-5 flex-shrink-0" style={{ color: "#43a047" }} />
+            <div className="flex-1">
+              <p className="text-sm font-medium" style={{ color: "#2e7d32" }}>Assignments synced successfully</p>
+              <p className="text-xs mt-0.5" style={{ color: "#66bb6a" }}>Last sync: just now · Auto-syncs every 30 min</p>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={onConnected}
+              className="flex-1 py-2.5 rounded-xl text-sm font-medium hover:opacity-90 transition-opacity"
+              style={{ background: "#e8f5e9", color: "#2e7d32" }}>
+              Sync Now
+            </button>
+            <button
+              onClick={handleDisconnect}
+              className="flex-1 py-2.5 rounded-xl text-sm font-medium hover:opacity-90 transition-opacity"
+              style={{ background: "#ffebee", color: "#c62828" }}>
+              Disconnect
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+
+// ─── Upcoming Subtasks Card ───────────────────────────────────────────────────
+function UpcomingSubtasksCard() {
+  const navigate = useNavigate();
+
+  // Load subtasks saved by AI Task Breakdown & Eisenhower Matrix pages
+  const [subtasks, setSubtasks] = useState([]);
+
+  const loadSubtasks = () => {
+    try {
+      // AI Task Breakdown saves to "aiSubtasks"
+      const ai = JSON.parse(localStorage.getItem("aiSubtasks") || "[]");
+      // Eisenhower Matrix saves to "eisenhowerSubtasks"
+      const eis = JSON.parse(localStorage.getItem("eisenhowerSubtasks") || "[]");
+
+      // Merge, deduplicate by id, sort by dueDate then priority
+      const merged = [...ai, ...eis].reduce((acc, t) => {
+        if (!acc.find(x => x.id === t.id)) acc.push(t);
+        return acc;
+      }, []);
+
+      const priorityOrder = { high: 0, "High Priority": 0, medium: 1, "Medium Priority": 1, low: 2, "Low Priority": 2 };
+      merged.sort((a, b) => {
+        const pa = priorityOrder[a.priority] ?? 2;
+        const pb = priorityOrder[b.priority] ?? 2;
+        if (pa !== pb) return pa - pb;
+        return new Date(a.dueDate || "9999") - new Date(b.dueDate || "9999");
+      });
+
+      setSubtasks(merged.slice(0, 6));
+    } catch {
+      setSubtasks([]);
+    }
+  };
+
+  useEffect(() => {
+    loadSubtasks();
+    // Re-load when AI/Eisenhower pages save new subtasks
+    window.addEventListener("aiSubtasksSaved", loadSubtasks);
+    window.addEventListener("eisenhowerSaved", loadSubtasks);
+    window.addEventListener("focus", loadSubtasks);
+    return () => {
+      window.removeEventListener("aiSubtasksSaved", loadSubtasks);
+      window.removeEventListener("eisenhowerSaved", loadSubtasks);
+      window.removeEventListener("focus", loadSubtasks);
+    };
+  }, []);
+
+  const [checked, setChecked] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("subtaskChecked") || "{}"); } catch { return {}; }
+  });
+
+  const toggleCheck = (id) => {
+    setChecked(prev => {
+      const next = { ...prev, [id]: !prev[id] };
+      localStorage.setItem("subtaskChecked", JSON.stringify(next));
+      return next;
+    });
+  };
+
+  const getPriorityStyle = (priority) => {
+    const p = (priority || "").toLowerCase();
+    if (p.includes("high"))   return { dot: "#ef4444", badge: "#ffebee", badgeText: "#c62828", label: "High" };
+    if (p.includes("medium")) return { dot: "#ffa726", badge: "#fff8e1", badgeText: "#f57c00", label: "Med" };
+    return { dot: "#66bb6a", badge: "#e8f5e9", badgeText: "#2e7d32", label: "Low" };
+  };
+
+  const formatDate = (ds) => {
+    if (!ds) return null;
+    try {
+      const d = new Date(ds + "T12:00:00");
+      const today = new Date();
+      const tomorrow = new Date(today); tomorrow.setDate(today.getDate() + 1);
+      if (ds === today.toISOString().split("T")[0]) return "Today";
+      if (ds === tomorrow.toISOString().split("T")[0]) return "Tomorrow";
+      return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+    } catch { return ds; }
+  };
+
+  const completedCount = subtasks.filter(t => checked[t.id]).length;
+
+  return (
+    <div className="rounded-3xl p-7 shadow-sm" style={{ background: "#ffffff", border: "1px solid rgba(179,157,219,0.2)" }}>
+      {/* Header */}
+      <div className="flex items-center justify-between mb-5">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: "#fce4ec" }}>
+            <Zap className="h-5 w-5" style={{ color: "#f48fb1" }} />
+          </div>
+          <div>
+            <h3 className="text-xl font-semibold" style={{ color: "#5a4a61" }}>Upcoming Subtasks</h3>
+            {subtasks.length > 0 && (
+              <p className="text-xs" style={{ color: "#9575a3" }}>{completedCount}/{subtasks.length} completed</p>
+            )}
+          </div>
+        </div>
+        {subtasks.length > 0 && (
+          <span className="text-xs px-2.5 py-1 rounded-full font-semibold"
+            style={{ background: "#fce4ec", color: "#f48fb1" }}>
+            {subtasks.length - completedCount} left
+          </span>
+        )}
+      </div>
+
+      {/* Progress bar */}
+      {subtasks.length > 0 && (
+        <div className="w-full h-2 rounded-full overflow-hidden mb-5" style={{ background: "#f3e5f5" }}>
+          <div className="h-full rounded-full transition-all duration-500"
+            style={{ width: `${subtasks.length > 0 ? (completedCount / subtasks.length) * 100 : 0}%`, background: "#f48fb1" }} />
+        </div>
+      )}
+
+      {/* Subtask list */}
+      {subtasks.length > 0 ? (
+        <div className="space-y-2">
+          {subtasks.map(task => {
+            const ps = getPriorityStyle(task.priority);
+            const done = !!checked[task.id];
+            const dateLabel = formatDate(task.dueDate);
+            return (
+              <div key={task.id}
+                className="flex items-start gap-3 p-3.5 rounded-2xl transition-all group"
+                style={{ background: done ? "#fdf7fd" : "#fefefe", border: "1px solid rgba(179,157,219,0.12)", opacity: done ? 0.6 : 1 }}>
+                <button onClick={() => toggleCheck(task.id)} className="mt-0.5 flex-shrink-0 hover:scale-110 transition-transform">
+                  {done
+                    ? <CheckCircle2 className="h-5 w-5" style={{ color: "#b39ddb" }} />
+                    : <Circle className="h-5 w-5" style={{ color: "#d1c4e9" }} />}
+                </button>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium leading-snug"
+                    style={{ color: "#5a4a61", textDecoration: done ? "line-through" : "none" }}>
+                    {task.title || task.text}
+                  </p>
+                  {task.parentTask && (
+                    <p className="text-xs mt-0.5" style={{ color: "#9575a3" }}>From: {task.parentTask}</p>
+                  )}
+                  <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                    {dateLabel && (
+                      <span className="flex items-center gap-1 text-xs"
+                        style={{ color: dateLabel === "Today" ? "#c62828" : "#9575a3" }}>
+                        <Calendar className="h-3 w-3" /> {dateLabel}
+                      </span>
+                    )}
+                    {task.timeSlot && (
+                      <span className="flex items-center gap-1 text-xs" style={{ color: "#9575a3" }}>
+                        <Clock className="h-3 w-3" /> {task.timeSlot}
+                      </span>
+                    )}
+                    <span className="text-xs px-2 py-0.5 rounded-full font-medium"
+                      style={{ background: ps.badge, color: ps.badgeText }}>
+                      {ps.label}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        /* Empty state */
+        <div className="flex flex-col items-center justify-center py-10 text-center">
+          <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4"
+            style={{ background: "#fce4ec" }}>
+            <Zap className="h-8 w-8" style={{ color: "#f8bbd0" }} />
+          </div>
+          <p className="text-sm font-medium mb-1" style={{ color: "#9575a3" }}>No subtasks yet</p>
+          <p className="text-xs" style={{ color: "#9575a3", opacity: 0.7 }}>
+            Subtasks from AI Task Breakdown and Eisenhower Matrix will appear here
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+
+// ─── Main Dashboard ───────────────────────────────────────────────────────────
 function Dashboard() {
   const navigate = useNavigate();
-  const { user } = useUser(); // <--- 1. Grab the logged-in user!
+  const { user } = useUser();
 
   const [view, setView] = useState("week");
   const [tasks, setTasks] = useState(() => {
-    try { const s = localStorage.getItem("dashboardTodos"); return s ? JSON.parse(s) : [
-      { id: 1, text: "Review chapter 5", completed: false },
-      { id: 2, text: "Finish project draft", completed: false },
-      { id: 3, text: "Practice mindfulness", completed: true },
-    ]; } catch { return []; }
+    try {
+      const s = localStorage.getItem("dashboardTodos");
+      return s ? JSON.parse(s) : [
+        { id: 1, text: "Review chapter 5", completed: false },
+        { id: 2, text: "Finish project draft", completed: false },
+        { id: 3, text: "Practice mindfulness", completed: true },
+      ];
+    } catch { return []; }
   });
   const [newTask, setNewTask] = useState("");
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [selectedDate, setSelectedDate] = useState(null); 
+  const [selectedDate, setSelectedDate] = useState(null);
 
   const [upcomingAssignments, setUpcomingAssignments] = useState([]);
   const [mainTasks, setMainTasks] = useState([]);
 
   const loadDashboardData = async () => {
-    // 2. Safety check: Don't fetch if no user is logged in
-    if (!user || !user.id) return; 
-
+    if (!user || !user.id) return;
     try {
-      // 3. Swap out the hardcoded ID for the real one!
-      const userId = user.id; 
-      
+      const userId = user.id;
       const calRes = await fetch(`http://127.0.0.1:5000/api/calendar/${userId}`);
       if (calRes.ok) setUpcomingAssignments(await calRes.json());
-
       const taskRes = await fetch(`http://127.0.0.1:5000/api/tasks/upcoming/${userId}`);
       if (taskRes.ok) setMainTasks(await taskRes.json());
-      
     } catch (error) {
       console.error("Failed to load dashboard data:", error);
     }
@@ -47,7 +311,7 @@ function Dashboard() {
     loadDashboardData();
     window.addEventListener("focus", loadDashboardData);
     window.addEventListener("eisenhowerSaved", loadDashboardData);
-    const interval = setInterval(loadDashboardData, 2000); 
+    const interval = setInterval(loadDashboardData, 2000);
     return () => {
       window.removeEventListener("focus", loadDashboardData);
       window.removeEventListener("eisenhowerSaved", loadDashboardData);
@@ -55,22 +319,18 @@ function Dashboard() {
     };
   }, []);
 
-  // Save todos separately (never mixed with assignments)
   useEffect(() => {
     localStorage.setItem("dashboardTodos", JSON.stringify(tasks));
   }, [tasks]);
 
-  // ── Week progress: Mon–Sun, current week only ─────────────────────────────
   const computeProgress = (assignments) => {
     const now = new Date();
-    // Mon-start: (getDay()+6)%7 gives Mon=0 … Sun=6
     const weekStart = new Date(now);
     weekStart.setDate(now.getDate() - (now.getDay() + 6) % 7);
     weekStart.setHours(0, 0, 0, 0);
     const weekEnd = new Date(weekStart.getTime() + 7 * 24 * 60 * 60 * 1000);
-
     const days = { Mon: [], Tue: [], Wed: [], Thu: [], Fri: [], Sat: [], Sun: [] };
-    const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    const dayNames = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
     assignments.forEach(a => {
       try {
         const dateStr = a.dueDate || (a.createdAt ? a.createdAt.split("T")[0] : null);
@@ -88,17 +348,14 @@ function Dashboard() {
     return result;
   };
 
-// ── Weekly Progress (Rings): Now uses mainTasks for accurate math! ───────
   const progress = computeProgress(mainTasks);
   const nonZeroDays = Object.values(progress).filter(v => v > 0);
   const weeklyProgress = nonZeroDays.length > 0
     ? Math.round(nonZeroDays.reduce((a, b) => a + b, 0) / nonZeroDays.length) : 0;
 
-  // ── Calendar: assignments for a date (Still uses the full list for dots) ─
   const assignmentsOnDate = (dateStr) =>
     upcomingAssignments.filter(a => a.dueDate === dateStr);
 
-// ── Upcoming: Main Tasks Only, sorted by priority then dueDate ───────
   const sortedUpcoming = [...mainTasks]
     .sort((a, b) => {
       const order = { "High Priority": 0, "Medium Priority": 1, "Low Priority": 2 };
@@ -120,7 +377,6 @@ function Dashboard() {
     return { bg: "#e8f5e9", text: "#2e7d32" };
   };
 
-  // ✨ FIX: Safe local timezone formatter (Prevents the +1 day bug!)
   const getLocalDateStr = (d) => {
     if (!d) return "";
     const year = d.getFullYear();
@@ -129,14 +385,13 @@ function Dashboard() {
     return `${year}-${month}-${day}`;
   };
 
-  // ✨ FIX: Adds blank spaces so the 1st of the month lands on the correct weekday!
   const getMonthDays = () => {
     const y = currentDate.getFullYear();
     const m = currentDate.getMonth();
     const first = new Date(y, m, 1);
     const last = new Date(y, m + 1, 0);
     const days = [];
-    const startOffset = (first.getDay() + 6) % 7; // Makes Monday = 0
+    const startOffset = (first.getDay() + 6) % 7;
     for (let i = 0; i < startOffset; i++) days.push(null);
     for (let i = 1; i <= last.getDate(); i++) days.push(new Date(y, m, i));
     return days;
@@ -152,9 +407,8 @@ function Dashboard() {
 
   const weekDays = getWeekDays();
   const monthDays = getMonthDays();
-  const todayStr = getLocalDateStr(new Date()); // Uses true local today
+  const todayStr = getLocalDateStr(new Date());
 
-  // ✨ FIX: Makes the arrows actually change the weeks/months!
   const navigateCalendar = (dir) => {
     const d = new Date(currentDate);
     if (view === "week") d.setDate(d.getDate() + dir * 7);
@@ -198,7 +452,8 @@ function Dashboard() {
               </div>
               <div className="flex gap-3">
                 {badges.map((badge, idx) => (
-                  <div key={idx} className="flex flex-col items-center gap-2 p-4 rounded-2xl shadow-md hover:scale-105 transition-transform cursor-pointer" style={{ background: badge.bgColor }}>
+                  <div key={idx} className="flex flex-col items-center gap-2 p-4 rounded-2xl shadow-md hover:scale-105 transition-transform cursor-pointer"
+                    style={{ background: badge.bgColor }}>
                     <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ background: "rgba(255,255,255,0.9)" }}>
                       <badge.icon className="h-6 w-6" style={{ color: "#b39ddb" }} />
                     </div>
@@ -236,7 +491,8 @@ function Dashboard() {
                     <span className="text-3xl font-semibold" style={{ color: "#b39ddb" }}>{weeklyProgress}%</span>
                   </div>
                   <div className="w-full h-4 rounded-full overflow-hidden" style={{ background: "#e1bee7" }}>
-                    <div className="h-full rounded-full transition-all duration-500" style={{ width: `${weeklyProgress}%`, background: "#b39ddb" }} />
+                    <div className="h-full rounded-full transition-all duration-500"
+                      style={{ width: `${weeklyProgress}%`, background: "#b39ddb" }} />
                   </div>
                 </div>
 
@@ -298,6 +554,13 @@ function Dashboard() {
                   </button>
                 </div>
               </div>
+
+              {/* ── NEW: Canvas Integration ── */}
+              <CanvasIntegrationCard onConnected={loadDashboardData} />
+
+              {/* ── NEW: Upcoming Subtasks ── */}
+              <UpcomingSubtasksCard />
+
             </div>
 
             {/* RIGHT col — 2/5 width */}
@@ -305,7 +568,6 @@ function Dashboard() {
 
               {/* Calendar */}
               <div className="rounded-3xl p-7 shadow-sm" style={{ background: "#ffffff", border: "1px solid rgba(179,157,219,0.2)" }}>
-                {/* ✨ FIX: Shows the actual Month/Year and wires up the arrows */}
                 <div className="flex items-center justify-between mb-5">
                   <h3 className="text-xl font-semibold" style={{ color: "#5a4a61" }}>
                     {currentDate.toLocaleDateString("en-US", { month: "long", year: "numeric" })}
@@ -339,7 +601,7 @@ function Dashboard() {
                 {view === "week" ? (
                   <div className="grid grid-cols-7 gap-2">
                     {weekDays.map((date, idx) => {
-                      const ds = getLocalDateStr(date); // ✨ FIX: Bypasses UTC Timezone
+                      const ds = getLocalDateStr(date);
                       const list = assignmentsOnDate(ds);
                       const isToday = ds === todayStr;
                       return (
@@ -361,8 +623,8 @@ function Dashboard() {
                 ) : (
                   <div className="grid grid-cols-7 gap-2">
                     {monthDays.map((d, i) => {
-                      if (!d) return <div key={`empty-${i}`} className="aspect-square" />; // ✨ FIX: Empty slots so the days align perfectly!
-                      const ds = getLocalDateStr(d); // ✨ FIX: Bypasses UTC Timezone
+                      if (!d) return <div key={`empty-${i}`} className="aspect-square" />;
+                      const ds = getLocalDateStr(d);
                       const list = assignmentsOnDate(ds);
                       const isToday = ds === todayStr;
                       return (
@@ -384,7 +646,7 @@ function Dashboard() {
                 )}
               </div>
 
-              {/* My To-Do's (Fixed Version) */}
+              {/* My To-Do's */}
               <div className="rounded-3xl p-6 shadow-sm" style={{ background: "#ffffff", border: "1px solid rgba(179,157,219,0.2)" }}>
                 <div className="flex items-center gap-2 mb-4">
                   <Star className="h-5 w-5" style={{ color: "#f8bbd0" }} />
@@ -450,7 +712,6 @@ function Dashboard() {
                             <Clock className="h-4 w-4 mt-0.5 flex-shrink-0" style={{ color: "#b39ddb" }} />
                             <div className="flex-1 min-w-0">
                               <p className="text-sm font-medium mb-2 truncate" style={{ color: "#5a4a61" }}>{assignment.title}</p>
-                              {/* Live progress bar */}
                               <div className="w-full h-1.5 rounded-full overflow-hidden mb-2" style={{ background: "#e1bee7" }}>
                                 <div className="h-full rounded-full transition-all duration-300" style={{ width: `${assignment.progress ?? 0}%`, background: "#b39ddb" }} />
                               </div>
@@ -475,7 +736,9 @@ function Dashboard() {
                   <div className="flex flex-col items-center justify-center py-10 text-center">
                     <Calendar className="h-16 w-16 mb-4" style={{ color: "#e1bee7" }} />
                     <p className="text-sm mb-1" style={{ color: "#9575a3" }}>No upcoming assignments</p>
-                    <p className="text-xs" style={{ color: "#9575a3", opacity: 0.7 }}>Use AI Task Breakdown or Eisenhower Matrix to add tasks!</p>
+                    <p className="text-xs" style={{ color: "#9575a3", opacity: 0.7 }}>
+                      Use AI Task Breakdown or Eisenhower Matrix to add tasks!
+                    </p>
                   </div>
                 )}
               </div>
