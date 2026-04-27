@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Star, MessageSquare } from 'lucide-react';
+import { Star, MessageSquare, AlertTriangle } from 'lucide-react';
 
 export default function SessionFeedback() {
   const [feedbacks, setFeedbacks] = useState([]);
@@ -52,6 +52,21 @@ export default function SessionFeedback() {
                   <MessageSquare size={16} className="text-[#b39ddb] mt-0.5 flex-shrink-0" />
                   <p className="text-sm text-[#5a4a61] italic">"{fb.feedback_text}"</p>
                 </div>
+
+                {/* ✨ NEW: Render the Alert Warning Box if an alert was generated! */}
+                {fb.alert_text && (
+                  <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-xl flex items-start gap-3 shadow-sm">
+                    <AlertTriangle size={20} className="text-red-500 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <span className="text-xs font-bold text-red-700 uppercase tracking-wider block mb-1">
+                        High Priority Alert Raised
+                      </span>
+                      <span className="text-sm text-red-600 leading-relaxed">
+                        {fb.alert_text}
+                      </span>
+                    </div>
+                  </div>
+                )}
               </div>
               
             </div>
