@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import { useUser } from "../../styles/SignInLandingPage/usercontext.jsx";
 
-// ── Palette (matches FocusPeerManagement) ────────────────────────────────────
+// ── Palette( standard )) ────────────────────────────────────
 const C = {
   purple800: "#5a4a61",
   purple600: "#9575a3",
