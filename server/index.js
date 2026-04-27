@@ -598,7 +598,7 @@ app.get('/api/monitor/schedules', async (req, res) => {
     }
 });
 
-// 3. GET ALL FEEDBACK (Global)
+// 3. GET ALL FEEDBACK (Global for Wellness/Admin Logs)
 app.get('/api/monitor/feedback', async (req, res) => {
     try {
         const query = `
@@ -608,7 +608,9 @@ app.get('/api/monitor/feedback', async (req, res) => {
                 sf.feedback_text,
                 TO_CHAR(sf.created_at, 'Mon DD, YYYY') as date,
                 u_student.full_name AS student_name,
-                u_peer.full_name AS peer_name
+                u_peer.full_name AS peer_name,
+                -- ✨ NEW: Fetch the alert description if one exists for this session!
+                (SELECT title FROM notifications WHERE related_entity_id = fs.id::varchar AND notification_type = 'alert' LIMIT 1) as alert_text
             FROM session_feedback sf
             JOIN focus_sessions fs ON sf.session_id = fs.id
             JOIN student_profiles sp ON fs.student_id = sp.id
@@ -1153,22 +1155,15 @@ app.patch('/api/appointments/:id/status', async (req, res) => {
 // FEEDBACK SYSTEM
 // ==========================================
 
-// 11. GET PENDING FEEDBACK SESSIONS (Completed sessions without feedback)
+// 11. GET PENDING & COMPLETED FEEDBACK SESSIONS
 app.get('/api/pending-feedback/:userId', async (req, res) => {
     try {
         const { userId } = req.params;
-        
-        // Get peer profile ID
-        const peerQuery = "SELECT id FROM focus_peer_profiles WHERE user_id = $1";
-        const peerResult = await pool.query(peerQuery, [userId]);
-        
-        if (peerResult.rows.length === 0) {
-            return res.status(404).json({ error: "Focus peer profile not found" });
-        }
-        
+        const peerResult = await pool.query("SELECT id FROM focus_peer_profiles WHERE user_id = $1", [userId]);
+        if (peerResult.rows.length === 0) return res.status(404).json({ error: "Focus peer profile not found" });
         const peerId = peerResult.rows[0].id;
         
-        // Get completed sessions without feedback
+        // ✨ FIXED: Removed "sf.id IS NULL". Now fetches ALL completed sessions + their feedback!
         const pendingQuery = `
             SELECT 
                 fs.id,
@@ -1176,22 +1171,20 @@ app.get('/api/pending-feedback/:userId', async (req, res) => {
                 sp.major,
                 TO_CHAR(fs.scheduled_date, 'YYYY-MM-DD') as scheduled_date,
                 TO_CHAR(fs.start_time, 'HH24:MI') as start_time,
-                TO_CHAR(fs.end_time, 'HH24:MI') as end_time
+                TO_CHAR(fs.end_time, 'HH24:MI') as end_time,
+                sf.id as feedback_id,
+                sf.feedback_text,
+                sf.badges_awarded,
+                (SELECT title FROM notifications WHERE related_entity_id = fs.id::varchar AND notification_type = 'alert' LIMIT 1) as alert_description
             FROM focus_sessions fs
             JOIN student_profiles sp ON fs.student_id = sp.id
             JOIN users u ON sp.user_id = u.id
             LEFT JOIN session_feedback sf ON fs.id = sf.session_id
-            WHERE fs.peer_id = $1
-            AND fs.status = 'completed'
-            AND sf.id IS NULL
+            WHERE fs.peer_id = $1 AND fs.status = 'completed'
             ORDER BY fs.scheduled_date DESC, fs.start_time DESC
         `;
-        
         const result = await pool.query(pendingQuery, [peerId]);
-        
-        console.log('⏳ Pending feedback sessions:', result.rows.length);
         res.json(result.rows);
-        
     } catch (err) {
         console.error("Error fetching pending feedback:", err.message);
         res.status(500).send("Server Error");
@@ -1294,47 +1287,23 @@ app.post('/api/session-feedback', async (req, res) => {
                 `, [xpBonus, studentId]);
             }
             
-            // 4. If alert raised, create notification for OAP/Wellness
+            // 4. ✨ FIXED: If alert raised, create a GLOBAL notification for the OAP Dashboard
             if (raise_alert && alert_description) {
-                // Get OAP advisor and wellness counselor for this student
-                const advisorQuery = `
-                    SELECT oap_advisor_id, wellness_counsellor_id
-                    FROM student_profiles
-                    WHERE id = $1
-                `;
-                const advisorResult = await pool.query(advisorQuery, [studentId]);
-                
-                if (advisorResult.rows.length > 0) {
-                    const { oap_advisor_id, wellness_counsellor_id } = advisorResult.rows[0];
-                    
-                    // Notify OAP Advisor
-                    if (oap_advisor_id) {
-                        await pool.query(`
-                            INSERT INTO notifications 
-                            (user_id, title, message, notification_type, related_entity_type, related_entity_id)
-                            VALUES ($1, $2, $3, 'alert', 'focus_session', $4)
-                        `, [
-                            oap_advisor_id,
-                            'Student Alert from FocusPeer',
-                            alert_description,
-                            session_id
-                        ]);
-                    }
-                    
-                    // Notify Wellness Counselor
-                    if (wellness_counsellor_id) {
-                        await pool.query(`
-                            INSERT INTO notifications 
-                            (user_id, title, message, notification_type, related_entity_type, related_entity_id)
-                            VALUES ($1, $2, $3, 'alert', 'focus_session', $4)
-                        `, [
-                            wellness_counsellor_id,
-                            'Student Alert from FocusPeer',
-                            alert_description,
-                            session_id
-                        ]);
-                    }
-                }
+
+                const studentQuery = "SELECT full_name FROM users WHERE id = $1";
+                const studentResult = await pool.query(studentQuery, [studentUserId]);
+                const studentName = studentResult.rows[0].full_name;
+
+                await pool.query(`
+                    INSERT INTO notifications 
+                    (user_id, title, message, notification_type, related_entity_type, related_entity_id)
+                    VALUES ($1, $2, $3, 'alert', 'focus_session', $4)
+                `, [
+                    studentUserId,       // Required field, but OAP Dashboard ignores it!
+                    alert_description,   // OAP Dashboard maps 'title' to the Issue
+                    studentName,         // OAP Dashboard maps 'message' to the Student Name
+                    session_id
+                ]);
             }
             
             // 5. Mark session as having feedback (optional: update status)

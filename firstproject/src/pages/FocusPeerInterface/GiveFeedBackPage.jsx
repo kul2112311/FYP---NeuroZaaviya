@@ -20,13 +20,24 @@ function GiveFeedbackForm() {
     fetchBadges();
   }, []);
 
+  const isReadOnly = !!session?.hasFeedback;
+
   const fetchBadges = async () => {
     try {
-      // ✅ FIXED: Changed localhost to 127.0.0.1
       const response = await fetch('http://127.0.0.1:5000/api/badges');
       const data = await response.json();
-      console.log('🏆 Available badges:', data);
       setAvailableBadges(data);
+      
+      // ✨ NEW: Pre-fill the form if feedback already exists!
+      if (session?.hasFeedback) {
+        setFeedback(session.feedbackText || '');
+        setRaiseAlert(!!session.alertDescription);
+        setAlertDescription(session.alertDescription || '');
+        if (session.badgesAwarded) {
+          const awarded = data.filter(b => session.badgesAwarded.includes(b.id));
+          setAwardedBadges(awarded);
+        }
+      }
       setIsLoading(false);
     } catch (error) {
       console.error("Error fetching badges:", error);
@@ -151,6 +162,7 @@ function GiveFeedbackForm() {
                 Session Feedback
               </h3>
               <textarea
+                disabled={isReadOnly}
                 value={feedback}
                 onChange={(e) => setFeedback(e.target.value)}
                 placeholder="Share your thoughts about the session, what you worked on together, and the student's progress..."
@@ -170,6 +182,7 @@ function GiveFeedbackForm() {
               {/* Badge Selector */}
               <div className="flex gap-3 mb-4">
                 <select
+                  disabled={isReadOnly}
                   value={selectedBadgeId}
                   onChange={(e) => setSelectedBadgeId(e.target.value)}
                   className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-400 focus:border-transparent"
@@ -227,6 +240,7 @@ function GiveFeedbackForm() {
             <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
               <div className="flex items-start gap-3">
                 <input
+                  disabled={isReadOnly}
                   type="checkbox"
                   id="raiseAlert"
                   checked={raiseAlert}
@@ -248,6 +262,7 @@ function GiveFeedbackForm() {
                         Describe the concern: <span className="text-red-600">*</span>
                       </label>
                       <textarea
+                        disabled={isReadOnly}
                         value={alertDescription}
                         onChange={(e) => setAlertDescription(e.target.value)}
                         placeholder="Please provide details about the concerning behavior or situation that requires attention from OAP & Wellness..."
@@ -267,29 +282,33 @@ function GiveFeedbackForm() {
                 disabled={isSubmitting}
                 className="flex-1 px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium text-gray-700 disabled:opacity-50"
               >
-                Cancel
+                {isReadOnly ? "Back to Sessions" : "Cancel"}
               </button>
-              <button
-                onClick={handleSubmit}
-                disabled={isSubmitting || (!feedback.trim() && awardedBadges.length === 0)}
-                className={`flex-1 flex items-center justify-center gap-2 px-6 py-3 rounded-lg transition-colors font-medium ${
-                  (feedback.trim() || awardedBadges.length > 0) && !isSubmitting
-                    ? 'bg-purple-400 hover:bg-purple-500 text-white'
-                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                }`}
-              >
-                {isSubmitting ? (
-                  <>
-                    <Loader size={18} className="animate-spin" />
-                    Submitting...
-                  </>
-                ) : (
-                  <>
-                    <Send size={18} />
-                    Submit Feedback
-                  </>
-                )}
-              </button>
+              
+              {/* ✨ FIXED: Completely hides the submit button if feedback was already given! */}
+              {!isReadOnly && (
+                <button
+                  onClick={handleSubmit}
+                  disabled={isSubmitting || (!feedback.trim() && awardedBadges.length === 0)}
+                  className={`flex-1 flex items-center justify-center gap-2 px-6 py-3 rounded-lg transition-colors font-medium ${
+                    (feedback.trim() || awardedBadges.length > 0) && !isSubmitting
+                      ? 'bg-purple-400 hover:bg-purple-500 text-white'
+                      : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                  }`}
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader size={18} className="animate-spin" />
+                      Submitting...
+                    </>
+                  ) : (
+                    <>
+                      <Send size={18} />
+                      Submit Feedback
+                    </>
+                  )}
+                </button>
+              )}
             </div>
           </div>
 

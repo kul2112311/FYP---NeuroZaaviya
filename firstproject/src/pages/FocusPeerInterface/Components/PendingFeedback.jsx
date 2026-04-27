@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, Clock, Send, Loader } from 'lucide-react';
+import { Calendar, Clock, Send, Loader, CheckCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useUser } from '../../../styles/SignInLandingPage/usercontext.jsx';
 
@@ -64,7 +64,11 @@ function PendingFeedback() {
           date: dateStr,
           time: timeStr,
           avatar: initials,
-          avatarColor
+          avatarColor,
+          hasFeedback: !!session.feedback_id,
+          feedbackText: session.feedback_text,
+          badgesAwarded: session.badges_awarded || [],
+          alertDescription: session.alert_description || ''
         };
       });
       
@@ -142,10 +146,12 @@ function PendingFeedback() {
 
                 <button 
                   onClick={() => handleGiveFeedback(session)}
-                  className="flex items-center gap-2 px-6 py-2.5 bg-[#B39DDB] hover:bg-[#9575CD] text-white rounded-lg transition-colors font-medium"
+                  className={`flex items-center gap-2 px-6 py-2.5 rounded-lg transition-colors font-medium ${
+                    session.hasFeedback ? 'bg-green-500 hover:bg-green-600 text-white' : 'bg-[#B39DDB] hover:bg-[#9575CD] text-white'
+                  }`}
                 >
-                  <Send size={16} />
-                  Give Feedback
+                  {session.hasFeedback ? <CheckCircle size={16} /> : <Send size={16} />}
+                  {session.hasFeedback ? "View Feedback" : "Give Feedback"}
                 </button>
               </div>
             ))}
