@@ -39,14 +39,6 @@ const C = {
   pageBg:    "#f5eef8",
 };
 
-const DEMO_ACCOUNTS = [
-  { role: "Student",            email: "ub07100@st.habib.edu.pk",      password: "Student@123"    },
-  { role: "Focus Peer",         email: "sarah.ahmed@st.habib.edu.pk",  password: "FocusPeer@123" },
-  { role: "OAP Staff",          email: "fatima.khan@habib.edu.pk",     password: "OAP@123"        },
-  { role: "Ehsas Counselor",    email: "sara.ali@habib.edu.pk",        password: "Ehsas@123"      },
-  { role: "Wellness Counselor", email: "dr.zainab@habib.edu.pk",       password: "Wellness@123"   },
-];
-
 const ROLE_INFO = [
   {
     label: "Student",
@@ -119,7 +111,6 @@ export function SignInPage({ onNavigateToRegister }) {
   const [suLoading, setSuLoading]     = useState(false);
   const [suSuccess, setSuSuccess]     = useState(false);
 
-  const [showDemo, setShowDemo]         = useState(false);
   const [showForgot, setShowForgot]     = useState(false);
   const [forgotEmail, setForgotEmail]   = useState("");
   const [forgotResult, setForgotResult] = useState(null);
@@ -166,11 +157,6 @@ export function SignInPage({ onNavigateToRegister }) {
     const match = registered.find(u => u.email.toLowerCase() === normalised);
     if (match) { setForgotResult({ found: true, password: match.password, name: match.name }); return; }
     setForgotResult({ found: false });
-  };
-
-  const fillDemo = (acc) => {
-    setEmail(acc.email); setPassword(acc.password);
-    setShowDemo(false); setSignInError(""); setActiveTab("signin");
   };
 
   const switchTab = (tab) => {
@@ -250,50 +236,6 @@ export function SignInPage({ onNavigateToRegister }) {
               onMouseLeave={e => { e.currentTarget.style.transform = "none"; e.currentTarget.style.filter = "brightness(1)"; }}>
               <Heart style={{ width: 14, height: 14 }} /> Become a Focus Peer
             </button>
-
-            <div style={{ position: "relative" }}>
-              <button onClick={() => setShowDemo(!showDemo)} style={{
-                display: "flex", alignItems: "center", gap: 8, padding: "9px 18px",
-                background: showDemo ? C.purple50 : "rgba(255,255,255,0.9)",
-                border: `1.5px solid ${showDemo ? C.purple300 : C.purple200}`,
-                borderRadius: 50, cursor: "pointer", color: C.purple700,
-                fontSize: 13, fontWeight: 700, transition: "all 0.2s",
-              }}>
-                <Sparkles style={{ width: 14, height: 14, color: C.purple400 }} />
-                Demo Accounts
-                <ChevronDown style={{ width: 14, height: 14, color: C.purple400, transform: showDemo ? "rotate(180deg)" : "none", transition: "transform 0.22s" }} />
-              </button>
-              {showDemo && (
-                <div style={{
-                  position: "absolute", top: "calc(100% + 10px)", right: 0, width: 300,
-                  background: C.white, borderRadius: 18,
-                  boxShadow: "0 16px 48px rgba(179,157,219,0.2), 0 4px 12px rgba(0,0,0,0.06)",
-                  border: `1px solid ${C.purple200}`, zIndex: 100, overflow: "hidden",
-                }}>
-                  <div style={{ padding: "10px 18px", background: `linear-gradient(90deg, ${C.purple50}, ${C.pageBg})`, borderBottom: `1px solid ${C.purple100}`, display: "flex", alignItems: "center", gap: 7 }}>
-                    <Zap style={{ width: 12, height: 12, color: C.purple500 }} />
-                    <span style={{ fontSize: 11, fontWeight: 800, color: C.purple600, letterSpacing: "0.07em", textTransform: "uppercase" }}>Click to Auto-Fill</span>
-                  </div>
-                  {DEMO_ACCOUNTS.map((acc, i) => (
-                    <button key={i} onClick={() => fillDemo(acc)} style={{
-                      width: "100%", textAlign: "left", padding: "12px 18px",
-                      background: "transparent", border: "none",
-                      borderBottom: i < DEMO_ACCOUNTS.length - 1 ? `1px solid ${C.purple100}` : "none",
-                      cursor: "pointer", transition: "background 0.15s",
-                      display: "flex", alignItems: "center", justifyContent: "space-between",
-                    }}
-                      onMouseEnter={e => e.currentTarget.style.background = C.purple50}
-                      onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
-                      <div>
-                        <div style={{ fontWeight: 700, fontSize: 13, color: C.purple800 }}>{acc.role}</div>
-                        <div style={{ fontSize: 11, color: C.purple400, marginTop: 2 }}>{acc.email}</div>
-                      </div>
-                      <ArrowRight style={{ width: 13, height: 13, color: C.purple300 }} />
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
           </div>
         </div>
 
@@ -446,12 +388,6 @@ export function SignInPage({ onNavigateToRegister }) {
                           {signInLoading ? "Signing in…" : (<><span>Sign In</span><ArrowRight style={{ width: 17, height: 17 }} /></>)}
                         </button>
                       </form>
-
-                      <div style={{ marginTop: 14, padding: "9px 12px", borderRadius: 10, background: C.purple50, border: `1px solid ${C.purple100}`, textAlign: "center" }}>
-                        <p style={{ fontSize: 12, color: C.purple600, margin: 0, fontWeight: 600 }}>
-                          💡 Use <strong>Demo Accounts</strong> in the top bar to auto-fill
-                        </p>
-                      </div>
                     </>
                   )}
 
@@ -572,7 +508,7 @@ export function SignInPage({ onNavigateToRegister }) {
         </div>
       </div>
 
-      {/* ── Forgot Password Modal — outside main div but inside fragment ── */}
+      {/* ── Forgot Password Modal ── */}
       {showForgot && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100, padding: 24 }}>
           <div style={{ background: "#fff", borderRadius: 24, boxShadow: "0 24px 60px rgba(0,0,0,0.15)", width: "100%", maxWidth: 420, padding: "32px 36px" }}>
