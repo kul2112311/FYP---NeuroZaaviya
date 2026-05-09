@@ -116,7 +116,7 @@ function GiveFeedbackForm() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="p-6 pl-12 space-y-6" style={{ width: '80vw', margin: '0 auto' }}>
         <Loader className="animate-spin" size={32} />
         <span className="ml-2">Loading...</span>
       </div>
@@ -124,7 +124,7 @@ function GiveFeedbackForm() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className="p-6 pl-12 space-y-6" style={{ width: '80vw', margin: '0 auto' }}>
       <div className="max-w-5xl mx-auto">
         {/* Back Button */}
         <button 
@@ -170,71 +170,7 @@ function GiveFeedbackForm() {
               />
             </div>
 
-            {/* Award Badges Section */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <h3 className="text-lg font-semibold text-gray-800 mb-2">
-                Award Badges
-              </h3>
-              <p className="text-sm text-gray-600 mb-4">
-                Select badges to award from the dropdown. Each badge gives the student +10 XP!
-              </p>
-              
-              {/* Badge Selector */}
-              <div className="flex gap-3 mb-4">
-                <select
-                  disabled={isReadOnly}
-                  value={selectedBadgeId}
-                  onChange={(e) => setSelectedBadgeId(e.target.value)}
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-400 focus:border-transparent"
-                >
-                  <option value="">Select a badge...</option>
-                  {availableBadges.map(badge => (
-                    <option key={badge.id} value={badge.id}>
-                      {badge.name}
-                    </option>
-                  ))}
-                </select>
-                <button 
-                  onClick={handleAddBadge}
-                  disabled={!selectedBadgeId}
-                  className={`flex items-center gap-2 px-6 py-2 rounded-lg transition-colors ${
-                    selectedBadgeId 
-                      ? 'bg-purple-400 hover:bg-purple-500 text-white' 
-                      : 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                  }`}
-                >
-                  <Award size={16} />
-                  Add Badge
-                </button>
-              </div>
-
-              {/* Awarded Badges List */}
-              {awardedBadges.length > 0 && (
-                <div className="mt-4">
-                  <h4 className="text-sm font-medium text-gray-700 mb-2">Badges to Award:</h4>
-                  <div className="flex flex-wrap gap-2">
-                    {awardedBadges.map(badge => (
-                      <div 
-                        key={badge.id}
-                        className="flex items-center gap-2 px-3 py-1.5 bg-purple-50 text-purple-700 rounded-full text-sm border border-purple-200"
-                      >
-                        <Award size={14} />
-                        <span>{badge.name}</span>
-                        <button
-                          onClick={() => handleRemoveBadge(badge.id)}
-                          className="hover:bg-purple-100 rounded-full p-0.5 transition-colors"
-                        >
-                          <X size={14} />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                  <p className="text-xs text-gray-500 mt-2">
-                    Student will receive +{awardedBadges.length * 10} XP
-                  </p>
-                </div>
-              )}
-            </div>
+           
 
             {/* Alert Section */}
             <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
@@ -312,36 +248,7 @@ function GiveFeedbackForm() {
             </div>
           </div>
 
-          {/* Right Side - Badge Preview */}
-          <div className="lg:col-span-1">
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 sticky top-6">
-              <h3 className="text-lg font-semibold text-gray-800 mb-4">
-                Badge Preview
-              </h3>
-              <div className="flex flex-col items-center justify-center py-8">
-                {getPreviewBadge() ? (
-                  <div className="text-center">
-                    <div className="w-24 h-24 bg-gradient-to-br from-purple-400 to-pink-400 rounded-full flex items-center justify-center mb-4 mx-auto">
-                      <Award size={48} className="text-white" />
-                    </div>
-                    <h4 className="font-semibold text-gray-800 text-lg mb-2">
-                      {getPreviewBadge().name}
-                    </h4>
-                    <p className="text-sm text-gray-600">
-                      {getPreviewBadge().description}
-                    </p>
-                  </div>
-                ) : (
-                  <div className="text-gray-400 text-center">
-                    <Award size={64} strokeWidth={1} />
-                    <p className="mt-4 text-sm">
-                      Select a badge to preview
-                    </p>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
+          
         </div>
       </div>
     </div>
