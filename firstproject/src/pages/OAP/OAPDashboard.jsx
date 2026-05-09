@@ -179,7 +179,6 @@ function OAPDashboard() {
             )}
           </div>
         </div>
-      </div>
     </div>
   );
 }
