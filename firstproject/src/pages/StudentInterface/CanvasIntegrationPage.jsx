@@ -25,25 +25,37 @@ export default function CanvasIntegrationPage() {
   const [errorMsg, setErrorMsg]  = useState("");
 
   const handleConnect = async () => {
-    if (!email.includes("@stu.habib.edu.pk") && !email.includes("@habib.edu.pk")) {
-      setErrorMsg("Please use your official Habib University email address.");
+    if (!password) { // We are using the 'password' state variable to store the Token to save time
+      setErrorMsg("Please enter your Canvas Access Token.");
       setStatus("error");
       return;
     }
-    if (!password) {
-      setErrorMsg("Please enter your Canvas password.");
-      setStatus("error");
-      return;
-    }
+    
     setStatus("connecting");
     setErrorMsg("");
 
-    // ── Replace this timeout with your real Canvas OAuth / API call ──
-    await new Promise(r => setTimeout(r, 2200));
+    try {
+      const response = await fetch("http://127.0.0.1:5000/api/canvas/sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token: password }) // Send the token
+      });
 
-    // Simulated success — swap with real backend response check
-    localStorage.setItem("canvasConnected", "connected");
-    setStatus("connected");
+      if (response.ok) {
+        const data = await response.json();
+        localStorage.setItem("canvasConnected", "connected");
+        localStorage.setItem("canvasToken", password)
+        setStatus("connected");
+        
+        // ✨ MAGIC: Pass the fetched assignments directly to the new page!
+        navigate("/canvas-assignments", { state: { assignments: data.assignments } });
+      } else {
+        throw new Error("Invalid Token or Network Error");
+      }
+    } catch (err) {
+      setErrorMsg("Failed to connect. Please check your token and try again.");
+      setStatus("error");
+    }
   };
 
   const handleDisconnect = () => {
@@ -140,14 +152,14 @@ export default function CanvasIntegrationPage() {
                 {/* Password */}
                 <div className="space-y-2">
                   <label className="text-sm font-medium" style={{ color: "#5a4a61" }}>
-                    Canvas Password
+                    Canvas Access Token 
                   </label>
                   <div className="flex items-center gap-3 px-4 py-3 rounded-2xl"
                     style={{ background: "#fdf7fd", border: "1px solid rgba(179,157,219,0.3)" }}>
                     <Lock className="h-4 w-4 flex-shrink-0" style={{ color: "#b39ddb" }} />
                     <input
-                      type={showPass ? "text" : "password"}
-                      placeholder="Enter your Canvas password"
+                      type={showPass ? "text" : "Paste your Canvas API Token here..."}
+                      placeholder="Enter your Canvas token"
                       value={password}
                       onChange={e => { setPassword(e.target.value); setStatus("idle"); }}
                       className="flex-1 text-sm bg-transparent focus:outline-none"

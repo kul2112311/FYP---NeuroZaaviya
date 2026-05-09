@@ -44,20 +44,11 @@ function OAPDashboard() {
       <div className="flex justify-between items-center mb-8">
         <div>
           <h1 className="text-3xl font-bold" style={{ color: '#2d2d3a' }}>
-            Welcome back, {user?.name || 'Admin'}!
+            Welcome back, {user?.name || 'Admin'} '✨!
           </h1>
           <p className="text-sm mt-1" style={{ color: '#9575a3' }}>Here is your live overview of the student body.</p>
         </div>
-        <div className="flex gap-3">
-          <button className="flex items-center gap-2 px-4 py-2 bg-white rounded-xl shadow-sm border border-gray-100 text-sm font-semibold" style={{ color: '#5a4a61' }}>
-            <FileText size={16} />
-            Generate Report
-          </button>
-          <button className="flex items-center gap-2 px-4 py-2 rounded-xl text-white text-sm font-semibold" style={{ background: '#b39ddb' }}>
-            <Bell size={16} />
-            Send Announcement
-          </button>
-        </div>
+        
       </div>
 
       {/* Quick Stats - Now reflecting reality! */}

@@ -172,7 +172,7 @@ app.post('/api/requests/approve/:id', async (req, res) => {
                 "INSERT INTO focus_peer_profiles (id, user_id, is_available) VALUES (gen_random_uuid(), $1, true)", 
                 [newUserId]
             );
-        } else if (['oap', 'wellness-counsellor', 'ehsas-counsellor'].includes(pendingUser.role)) {
+        } else if (['oap', 'wellness', 'ehsas', 'wellness-counsellor', 'ehsas-counsellor'].includes(pendingUser.role)) {
             // Staff profiles usually use user_id, but if this throws an error too, we will know it needs changing!
             await pool.query(
                 "INSERT INTO staff_profiles (id, user_id, department, role) VALUES (gen_random_uuid(), $1, $2, $3)", 
@@ -780,6 +780,104 @@ app.post('/api/book-session', async (req, res) => {
 });
 
 // ==========================================
+// CANVAS LMS INTEGRATION
+// ==========================================
+app.post('/api/canvas/sync', async (req, res) => {
+    try {
+        const { token } = req.body;
+        if (!token) return res.status(400).json({ error: "Canvas token is required" });
+
+        const CANVAS_BASE_URL = "https://hulms.instructure.com/api/v1";
+        const headers = { 'Authorization': `Bearer ${token}` };
+
+        // 1. Fetch active courses for the student
+        const coursesResponse = await fetch(`${CANVAS_BASE_URL}/courses?enrollment_state=active&per_page=50`, { headers });
+        if (!coursesResponse.ok) throw new Error("Failed to authenticate with Canvas");
+        const courses = await coursesResponse.json();
+
+        let allAssignments = [];
+
+        // 2. Loop through courses and fetch upcoming assignments
+        for (const course of courses) {
+            // Skip restricted/unauthorized courses
+            if (!course.id || course.access_restricted_by_date) continue;
+
+            // Fetch assignments with future due dates
+            const assignRes = await fetch(`${CANVAS_BASE_URL}/courses/${course.id}/assignments?bucket=upcoming&per_page=20`, { headers });
+            
+            if (assignRes.ok) {
+                const assignments = await assignRes.json();
+                
+                // Format the data cleanly for the frontend
+                // Format the data cleanly for the frontend
+                const formatted = assignments.map(a => {
+                    let fileApiEndpoint = null;
+                    if (a.description) {
+                        // ✨ Catch the golden link before we destroy the HTML!
+                        const fileMatch = a.description.match(/data-api-endpoint="([^"]+)"/);
+                        if (fileMatch) fileApiEndpoint = fileMatch[1];
+                    }
+
+                    return {
+                        id: a.id,
+                        course_id: course.id,
+                        course_name: course.name || course.course_code,
+                        title: a.name,
+                        description: a.description ? a.description.replace(/<[^>]*>?/gm, '') : 'No description provided.',
+                        due_date: a.due_at,
+                        points_possible: a.points_possible,
+                        html_url: a.html_url,
+                        fileEndpoint: fileApiEndpoint // ✨ Send the link to the frontend
+                    };
+                });
+                allAssignments.push(...formatted);
+            }
+        }
+
+        // 3. Sort by due date (closest first)
+        allAssignments.sort((a, b) => new Date(a.due_date) - new Date(b.due_date));
+
+        res.json({ success: true, assignments: allAssignments });
+    } catch (err) {
+        console.error("❌ Canvas Sync Error:", err.message);
+        res.status(500).json({ error: "Failed to sync with Canvas LMS" });
+    }
+});
+
+// ✨ NEW: Proxies the Canvas file download so the frontend can turn it into a File object!
+app.post('/api/canvas/download', async (req, res) => {
+    try {
+        const { fileEndpoint, token } = req.body;
+        if (!fileEndpoint || !token) return res.status(400).json({ error: "Missing data" });
+
+        const headers = { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' };
+
+        // 1. Get the metadata (Using the logic from your test.js!)
+        const metaRes = await fetch(fileEndpoint, { headers });
+        if (!metaRes.ok) throw new Error("Failed to fetch metadata");
+        const metaData = await metaRes.json();
+
+        // 2. Download the actual file buffer
+        const fileRes = await fetch(metaData.url);
+        if (!fileRes.ok) throw new Error("Failed to download file");
+        
+        const arrayBuffer = await fileRes.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+
+        // 3. Send it as Base64 to the frontend
+        res.json({
+            fileName: metaData.display_name,
+            mimeType: metaData['content-type'] || 'application/pdf',
+            base64: buffer.toString('base64')
+        });
+    } catch (err) {
+        console.error("Canvas Download Error:", err);
+        res.status(500).json({ error: "Failed to download file" });
+    }
+});
+
+
+// ==========================================
 // FOCUS PEER SCHEDULE MANAGEMENT
 // ==========================================
 
@@ -1013,6 +1111,22 @@ app.patch('/api/sessions/:sessionId/status', async (req, res) => {
 // 1. GET ALL SUPPORT STAFF (For Student "Support" Tab)
 app.get('/api/support-staff', async (req, res) => {
     try {
+        // ✨ AUTO-HEAL: Safely translate the short roles into the strict names the DB demands
+        await pool.query(`
+            INSERT INTO staff_profiles (id, user_id, department, role)
+            SELECT gen_random_uuid(), id, 
+                CASE WHEN role = 'oap' THEN 'OAP' ELSE 'Wellness/Ehsas' END, 
+                CASE 
+                    WHEN role = 'wellness' THEN 'wellness-counsellor'
+                    WHEN role = 'ehsas' THEN 'ehsas-counsellor'
+                    ELSE role 
+                END
+            FROM users 
+            WHERE role IN ('oap', 'wellness', 'ehsas', 'wellness-counsellor', 'ehsas-counsellor')
+            AND NOT EXISTS (SELECT 1 FROM staff_profiles WHERE user_id = users.id)
+        `);
+
+        // Now fetch the directory safely
         const query = `
             SELECT 
                 sp.id as staff_id, 
@@ -1100,6 +1214,58 @@ app.post('/api/appointments', async (req, res) => {
     }
 });
 
+// 2b. CREATE AN APPOINTMENT (Staff -> Student)
+app.post('/api/appointments/staff-to-student', async (req, res) => {
+    try {
+        const { staffUserId, studentUserId, subject, description, datetime } = req.body;
+
+        // 1. Resolve Staff ID
+        const staffQuery = "SELECT id FROM staff_profiles WHERE user_id = $1";
+        const staffResult = await pool.query(staffQuery, [staffUserId]);
+        if (staffResult.rows.length === 0) return res.status(404).json({ error: "Staff profile not found" });
+        const staffProfileId = staffResult.rows[0].id;
+
+        // 2. Resolve Student ID
+        const studentQuery = "SELECT id FROM student_profiles WHERE user_id = $1";
+        const studentResult = await pool.query(studentQuery, [studentUserId]);
+        if (studentResult.rows.length === 0) return res.status(404).json({ error: "Student profile not found" });
+        const studentProfileId = studentResult.rows[0].id;
+
+        // 3. Parse the incoming datetime string from the HTML date picker
+        const dateObj = new Date(datetime);
+        const formattedDate = dateObj.toISOString().split('T')[0];
+        
+        // Extract time and add 30 mins for the end_time
+        const startHours = dateObj.getHours().toString().padStart(2, '0');
+        const startMins = dateObj.getMinutes().toString().padStart(2, '0');
+        const parsedTime = `${startHours}:${startMins}:00`;
+
+        let endHours = dateObj.getHours();
+        let endMins = dateObj.getMinutes() + 30;
+        if (endMins >= 60) { endHours += 1; endMins -= 60; }
+        const parsedEndTime = `${endHours.toString().padStart(2, '0')}:${endMins.toString().padStart(2, '0')}:00`;
+
+        // 4. Insert auto-confirmed appointment
+        const insertQuery = `
+            INSERT INTO appointments 
+            (student_id, staff_id, title, description, notes, scheduled_date, start_time, end_time, status)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'confirmed')
+            RETURNING id
+        `;
+        
+        const note = "Scheduled directly by staff member.";
+        const result = await pool.query(insertQuery, [
+            studentProfileId, staffProfileId, subject, description, note, 
+            formattedDate, parsedTime, parsedEndTime
+        ]);
+
+        res.json({ success: true, appointmentId: result.rows[0].id });
+    } catch (err) {
+        console.error("❌ Error creating staff appointment:", err.message);
+        res.status(500).json({ error: "Server Error" });
+    }
+});
+
 // 3. GET APPOINTMENTS FOR SPECIFIC STAFF MEMBER (For OAP Scheduling Tab)
 app.get('/api/appointments/staff/:userId', async (req, res) => {
     try {
@@ -1146,6 +1312,31 @@ app.patch('/api/appointments/:id/status', async (req, res) => {
         res.json({ success: true });
     } catch (err) {
         console.error("❌ Error updating appointment:", err.message);
+        res.status(500).json({ error: "Server Error" });
+    }
+});
+
+// ==========================================
+// ALERTS MANAGEMENT (For the Alerts Tab)
+// ==========================================
+app.get('/api/alerts', async (req, res) => {
+    try {
+        const query = `
+            SELECT 
+                id, 
+                title, 
+                message as "studentName", 
+                TO_CHAR(created_at, 'YYYY-MM-DD HH24:MI') as date, 
+                'System' as "raisedBy",
+                'open' as status
+            FROM notifications 
+            WHERE notification_type = 'alert'
+            ORDER BY created_at DESC
+        `;
+        const result = await pool.query(query);
+        res.json(result.rows);
+    } catch (err) {
+        console.error("❌ Error fetching alerts:", err.message);
         res.status(500).json({ error: "Server Error" });
     }
 });
@@ -1911,7 +2102,7 @@ app.post('/api/ai/chat', async (req, res) => {
         
         // ✨ THE FIX: We explicitly define and initialize the AI right here!
         const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+        const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
 
         // Compile the chat history into a single prompt for Gemini
         let fullPrompt = `${systemPrompt}\n\n--- CHAT HISTORY ---\n`;

@@ -33,6 +33,7 @@ import { OAPRequestApproval } from './pages/OAP/Oaprequestapproval.jsx';
 import ChatPage from "./pages/shared/Chats/ChatPage.jsx";
 import SupportSupport from './pages/shared/StudentSupport.jsx';
 import CanvasIntegrationPage from './pages/StudentInterface/CanvasIntegrationPage.jsx';
+import CanvasAssignmentsPage from './pages/StudentInterface/style/CanvasAssignmentsPage.jsx';
 
 const menuConfig = {
   student: [
@@ -181,6 +182,7 @@ function AppContent() {
             <Route path="/chats" element={<ChatPage />} />
             <Route path="/support" element={<SupportSupport />} />
             <Route path="/canvas-integration" element={<CanvasIntegrationPage />} />
+            <Route path="/canvas-assignments" element={<CanvasAssignmentsPage />} />
           </Routes>
         </div>
       </main>

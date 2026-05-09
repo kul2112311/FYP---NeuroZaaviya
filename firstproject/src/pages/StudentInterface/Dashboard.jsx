@@ -12,7 +12,7 @@ import { useUser } from "../../styles/SignInLandingPage/usercontext.jsx";
 function CanvasIntegrationCard({ onConnected }) {
   const navigate = useNavigate();
   const [status, setStatus] = useState(() => localStorage.getItem("canvasConnected") || "idle");
-  // "idle" | "connecting" | "connected"
+  const [isSyncing, setIsSyncing] = useState(false); // ✨ NEW: Loading state for the Sync button
 
   const handleConnect = () => {
     navigate("/canvas-integration");
@@ -21,6 +21,37 @@ function CanvasIntegrationCard({ onConnected }) {
   const handleDisconnect = () => {
     setStatus("idle");
     localStorage.removeItem("canvasConnected");
+    localStorage.removeItem("canvasToken"); // Clean up the token too!
+  };
+
+  // ✨ NEW: The actual sync logic for the "Sync Now" button!
+  const handleSync = async () => {
+    const token = localStorage.getItem("canvasToken");
+    if (!token) {
+      handleDisconnect(); // If they lost the token, log them out
+      return;
+    }
+    
+    setIsSyncing(true);
+    try {
+      const response = await fetch("http://127.0.0.1:5000/api/canvas/sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        // Teleport the user to the assignments page with the fresh Canvas data!
+        navigate("/canvas-assignments", { state: { assignments: data.assignments } });
+      } else {
+        console.error("Failed to sync with Canvas");
+      }
+    } catch (err) {
+      console.error("Network error during sync:", err);
+    } finally {
+      setIsSyncing(false);
+    }
   };
 
   return (
@@ -52,7 +83,7 @@ function CanvasIntegrationCard({ onConnected }) {
           <button
             onClick={handleConnect}
             disabled={status === "connecting"}
-            className="w-full flex items-center justify-between px-6 py-4 rounded-2xl font-semibold text-white transition-all hover:opacity-90 active:scale-95"
+            className="w-full flex items-center justify-between px-6 py-4 rounded-2xl font-semibold text-white transition-all hover:opacity-90 active:scale-95 cursor-pointer"
             style={{
               background: status === "connecting"
                 ? "linear-gradient(135deg, #81c784, #4caf50)"
@@ -76,15 +107,19 @@ function CanvasIntegrationCard({ onConnected }) {
             </div>
           </div>
           <div className="flex gap-2">
+            {/* ✨ FIXED: Added handleSync and cursor-pointer */}
             <button
-              onClick={onConnected}
-              className="flex-1 py-2.5 rounded-xl text-sm font-medium hover:opacity-90 transition-opacity"
+              onClick={handleSync}
+              disabled={isSyncing}
+              className={`flex-1 py-2.5 rounded-xl text-sm font-medium hover:opacity-90 transition-opacity ${isSyncing ? "cursor-wait opacity-70" : "cursor-pointer"}`}
               style={{ background: "#e8f5e9", color: "#2e7d32" }}>
-              Sync Now
+              {isSyncing ? "Syncing..." : "Sync Now"}
             </button>
+            {/* ✨ FIXED: Added cursor-pointer */}
             <button
               onClick={handleDisconnect}
-              className="flex-1 py-2.5 rounded-xl text-sm font-medium hover:opacity-90 transition-opacity"
+              disabled={isSyncing}
+              className="flex-1 py-2.5 rounded-xl text-sm font-medium hover:opacity-90 transition-opacity cursor-pointer disabled:opacity-50"
               style={{ background: "#ffebee", color: "#c62828" }}>
               Disconnect
             </button>
@@ -97,62 +132,40 @@ function CanvasIntegrationCard({ onConnected }) {
 
 
 // ─── Upcoming Subtasks Card ───────────────────────────────────────────────────
-function UpcomingSubtasksCard() {
+function UpcomingSubtasksCard({ calendarEvents = [], onUpdate }) {
   const navigate = useNavigate();
+  const [isCompleting, setIsCompleting] = useState(false);
 
-  // Load subtasks saved by AI Task Breakdown & Eisenhower Matrix pages
-  const [subtasks, setSubtasks] = useState([]);
+  // ✨ BACKEND MAGIC: Filter calendar events for subtasks, sort by closest date & time!
+  const subtasks = calendarEvents
+    .filter(e => typeof e.id === 'string' && e.id.startsWith('sub-'))
+    .sort((a, b) => {
+      const dateA = new Date(`${a.dueDate || "9999-12-31"}T${a.time || "23:59"}`);
+      const dateB = new Date(`${b.dueDate || "9999-12-31"}T${b.time || "23:59"}`);
+      return dateA - dateB;
+    })
+    .slice(0, 6);
 
-  const loadSubtasks = () => {
+  const completedCount = subtasks.filter(t => t.status === 'Completed').length;
+
+  // ✨ BACKEND MAGIC: Send completion status directly to Postgres!
+  const handleComplete = async (taskId, isDone) => {
+    if (isCompleting || isDone) return; // Backend only supports marking complete for now
+    setIsCompleting(true);
+    
+    // Strip the 'sub-' prefix to get the real database ID
+    const realId = taskId.replace('sub-', '');
+    
     try {
-      // AI Task Breakdown saves to "aiSubtasks"
-      const ai = JSON.parse(localStorage.getItem("aiSubtasks") || "[]");
-      // Eisenhower Matrix saves to "eisenhowerSubtasks"
-      const eis = JSON.parse(localStorage.getItem("eisenhowerSubtasks") || "[]");
-
-      // Merge, deduplicate by id, sort by dueDate then priority
-      const merged = [...ai, ...eis].reduce((acc, t) => {
-        if (!acc.find(x => x.id === t.id)) acc.push(t);
-        return acc;
-      }, []);
-
-      const priorityOrder = { high: 0, "High Priority": 0, medium: 1, "Medium Priority": 1, low: 2, "Low Priority": 2 };
-      merged.sort((a, b) => {
-        const pa = priorityOrder[a.priority] ?? 2;
-        const pb = priorityOrder[b.priority] ?? 2;
-        if (pa !== pb) return pa - pb;
-        return new Date(a.dueDate || "9999") - new Date(b.dueDate || "9999");
-      });
-
-      setSubtasks(merged.slice(0, 6));
-    } catch {
-      setSubtasks([]);
+      const res = await fetch(`http://127.0.0.1:5000/api/subtasks/${realId}/complete`, { method: 'PUT' });
+      if (res.ok) {
+        onUpdate(); // Trigger dashboard refresh to update progress bars!
+      }
+    } catch (error) {
+      console.error("Error completing subtask:", error);
+    } finally {
+      setIsCompleting(false);
     }
-  };
-
-  useEffect(() => {
-    loadSubtasks();
-    // Re-load when AI/Eisenhower pages save new subtasks
-    window.addEventListener("aiSubtasksSaved", loadSubtasks);
-    window.addEventListener("eisenhowerSaved", loadSubtasks);
-    window.addEventListener("focus", loadSubtasks);
-    return () => {
-      window.removeEventListener("aiSubtasksSaved", loadSubtasks);
-      window.removeEventListener("eisenhowerSaved", loadSubtasks);
-      window.removeEventListener("focus", loadSubtasks);
-    };
-  }, []);
-
-  const [checked, setChecked] = useState(() => {
-    try { return JSON.parse(localStorage.getItem("subtaskChecked") || "{}"); } catch { return {}; }
-  });
-
-  const toggleCheck = (id) => {
-    setChecked(prev => {
-      const next = { ...prev, [id]: !prev[id] };
-      localStorage.setItem("subtaskChecked", JSON.stringify(next));
-      return next;
-    });
   };
 
   const getPriorityStyle = (priority) => {
@@ -173,8 +186,6 @@ function UpcomingSubtasksCard() {
       return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
     } catch { return ds; }
   };
-
-  const completedCount = subtasks.filter(t => checked[t.id]).length;
 
   return (
     <div className="rounded-3xl p-7 shadow-sm" style={{ background: "#ffffff", border: "1px solid rgba(179,157,219,0.2)" }}>
@@ -212,24 +223,28 @@ function UpcomingSubtasksCard() {
         <div className="space-y-2">
           {subtasks.map(task => {
             const ps = getPriorityStyle(task.priority);
-            const done = !!checked[task.id];
+            const done = task.status === 'Completed';
             const dateLabel = formatDate(task.dueDate);
             return (
               <div key={task.id}
                 className="flex items-start gap-3 p-3.5 rounded-2xl transition-all group"
                 style={{ background: done ? "#fdf7fd" : "#fefefe", border: "1px solid rgba(179,157,219,0.12)", opacity: done ? 0.6 : 1 }}>
-                <button onClick={() => toggleCheck(task.id)} className="mt-0.5 flex-shrink-0 hover:scale-110 transition-transform">
+                <button 
+                  onClick={() => handleComplete(task.id, done)} 
+                  disabled={isCompleting || done}
+                  className={`mt-0.5 flex-shrink-0 transition-transform ${!done && !isCompleting ? 'hover:scale-110 cursor-pointer' : 'cursor-default'}`}
+                >
                   {done
                     ? <CheckCircle2 className="h-5 w-5" style={{ color: "#b39ddb" }} />
                     : <Circle className="h-5 w-5" style={{ color: "#d1c4e9" }} />}
                 </button>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium leading-snug"
+                  <p className="text-sm font-medium leading-snug truncate"
                     style={{ color: "#5a4a61", textDecoration: done ? "line-through" : "none" }}>
-                    {task.title || task.text}
+                    {task.title}
                   </p>
-                  {task.parentTask && (
-                    <p className="text-xs mt-0.5" style={{ color: "#9575a3" }}>From: {task.parentTask}</p>
+                  {task.notes && (
+                    <p className="text-xs mt-0.5 truncate" style={{ color: "#9575a3" }}>{task.notes}</p>
                   )}
                   <div className="flex items-center gap-2 mt-1.5 flex-wrap">
                     {dateLabel && (
@@ -238,12 +253,15 @@ function UpcomingSubtasksCard() {
                         <Calendar className="h-3 w-3" /> {dateLabel}
                       </span>
                     )}
-                    {task.timeSlot && (
+                    {task.time && (
                       <span className="flex items-center gap-1 text-xs" style={{ color: "#9575a3" }}>
-                        <Clock className="h-3 w-3" /> {task.timeSlot}
+                        <Clock className="h-3 w-3" /> {task.time}
                       </span>
                     )}
-                    <span className="text-xs px-2 py-0.5 rounded-full font-medium"
+                    {task.duration && (
+                      <span className="text-xs" style={{ color: "#9575a3" }}>{task.duration}</span>
+                    )}
+                    <span className="text-xs px-2 py-0.5 rounded-full font-medium ml-auto"
                       style={{ background: ps.badge, color: ps.badgeText }}>
                       {ps.label}
                     </span>
@@ -559,7 +577,10 @@ function Dashboard() {
               <CanvasIntegrationCard onConnected={loadDashboardData} />
 
               {/* ── NEW: Upcoming Subtasks ── */}
-              <UpcomingSubtasksCard />
+              <UpcomingSubtasksCard 
+                calendarEvents={upcomingAssignments} 
+                onUpdate={loadDashboardData} 
+              />
 
             </div>
 
