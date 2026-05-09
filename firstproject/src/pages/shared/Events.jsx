@@ -1,42 +1,84 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Search, X, Calendar as CalendarIcon, Trash2, PartyPopper } from 'lucide-react';
 import { EventCard, EventModal } from '../../components/CommunityComponents/EventCard.jsx';
+// ✨ IMPORT USER CONTEXT: So we know who is creating the event
+import { useUser } from '../../styles/SignInLandingPage/usercontext.jsx';
 
 function EventsPage({ isAdmin = false }) {
+  const { user } = useUser();
   const [search, setSearch] = useState('');
   const [selectedTag, setSelectedTag] = useState(null);
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [events, setEvents] = useState([]);
 
   const availableTags = ["OAP", "Wellness", "Ehsaas", "Workshop", "Mental Health", "Social"];
 
-  // CLEAN SLATE! Removed hardcoded events.
-  const [events, setEvents] = useState([]);
+  // ✨ FETCH EVENTS FROM DATABASE
+  const fetchEvents = async () => {
+    try {
+      const response = await fetch('http://localhost:5000/api/events');
+      if (response.ok) {
+        const data = await response.json();
+        setEvents(data);
+      }
+    } catch (error) {
+      console.error("Failed to fetch events:", error);
+    }
+  };
+
+  // Load events when the page opens
+  useEffect(() => {
+    fetchEvents();
+  }, []);
 
   const handleTagToggle = (tag) => {
     setSelectedTag(selectedTag === tag ? null : tag);
   };
 
-  const handleAddNewEvent = (newEvent) => {
-    const eventWithId = {
-      ...newEvent,
-      id: Date.now(),
-      attendees: 0,
-    };
-    setEvents([eventWithId, ...events]);
-    setShowAddModal(false);
+  // ✨ SEND NEW EVENT TO BACKEND
+  const handleAddNewEvent = async (newEvent) => {
+    try {
+      // Add the logged-in user's ID to the payload
+      const payload = { ...newEvent, created_by: user?.id };
+      
+      const response = await fetch('http://localhost:5000/api/events', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (response.ok) {
+        fetchEvents(); // Refresh the grid with the new database data!
+        setShowAddModal(false);
+      }
+    } catch (error) {
+      console.error("Failed to create event:", error);
+      alert("Failed to publish event. Ensure backend is running.");
+    }
   };
 
-  const handleDeleteEvent = (id) => {
+  // ✨ DELETE EVENT FROM BACKEND
+  const handleDeleteEvent = async (id) => {
     if (window.confirm("Are you sure you want to cancel/remove this event?")) {
-      setEvents(events.filter(event => event.id !== id));
+      try {
+        const response = await fetch(`http://localhost:5000/api/events/${id}`, {
+          method: 'DELETE'
+        });
+
+        if (response.ok) {
+          fetchEvents(); // Refresh the grid to remove it
+        }
+      } catch (error) {
+        console.error("Failed to delete event:", error);
+      }
     }
   };
 
   const filteredEvents = events.filter(event => {
     const matchesTag = selectedTag === null || event.tag === selectedTag;
     const matchesSearch = event.title.toLowerCase().includes(search.toLowerCase()) ||
-                          event.tag.toLowerCase().includes(search.toLowerCase());
+                          (event.tag && event.tag.toLowerCase().includes(search.toLowerCase()));
     return matchesTag && matchesSearch;
   });
 
@@ -162,6 +204,20 @@ function AddEventModal({ onClose, onSubmit, tags }) {
           <div>
             <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Event Title</label>
             <input required name="title" onChange={handleChange} className="w-full mt-1 px-4 py-2 border rounded-xl outline-none focus:border-[#B39DDB]" />
+          </div>
+
+          {/* ✨ ADDED: Category and Location Inputs! */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Category</label>
+              <select name="tag" value={formData.tag} onChange={handleChange} className="w-full mt-1 px-4 py-2 border rounded-xl outline-none focus:border-[#B39DDB] bg-white text-gray-600">
+                {tags.map(t => <option key={t} value={t}>{t}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Location</label>
+              <input required name="location" onChange={handleChange} className="w-full mt-1 px-4 py-2 border rounded-xl outline-none focus:border-[#B39DDB] text-gray-600" placeholder="e.g. Tariq Rafi" />
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
