@@ -45,29 +45,33 @@ function SupportSupport() {
           const data = await response.json();
           
           // 2. Map the real database info onto your beautiful UI design
-          const mappedStaff = data.map((member, index) => {
+          const mappedStaff = data.map((member) => {
              const isOAP = member.role === 'oap';
-             const isWellness = member.role === 'wellness-counsellor';
+             const isWellness = member.role === 'wellness' || member.role === 'wellness-counsellor';
+             // If it's not OAP or Wellness, it's Ehsas!
              
              return {
-                id: member.staff_id, // We need this to send appointment requests to the right person!
+                id: member.staff_id, 
                 staff_id: member.staff_id, 
                 name: member.name,
                 email: member.email,
-                department: member.department || 'Office of Academic Performance',
                 
-                // Formatting the role visually based on the DB string
+                // Dynamically set labels based on the role
+                department: isOAP ? 'Office of Academic Performance' : isWellness ? 'Wellness Services' : 'Ehsas Support',
                 role: isOAP ? 'OAP Advisor' : isWellness ? 'Wellness Counselor' : 'Ehsas Counselor',
-                icon: isOAP ? ShieldCheck : HeartPulse,
-                bgColor: isOAP ? "#B3DDB9" : isWellness ? "#CE93D8" : "#E1BEE7",
                 
-                // Keeping your dummy presentation data so the UI doesn't look empty
-                location: isOAP ? "Student Services, Room 205" : "Ehsas Office, Room 102",
+                // Assign distinct icons (using the ones you already imported at the top!)
+                icon: isOAP ? ShieldCheck : isWellness ? HeartPulse : Heart,
+                
+                // Assign distinct colors matching your quick contact cards
+                bgColor: isOAP ? "#B3DDB9" : isWellness ? "#E1BEE7" : "#CE93D8",
+                
+                location: isOAP ? "Student Services, Room 205" : isWellness ? "Wellness Center, 1st Floor" : "Ehsas Office, Room 102",
                 availability: "Mon-Fri 9:00 AM - 5:00 PM",
                 availability_status: "available",
-                about: "Academic support professional dedicated to student success and well-being.",
-                expertise: ["Academic Mentoring", "Student Support"],
-                batches: ["Class of 2025", "Class of 2026"],
+                about: `Dedicated professional supporting student ${isOAP ? 'academic success' : isWellness ? 'mental and physical well-being' : 'financial and social inclusion'}.`,
+                expertise: isOAP ? ["Academic Mentoring", "Course Planning"] : isWellness ? ["Mental Health", "Stress Management"] : ["Financial Aid", "Student Support"],
+                batches: ["Class of 2025", "Class of 2026", "Class of 2027", "Class of 2028"],
              };
           });
 

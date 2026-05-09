@@ -122,9 +122,13 @@ app.get('/api/oap/all-students', async (req, res) => {
                 u.id, 
                 u.full_name as name, 
                 u.email, 
-                sp.major
+                sp.major,
+                sp.oap_advisor_id,
+                sp.wellness_counsellor_id, 
+                oap_u.full_name as advisor_name
             FROM users u
             JOIN student_profiles sp ON u.id = sp.user_id
+            LEFT JOIN users oap_u ON sp.oap_advisor_id = oap_u.id
             WHERE u.role = 'student'
             ORDER BY u.full_name ASC
         `;
@@ -132,6 +136,71 @@ app.get('/api/oap/all-students', async (req, res) => {
         res.json(result.rows);
     } catch (err) {
         console.error("❌ Error fetching directory students:", err.message);
+        res.status(500).json({ error: "Server Error" });
+    }
+});
+
+// ==========================================
+// DYNAMIC ADVISOR ASSIGNMENT
+// ==========================================
+
+// 1. UPDATE STUDENT ADVISORS (Staff -> Student)
+app.put('/api/student/:userId/advisors', async (req, res) => {
+    try {
+        const { oapId, wellnessId } = req.body;
+
+        // ✨ THE SMART RESOLVER: Turns whatever ID the frontend sends into a valid 'users' table ID
+        const resolveToUserId = async (incomingId) => {
+            if (!incomingId) return null;
+            // Check 1: Is it already a valid user ID?
+            const userCheck = await pool.query("SELECT id FROM users WHERE id = $1", [incomingId]);
+            if (userCheck.rows.length > 0) return userCheck.rows[0].id;
+            // Check 2: If it's a staff_profile ID, grab the user_id attached to it!
+            const staffCheck = await pool.query("SELECT user_id FROM staff_profiles WHERE id = $1", [incomingId]);
+            if (staffCheck.rows.length > 0) return staffCheck.rows[0].user_id;
+            
+            throw new Error(`ID ${incomingId} could not be resolved to a valid user.`);
+        };
+
+        const finalOapId = await resolveToUserId(oapId);
+        const finalWellnessId = await resolveToUserId(wellnessId);
+
+        // ✨ FIXED: Double 'L' to match your database!
+        await pool.query(
+            "UPDATE student_profiles SET oap_advisor_id = $1, wellness_counsellor_id = $2 WHERE user_id = $3",
+            [finalOapId, finalWellnessId, req.params.userId]
+        );
+        res.json({ success: true });
+    } catch (err) {
+        console.error("❌ Error updating advisors:", err.message);
+        res.status(500).json({ error: "Server Error" });
+    }
+});
+
+// 2. GET ADVISORS FOR STUDENT DASHBOARD (Student View)
+app.get('/api/student-advisors/:userId', async (req, res) => {
+    try {
+        const query = `
+            SELECT 
+                oap_u.full_name as oap_name,
+                well_u.full_name as wellness_name
+            FROM student_profiles sp
+            LEFT JOIN users oap_u ON sp.oap_advisor_id = oap_u.id
+            LEFT JOIN users well_u ON sp.wellness_counsellor_id = well_u.id 
+            WHERE sp.user_id = $1
+        `;
+        const result = await pool.query(query, [req.params.userId]);
+        
+        if (result.rows.length > 0) {
+            res.json({
+                oap: result.rows[0].oap_name || "Not Assigned",
+                wellness: result.rows[0].wellness_name || "Not Assigned"
+            });
+        } else {
+            res.json({ oap: "Not Assigned", wellness: "Not Assigned" });
+        }
+    } catch (err) {
+        console.error("❌ Error fetching advisors:", err.message);
         res.status(500).json({ error: "Server Error" });
     }
 });
@@ -172,7 +241,7 @@ app.post('/api/requests/approve/:id', async (req, res) => {
                 "INSERT INTO focus_peer_profiles (id, user_id, is_available) VALUES (gen_random_uuid(), $1, true)", 
                 [newUserId]
             );
-        } else if (['oap', 'wellness-counsellor', 'ehsas-counsellor'].includes(pendingUser.role)) {
+        } else if (['oap', 'wellness', 'ehsas', 'wellness-counsellor', 'ehsas-counsellor'].includes(pendingUser.role)) {
             // Staff profiles usually use user_id, but if this throws an error too, we will know it needs changing!
             await pool.query(
                 "INSERT INTO staff_profiles (id, user_id, department, role) VALUES (gen_random_uuid(), $1, $2, $3)", 
@@ -780,6 +849,104 @@ app.post('/api/book-session', async (req, res) => {
 });
 
 // ==========================================
+// CANVAS LMS INTEGRATION
+// ==========================================
+app.post('/api/canvas/sync', async (req, res) => {
+    try {
+        const { token } = req.body;
+        if (!token) return res.status(400).json({ error: "Canvas token is required" });
+
+        const CANVAS_BASE_URL = "https://hulms.instructure.com/api/v1";
+        const headers = { 'Authorization': `Bearer ${token}` };
+
+        // 1. Fetch active courses for the student
+        const coursesResponse = await fetch(`${CANVAS_BASE_URL}/courses?enrollment_state=active&per_page=50`, { headers });
+        if (!coursesResponse.ok) throw new Error("Failed to authenticate with Canvas");
+        const courses = await coursesResponse.json();
+
+        let allAssignments = [];
+
+        // 2. Loop through courses and fetch upcoming assignments
+        for (const course of courses) {
+            // Skip restricted/unauthorized courses
+            if (!course.id || course.access_restricted_by_date) continue;
+
+            // Fetch assignments with future due dates
+            const assignRes = await fetch(`${CANVAS_BASE_URL}/courses/${course.id}/assignments?bucket=upcoming&per_page=20`, { headers });
+            
+            if (assignRes.ok) {
+                const assignments = await assignRes.json();
+                
+                // Format the data cleanly for the frontend
+                // Format the data cleanly for the frontend
+                const formatted = assignments.map(a => {
+                    let fileApiEndpoint = null;
+                    if (a.description) {
+                        // ✨ Catch the golden link before we destroy the HTML!
+                        const fileMatch = a.description.match(/data-api-endpoint="([^"]+)"/);
+                        if (fileMatch) fileApiEndpoint = fileMatch[1];
+                    }
+
+                    return {
+                        id: a.id,
+                        course_id: course.id,
+                        course_name: course.name || course.course_code,
+                        title: a.name,
+                        description: a.description ? a.description.replace(/<[^>]*>?/gm, '') : 'No description provided.',
+                        due_date: a.due_at,
+                        points_possible: a.points_possible,
+                        html_url: a.html_url,
+                        fileEndpoint: fileApiEndpoint // ✨ Send the link to the frontend
+                    };
+                });
+                allAssignments.push(...formatted);
+            }
+        }
+
+        // 3. Sort by due date (closest first)
+        allAssignments.sort((a, b) => new Date(a.due_date) - new Date(b.due_date));
+
+        res.json({ success: true, assignments: allAssignments });
+    } catch (err) {
+        console.error("❌ Canvas Sync Error:", err.message);
+        res.status(500).json({ error: "Failed to sync with Canvas LMS" });
+    }
+});
+
+// ✨ NEW: Proxies the Canvas file download so the frontend can turn it into a File object!
+app.post('/api/canvas/download', async (req, res) => {
+    try {
+        const { fileEndpoint, token } = req.body;
+        if (!fileEndpoint || !token) return res.status(400).json({ error: "Missing data" });
+
+        const headers = { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' };
+
+        // 1. Get the metadata (Using the logic from your test.js!)
+        const metaRes = await fetch(fileEndpoint, { headers });
+        if (!metaRes.ok) throw new Error("Failed to fetch metadata");
+        const metaData = await metaRes.json();
+
+        // 2. Download the actual file buffer
+        const fileRes = await fetch(metaData.url);
+        if (!fileRes.ok) throw new Error("Failed to download file");
+        
+        const arrayBuffer = await fileRes.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+
+        // 3. Send it as Base64 to the frontend
+        res.json({
+            fileName: metaData.display_name,
+            mimeType: metaData['content-type'] || 'application/pdf',
+            base64: buffer.toString('base64')
+        });
+    } catch (err) {
+        console.error("Canvas Download Error:", err);
+        res.status(500).json({ error: "Failed to download file" });
+    }
+});
+
+
+// ==========================================
 // FOCUS PEER SCHEDULE MANAGEMENT
 // ==========================================
 
@@ -1016,6 +1183,7 @@ app.get('/api/support-staff', async (req, res) => {
         const query = `
             SELECT 
                 sp.id as staff_id, 
+                u.id as user_id, 
                 u.full_name as name, 
                 u.email, 
                 sp.department, 
@@ -1100,6 +1268,58 @@ app.post('/api/appointments', async (req, res) => {
     }
 });
 
+// 2b. CREATE AN APPOINTMENT (Staff -> Student)
+app.post('/api/appointments/staff-to-student', async (req, res) => {
+    try {
+        const { staffUserId, studentUserId, subject, description, datetime } = req.body;
+
+        // 1. Resolve Staff ID
+        const staffQuery = "SELECT id FROM staff_profiles WHERE user_id = $1";
+        const staffResult = await pool.query(staffQuery, [staffUserId]);
+        if (staffResult.rows.length === 0) return res.status(404).json({ error: "Staff profile not found" });
+        const staffProfileId = staffResult.rows[0].id;
+
+        // 2. Resolve Student ID
+        const studentQuery = "SELECT id FROM student_profiles WHERE user_id = $1";
+        const studentResult = await pool.query(studentQuery, [studentUserId]);
+        if (studentResult.rows.length === 0) return res.status(404).json({ error: "Student profile not found" });
+        const studentProfileId = studentResult.rows[0].id;
+
+        // 3. Parse the incoming datetime string from the HTML date picker
+        const dateObj = new Date(datetime);
+        const formattedDate = dateObj.toISOString().split('T')[0];
+        
+        // Extract time and add 30 mins for the end_time
+        const startHours = dateObj.getHours().toString().padStart(2, '0');
+        const startMins = dateObj.getMinutes().toString().padStart(2, '0');
+        const parsedTime = `${startHours}:${startMins}:00`;
+
+        let endHours = dateObj.getHours();
+        let endMins = dateObj.getMinutes() + 30;
+        if (endMins >= 60) { endHours += 1; endMins -= 60; }
+        const parsedEndTime = `${endHours.toString().padStart(2, '0')}:${endMins.toString().padStart(2, '0')}:00`;
+
+        // 4. Insert auto-confirmed appointment
+        const insertQuery = `
+            INSERT INTO appointments 
+            (student_id, staff_id, title, description, notes, scheduled_date, start_time, end_time, status)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'confirmed')
+            RETURNING id
+        `;
+        
+        const note = "Scheduled directly by staff member.";
+        const result = await pool.query(insertQuery, [
+            studentProfileId, staffProfileId, subject, description, note, 
+            formattedDate, parsedTime, parsedEndTime
+        ]);
+
+        res.json({ success: true, appointmentId: result.rows[0].id });
+    } catch (err) {
+        console.error("❌ Error creating staff appointment:", err.message);
+        res.status(500).json({ error: "Server Error" });
+    }
+});
+
 // 3. GET APPOINTMENTS FOR SPECIFIC STAFF MEMBER (For OAP Scheduling Tab)
 app.get('/api/appointments/staff/:userId', async (req, res) => {
     try {
@@ -1146,6 +1366,31 @@ app.patch('/api/appointments/:id/status', async (req, res) => {
         res.json({ success: true });
     } catch (err) {
         console.error("❌ Error updating appointment:", err.message);
+        res.status(500).json({ error: "Server Error" });
+    }
+});
+
+// ==========================================
+// ALERTS MANAGEMENT (For the Alerts Tab)
+// ==========================================
+app.get('/api/alerts', async (req, res) => {
+    try {
+        const query = `
+            SELECT 
+                id, 
+                title, 
+                message as "studentName", 
+                TO_CHAR(created_at, 'YYYY-MM-DD HH24:MI') as date, 
+                'System' as "raisedBy",
+                'open' as status
+            FROM notifications 
+            WHERE notification_type = 'alert'
+            ORDER BY created_at DESC
+        `;
+        const result = await pool.query(query);
+        res.json(result.rows);
+    } catch (err) {
+        console.error("❌ Error fetching alerts:", err.message);
         res.status(500).json({ error: "Server Error" });
     }
 });
@@ -1911,7 +2156,7 @@ app.post('/api/ai/chat', async (req, res) => {
         
         // ✨ THE FIX: We explicitly define and initialize the AI right here!
         const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+        const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
 
         // Compile the chat history into a single prompt for Gemini
         let fullPrompt = `${systemPrompt}\n\n--- CHAT HISTORY ---\n`;

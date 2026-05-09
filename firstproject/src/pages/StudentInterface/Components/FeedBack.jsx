@@ -1,52 +1,65 @@
 import { useState, useEffect } from 'react';
 import { Loader } from 'lucide-react';
 import FeedbackCard from './FeedBackCard';
+// ✨ FIXED 1: Import the user context so we know who is actually logged in!
+import { useUser } from '../../../styles/SignInLandingPage/usercontext.jsx'; 
 
 function FeedBack() {
-  // Ushna's user ID
-  const STUDENT_USER_ID = "a1111111-1111-1111-1111-111111111111";
+  const { user } = useUser(); // ✨ FIXED 2: Grab the real student
   
   const [feedbacks, setFeedbacks] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    fetchFeedback();
-  }, []);
+    // Only fetch if the user is fully loaded
+    if (user && user.id) {
+      fetchFeedback();
+    }
+  }, [user]);
 
   const fetchFeedback = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch(`http://localhost:5000/api/student-feedback/${STUDENT_USER_ID}`);
+      // ✨ FIXED 3: Use the real student's ID in the API call
+      const response = await fetch(`http://localhost:5000/api/student-feedback/${user.id}`);
       const data = await response.json();
       
       console.log('📬 Received feedback:', data);
       
+      // ✨ FIXED 4: The Safety Catch! If the backend sends an error object instead of an array, stop here.
+      if (!Array.isArray(data)) {
+        console.warn('Backend did not return an array. It returned:', data);
+        setFeedbacks([]); // Force it to be an empty array so the screen doesn't crash
+        setIsLoading(false);
+        return;
+      }
+      
       // Format data for display
       const formatted = data.map((feedback, index) => {
-        // Get peer initials
+        // Get peer initials safely
         const initials = feedback.peer_name
-          .split(' ')
-          .map(n => n[0])
-          .join('')
-          .substring(0, 2)
-          .toUpperCase();
+          ? feedback.peer_name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()
+          : "??";
         
         // Random avatar color (deterministic based on peer name)
         const colors = ['cyan', 'purple', 'pink', 'green', 'orange', 'blue'];
-        const colorIndex = feedback.peer_name.charCodeAt(0) % colors.length;
+        const colorIndex = feedback.peer_name ? feedback.peer_name.charCodeAt(0) % colors.length : 0;
         const avatarColor = colors[colorIndex];
         
-        // Format date
-        const [year, month, day] = feedback.session_date.split('-');
-        const dateObj = new Date(year, month - 1, day);
-        const dateStr = dateObj.toLocaleDateString('en-US', { 
-          weekday: 'short',
-          month: 'short', 
-          day: 'numeric' 
-        });
+        // Format date safely
+        let dateStr = "Unknown Date";
+        if (feedback.session_date) {
+          const [year, month, day] = feedback.session_date.split('-');
+          const dateObj = new Date(year, month - 1, day);
+          dateStr = dateObj.toLocaleDateString('en-US', { 
+            weekday: 'short',
+            month: 'short', 
+            day: 'numeric' 
+          });
+        }
         
-        // Get badge names
-        const badgeNames = feedback.badge_details.map(b => b.name);
+        // Get badge names safely
+        const badgeNames = feedback.badge_details ? feedback.badge_details.map(b => b.name) : [];
         const badgeCount = badgeNames.length;
         
         // Calculate points (10 per badge)
@@ -54,7 +67,7 @@ function FeedBack() {
         
         return {
           id: feedback.id,
-          peerName: feedback.peer_name,
+          peerName: feedback.peer_name || "Unknown Peer",
           initials,
           avatarColor,
           points,
@@ -69,6 +82,7 @@ function FeedBack() {
       setIsLoading(false);
     } catch (error) {
       console.error("Error fetching feedback:", error);
+      setFeedbacks([]); // Fallback to empty so it doesn't crash
       setIsLoading(false);
     }
   };

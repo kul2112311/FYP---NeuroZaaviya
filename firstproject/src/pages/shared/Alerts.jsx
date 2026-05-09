@@ -1,5 +1,5 @@
 import { Search, Bell, ChevronDown, ChevronUp, ShieldCheck } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import AlertCard from '../../components/CommunityComponents/AlertCard.jsx';
 
 // ── Palette ───────────────────────────────────────────────────────────────────
@@ -149,28 +149,41 @@ function StatusSection({ statusKey, alerts, onStatusChange }) {
 
 // ── Main ──────────────────────────────────────────────────────────────────────
 function Alerts() {
-  // CLEAN SLATE! No more INITIAL_ALERTS
   const [alerts, setAlerts] = useState([]);
-  
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
 
-  const handleStatusChange = (id, newStatus) => {
-    setAlerts(prev =>
-      prev.map(a => a.id === id ? { ...a, status: newStatus } : a)
-    );
-  };
+  // ✨ NEW: Fetch the alerts from the database when the page loads!
+  useEffect(() => {
+    const fetchAlerts = async () => {
+      try {
+        const res = await fetch('http://127.0.0.1:5000/api/alerts');
+        if (res.ok) {
+          const data = await res.json();
+          setAlerts(data);
+        }
+      } catch (err) {
+        console.error("Failed to load alerts:", err);
+      }
+    };
+    fetchAlerts();
+  }, []);
 
   const filtered = alerts.filter(alert => {
     const q = search.toLowerCase();
     const searchMatch =
       !search ||
-      alert.studentName.toLowerCase().includes(q) ||
-      alert.title.toLowerCase().includes(q) ||
-      alert.raisedBy.toLowerCase().includes(q);
+      (alert.studentName && alert.studentName.toLowerCase().includes(q)) ||
+      (alert.title && alert.title.toLowerCase().includes(q)) ||
+      (alert.raisedBy && alert.raisedBy.toLowerCase().includes(q));
     const statusMatch = !statusFilter || alert.status === statusFilter;
     return searchMatch && statusMatch;
   });
+
+  // ✨ FIXED: The function to update the status dropdown on the cards
+  const handleStatusChange = (id, newStatus) => {
+    setAlerts(prev => prev.map(a => a.id === id ? { ...a, status: newStatus } : a));
+  };
 
   const byStatus = s => filtered.filter(a => a.status === s);
 

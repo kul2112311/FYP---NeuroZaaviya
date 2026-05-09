@@ -39,15 +39,17 @@ function OAPDashboard() {
   const openAlerts = stats.openAlerts;
 
   return (
-    <div className="min-h-screen p-6 md:p-8">
-      <div className="max-w-full mx-auto">
-        {/* Header Section */}
-        <div className="mb-6 md:mb-8">
-          <h1 className="text-2xl md:text-3xl font-bold" style={{ color: '#2d2d3a' }}>
-            Welcome back, {user?.name || 'Admin'}!
+    <div className="p-8 max-w-7xl mx-auto">
+      {/* Header Section */}
+      <div className="flex justify-between items-center mb-8">
+        <div>
+          <h1 className="text-3xl font-bold" style={{ color: '#2d2d3a' }}>
+            Welcome back, {user?.name || 'Admin'} '✨!
           </h1>
           <p className="text-sm mt-1" style={{ color: '#9575a3' }}>Here is your live overview of the student body.</p>
         </div>
+        
+      </div>
 
         {/* Quick Stats - Now reflecting reality! */}
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-6 mb-6 md:mb-8">
