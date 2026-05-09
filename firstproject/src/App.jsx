@@ -175,7 +175,14 @@ function AppContent() {
             <Route path="/accomodations" element={<Accommodations />} />
             <Route path="/alerts" element={<Alert />} />
             <Route path="/scheduling" element={<Scheduling />} />
-            <Route path="/events" element={<Events />} />
+           <Route 
+    path="/events" 
+    element={
+      ['oap', 'ehsas-counsellor', 'wellness-counsellor'].includes(safeRole) 
+        ? <AdminInterfaceEvent /> 
+        : <Events />
+    } 
+  />
             <Route path="/calendar" element={<SuperCalendarPage />} />
             <Route path="/deep-work" element={<DeepWorkSession />} />
             <Route path="/ehsas-fp-management" element={<Focuspeermanagement />} />
