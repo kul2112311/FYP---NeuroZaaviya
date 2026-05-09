@@ -325,6 +325,66 @@ app.post('/api/auth/login', async (req, res) => {
 
 
 // ==========================================
+// UNIVERSITY EVENTS API
+// ==========================================
+
+// 1. GET ALL EVENTS
+app.get('/api/events', async (req, res) => {
+    try {
+        // Fetch events and order them by date
+        const query = `
+            SELECT 
+                id, title, description, location, category as tag, 
+                event_date as date, start_time as time, requirements, 
+                registered_count as attendees, created_by
+            FROM university_events
+            ORDER BY event_date ASC, start_time ASC
+        `;
+        const result = await pool.query(query);
+        res.json(result.rows);
+    } catch (err) {
+        console.error("❌ Error fetching events:", err.message);
+        res.status(500).json({ error: "Server Error" });
+    }
+});
+
+// 2. CREATE NEW EVENT
+app.post('/api/events', async (req, res) => {
+    try {
+        const { title, tag, date, time, location, description, requirements, created_by } = req.body;
+        
+        // ✨ FIXED: Added 'id' to the columns and 'gen_random_uuid()' to the values!
+        const insertQuery = `
+            INSERT INTO university_events 
+            (id, title, category, event_date, start_time, location, description, requirements, created_by)
+            VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, $8)
+            RETURNING id
+        `;
+        
+        const result = await pool.query(insertQuery, [
+            title, tag, date, time, location, description, requirements, created_by
+        ]);
+
+        res.json({ success: true, eventId: result.rows[0].id });
+    } catch (err) {
+        console.error("❌ Error creating event:", err.message);
+        res.status(500).json({ error: "Server Error" });
+    }
+});
+
+// 3. DELETE EVENT
+app.delete('/api/events/:id', async (req, res) => {
+    try {
+        await pool.query("DELETE FROM university_events WHERE id = $1", [req.params.id]);
+        res.json({ success: true });
+    } catch (err) {
+        console.error("❌ Error deleting event:", err.message);
+        res.status(500).json({ error: "Server Error" });
+    }
+});
+
+
+// ==========================================
 // OAP DASHBOARD STATS
 // ==========================================
 app.get('/api/oap/dashboard-stats/:userId', async (req, res) => {

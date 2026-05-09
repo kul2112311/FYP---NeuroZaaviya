@@ -4,15 +4,28 @@ import Session from "./Components/Session.jsx";
 import Schedule from "./Components/Schedule.jsx";
 import UpcomingCheckups from "./Components/CheckIns.jsx";
 
+// ✨ NEW: Import the user context to get the logged-in person's name!
+import { useUser } from "../../styles/SignInLandingPage/usercontext.jsx";
+
 function FocusPeerSide(){
-    const [activeTab, setActiveTab] = useState('My Schedule');  // Fix initial state
+    const { user } = useUser(); // ✨ Grab the user data
+    const [activeTab, setActiveTab] = useState('My Schedule');  
     
     return(
         <>
-            <div className="focuspeer-container">
-                <div className="focuspeer-content">
-                    <h1>FocusPeer DashBoard</h1>
-                    <p>Welcome to your FocusPeer dashboard! Here, you can manage your sessions, view upcoming bookings, and track your feedback. Stay organized and provide the best support to your peers!</p>
+            {/* Added some padding and spacing so it breathes nicely on the page */}
+            <div className="focuspeer-container p-8 max-w-7xl mx-auto space-y-6 w-[80vw]">
+                
+                {/* ✨ FIXED: New aesthetic welcome card matching the main Dashboard! */}
+                <div className="rounded-3xl p-8 shadow-sm mb-6" style={{ background: "#ffffff", border: "1px solid rgba(179,157,219,0.2)" }}>
+                    <div>
+                        <h1 className="text-3xl font-semibold mb-2" style={{ color: "#5a4a61" }}>
+                            Welcome back, {user?.name?.split(' ')[0] || 'FocusPeer'}! ✨
+                        </h1>
+                        <p style={{ color: "#9575a3" }}>
+                            Manage your sessions, view upcoming bookings, and track your feedback. Thank you for providing the best support to your peers! 💜
+                        </p>
+                    </div>
                 </div>
                 
                 <div className="focuspeer-tabs">

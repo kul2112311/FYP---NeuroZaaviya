@@ -41,14 +41,13 @@ function OAPDashboard() {
   return (
     <div className="p-8 max-w-7xl mx-auto">
       {/* Header Section */}
-      <div className="flex justify-between items-center mb-8">
+      <div className="rounded-3xl p-8 shadow-sm mb-8" style={{ background: "#ffffff", border: "1px solid rgba(179,157,219,0.2)" }}>
         <div>
-          <h1 className="text-3xl font-bold" style={{ color: '#2d2d3a' }}>
-            Welcome back, {user?.name || 'Admin'} '✨!
+          <h1 className="text-3xl font-semibold mb-2" style={{ color: '#5a4a61' }}>
+            Welcome back, {user?.name?.split(' ')[0] + ' ' + user?.name?.split(' ')[1] || 'Admin'}! ✨
           </h1>
-          <p className="text-sm mt-1" style={{ color: '#9575a3' }}>Here is your live overview of the student body.</p>
+          <p style={{ color: '#9575a3' }}>Here is your live overview of the student body.</p>
         </div>
-        
       </div>
 
       {/* Quick Stats - Now reflecting reality! */}

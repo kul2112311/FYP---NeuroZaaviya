@@ -50,8 +50,9 @@ export default function CanvasAssignmentsPage() {
   };
 
   return (
-    <div className="min-h-screen p-8" style={{ background: "#f5eef8" }}>
-      <div className="max-w-4xl mx-auto space-y-6">
+    <div className="min-h-screen p-8 flex flex-col items-center" style={{ background: "#f5eef8" }}>
+      {/* ✨ FIXED: Matched the width to your other pages (80vw) and increased max width! */}
+      <div className="max-w-7xl mx-auto space-y-6 w-[80vw]">
         
         {/* Header */}
         <button
