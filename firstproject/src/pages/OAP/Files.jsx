@@ -174,7 +174,7 @@ function Files() {
               style={{ backgroundColor: '#B39DDB' }}
             >
               <Upload size={16} />
-              Upload to Folder
+              Upload File
             </button>
           </div>
 
@@ -209,7 +209,7 @@ function Files() {
                   className="mt-4 px-4 py-2 rounded-xl text-white text-sm hover:opacity-90"
                   style={{ backgroundColor: '#B39DDB' }}
                 >
-                  Upload a file
+                  Upload a Folder
                 </button>
               </div>
             ) : (
@@ -264,7 +264,7 @@ function Files() {
               style={{ backgroundColor: '#B39DDB' }}
             >
               <Upload size={16} />
-              Upload File
+              Upload Folder
             </button>
           </div>
 

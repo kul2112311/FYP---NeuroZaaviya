@@ -81,7 +81,11 @@ function StudentDirectoryCard({ student, onSchedule}) {
 
         {/* Actions - Using #B39DDB */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <ActionButton icon={<Mail size={18} />} label="Send Email" />
+          <ActionButton 
+            icon={<Mail size={18} />} 
+            label="Send Email" 
+            onClick={() => window.open(`https://outlook.office.com/mail/deeplink/compose?to=${student.email}`, '_blank', 'noopener,noreferrer')} 
+          />
           {/* ✨ Passed the onSchedule prop into the onClick handler! */}
           <ActionButton icon={<Calendar size={18} />} label="Schedule" onClick={onSchedule} />
           <ActionButton icon={<ClipboardList size={18} />} label="Records" />
