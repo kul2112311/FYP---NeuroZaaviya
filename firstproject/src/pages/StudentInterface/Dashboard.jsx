@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import {
   Star, Award, TrendingUp, Calendar, ChevronLeft, ChevronRight,
   Sparkles, Brain, Grid3x3, Clock, Link2, CheckCircle2, Circle,
-  AlertCircle, BookOpen, Zap
+  AlertCircle, BookOpen, Zap, Edit2, X, Check
 } from "lucide-react";
 import { useUser } from "../../styles/SignInLandingPage/usercontext.jsx";
 
@@ -307,6 +307,8 @@ function Dashboard() {
     } catch { return []; }
   });
   const [newTask, setNewTask] = useState("");
+  const [editingId, setEditingId] = useState(null);
+  const [editText, setEditText] = useState("");
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(null);
 
@@ -385,13 +387,6 @@ function Dashboard() {
     })
     .slice(0, 5);
 
-  const badges = [
-    { name: "Early Bird",    bgColor: "#f8bbd0", icon: Star },
-    { name: "Study Streak",  bgColor: "#b39ddb", icon: Award },
-    { name: "Progress Hero", bgColor: "#4ade80", icon: TrendingUp },
-    { name: "Motivation",    bgColor: "#e57373", icon: Sparkles },
-  ];
-
   const getPriorityColor = (priority) => {
     if (priority === "High Priority")   return { bg: "#ffebee", text: "#c62828" };
     if (priority === "Medium Priority") return { bg: "#fff8e1", text: "#f57c00" };
@@ -443,9 +438,38 @@ function Dashboard() {
       setNewTask("");
     }
   };
+  
   const handleToggleTask = (id) => setTasks(tasks.map(t => t.id === id ? { ...t, completed: !t.completed } : t));
+  
   const handleDeleteTask = (id) => setTasks(tasks.filter(t => t.id !== id));
-  const handleEnterKey   = (e) => e.key === "Enter" && handleAddTask();
+  
+  const handleEditTask = (id) => {
+    const task = tasks.find(t => t.id === id);
+    if (task) {
+      setEditingId(id);
+      setEditText(task.text);
+    }
+  };
+  
+  const handleSaveEdit = (id) => {
+    if (editText.trim()) {
+      setTasks(tasks.map(t => t.id === id ? { ...t, text: editText } : t));
+    }
+    setEditingId(null);
+    setEditText("");
+  };
+  
+  const handleCancelEdit = () => {
+    setEditingId(null);
+    setEditText("");
+  };
+  
+  const handleEnterKey = (e) => e.key === "Enter" && handleAddTask();
+  
+  const handleEditEnterKey = (e, id) => {
+    if (e.key === "Enter") handleSaveEdit(id);
+    if (e.key === "Escape") handleCancelEdit();
+  };
 
   return (
     <>
@@ -470,17 +494,6 @@ function Dashboard() {
                     <span>Wellness Counselor: <strong style={{ color: "#5a4a61" }}>{myAdvisors.wellness}</strong></span>
                   </div>
                 </div>
-              </div>
-              <div className="flex gap-3">
-                {badges.map((badge, idx) => (
-                  <div key={idx} className="flex flex-col items-center gap-2 p-4 rounded-2xl shadow-md hover:scale-105 transition-transform cursor-pointer"
-                    style={{ background: badge.bgColor }}>
-                    <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ background: "rgba(255,255,255,0.9)" }}>
-                      <badge.icon className="h-6 w-6" style={{ color: "#b39ddb" }} />
-                    </div>
-                    <span className="text-xs font-medium text-center text-white">{badge.name}</span>
-                  </div>
-                ))}
               </div>
             </div>
           </div>
@@ -683,15 +696,50 @@ function Dashboard() {
                       onMouseEnter={e => e.currentTarget.style.background = "#f3e5f5"}
                       onMouseLeave={e => e.currentTarget.style.background = task.completed ? "#f3e5f5" : "transparent"}>
                       <input type="checkbox" checked={task.completed} onChange={() => handleToggleTask(task.id)}
-                        className="w-5 h-5 rounded cursor-pointer" style={{ accentColor: "#b39ddb" }} />
-                      <span className="flex-1 text-sm"
-                        style={{ textDecoration: task.completed ? "line-through" : "none", color: task.completed ? "#9575a3" : "#5a4a61" }}>
-                        {task.text}
-                      </span>
-                      <button onClick={() => handleDeleteTask(task.id)}
-                        className="opacity-0 group-hover:opacity-100 text-xs transition-opacity" style={{ color: "#e57373" }}>
-                        Delete
-                      </button>
+                        className="w-5 h-5 rounded cursor-pointer flex-shrink-0" style={{ accentColor: "#b39ddb" }} />
+                      
+                      {editingId === task.id ? (
+                        <input
+                          type="text"
+                          value={editText}
+                          onChange={e => setEditText(e.target.value)}
+                          onKeyDown={e => handleEditEnterKey(e, task.id)}
+                          className="flex-1 px-3 py-1 rounded-lg text-sm focus:outline-none"
+                          style={{ background: "#fdf7fd", border: "1px solid rgba(179,157,219,0.3)", color: "#5a4a61" }}
+                          autoFocus
+                        />
+                      ) : (
+                        <span className="flex-1 text-sm"
+                          style={{ textDecoration: task.completed ? "line-through" : "none", color: task.completed ? "#9575a3" : "#5a4a61" }}>
+                          {task.text}
+                        </span>
+                      )}
+                      
+                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        {editingId === task.id ? (
+                          <>
+                            <button onClick={() => handleSaveEdit(task.id)}
+                              className="p-1 rounded hover:bg-green-100 transition-colors" title="Save">
+                              <Check className="h-4 w-4" style={{ color: "#2e7d32" }} />
+                            </button>
+                            <button onClick={handleCancelEdit}
+                              className="p-1 rounded hover:bg-gray-100 transition-colors" title="Cancel">
+                              <X className="h-4 w-4" style={{ color: "#9575a3" }} />
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            <button onClick={() => handleEditTask(task.id)}
+                              className="p-1 rounded hover:bg-blue-100 transition-colors" title="Edit">
+                              <Edit2 className="h-4 w-4" style={{ color: "#42a5f5" }} />
+                            </button>
+                            <button onClick={() => handleDeleteTask(task.id)}
+                              className="p-1 rounded hover:bg-red-100 transition-colors" title="Delete">
+                              <X className="h-4 w-4" style={{ color: "#e57373" }} />
+                            </button>
+                          </>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>
