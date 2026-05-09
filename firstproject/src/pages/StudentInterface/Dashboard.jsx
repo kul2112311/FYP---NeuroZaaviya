@@ -295,6 +295,7 @@ function Dashboard() {
   const { user } = useUser();
 
   const [view, setView] = useState("week");
+  const [myAdvisors, setMyAdvisors] = useState({ oap: "Assigning...", wellness: "Assigning..." });
   const [tasks, setTasks] = useState(() => {
     try {
       const s = localStorage.getItem("dashboardTodos");
@@ -320,6 +321,8 @@ function Dashboard() {
       if (calRes.ok) setUpcomingAssignments(await calRes.json());
       const taskRes = await fetch(`http://127.0.0.1:5000/api/tasks/upcoming/${userId}`);
       if (taskRes.ok) setMainTasks(await taskRes.json());
+      const advRes = await fetch(`http://127.0.0.1:5000/api/student-advisors/${userId}`);
+      if (advRes.ok) setMyAdvisors(await advRes.json());
     } catch (error) {
       console.error("Failed to load dashboard data:", error);
     }
@@ -460,11 +463,11 @@ function Dashboard() {
                 <div className="flex gap-6 text-sm" style={{ color: "#9575a3" }}>
                   <div className="flex items-center gap-2">
                     <span className="w-2 h-2 rounded-full" style={{ background: "#5a4a61" }} />
-                    <span>OAP Advisor: <strong style={{ color: "#5a4a61" }}>Dr. Fatima Khan</strong></span>
+                    <span>OAP Advisor: <strong style={{ color: "#5a4a61" }}>{myAdvisors.oap}</strong></span>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="w-2 h-2 rounded-full" style={{ background: "#4ade80" }} />
-                    <span>Wellness Counsellor: <strong style={{ color: "#5a4a61" }}>Sara Ali</strong></span>
+                    <span>Wellness Counselor: <strong style={{ color: "#5a4a61" }}>{myAdvisors.wellness}</strong></span>
                   </div>
                 </div>
               </div>

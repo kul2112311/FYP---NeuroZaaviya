@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { ChevronUp, ChevronDown, Mail, Calendar, ClipboardList, User, BookOpen, GraduationCap } from "lucide-react";
 
-function StudentDirectoryCard({ student, onSchedule}) {
+function StudentDirectoryCard({ student, onSchedule, onAdvisors}) {
   const [showDetails, setShowDetails] = useState(false);
 
   const getInitial = (name) => (name ? name.charAt(0).toUpperCase() : "?");
@@ -88,7 +88,7 @@ function StudentDirectoryCard({ student, onSchedule}) {
           />
           {/* ✨ Passed the onSchedule prop into the onClick handler! */}
           <ActionButton icon={<Calendar size={18} />} label="Schedule" onClick={onSchedule} />
-          <ActionButton icon={<ClipboardList size={18} />} label="Records" />
+          <ActionButton icon={<ClipboardList size={18} />} label="Advisors" onClick={onAdvisors} />
         </div>
       </div>
     );

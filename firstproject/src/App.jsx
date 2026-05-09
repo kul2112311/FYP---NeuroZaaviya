@@ -34,6 +34,7 @@ import ChatPage from "./pages/shared/Chats/ChatPage.jsx";
 import SupportSupport from './pages/shared/StudentSupport.jsx';
 import CanvasIntegrationPage from './pages/StudentInterface/CanvasIntegrationPage.jsx';
 import CanvasAssignmentsPage from './pages/StudentInterface/style/CanvasAssignmentsPage.jsx';
+import { RefreshProvider } from './styles/SignInLandingPage/RefreshContext.jsx'; // check your path!
 
 const menuConfig = {
   student: [
@@ -195,7 +196,9 @@ function App() {
     <UserProvider>
       <BrowserRouter>
         <AuthProvider>
-          <AppContent />
+          <RefreshProvider>
+            <AppContent />
+          </RefreshProvider>
         </AuthProvider>
       </BrowserRouter>
     </UserProvider>

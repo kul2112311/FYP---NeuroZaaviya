@@ -122,9 +122,13 @@ app.get('/api/oap/all-students', async (req, res) => {
                 u.id, 
                 u.full_name as name, 
                 u.email, 
-                sp.major
+                sp.major,
+                sp.oap_advisor_id,
+                sp.wellness_counsellor_id, 
+                oap_u.full_name as advisor_name
             FROM users u
             JOIN student_profiles sp ON u.id = sp.user_id
+            LEFT JOIN users oap_u ON sp.oap_advisor_id = oap_u.id
             WHERE u.role = 'student'
             ORDER BY u.full_name ASC
         `;
@@ -132,6 +136,71 @@ app.get('/api/oap/all-students', async (req, res) => {
         res.json(result.rows);
     } catch (err) {
         console.error("❌ Error fetching directory students:", err.message);
+        res.status(500).json({ error: "Server Error" });
+    }
+});
+
+// ==========================================
+// DYNAMIC ADVISOR ASSIGNMENT
+// ==========================================
+
+// 1. UPDATE STUDENT ADVISORS (Staff -> Student)
+app.put('/api/student/:userId/advisors', async (req, res) => {
+    try {
+        const { oapId, wellnessId } = req.body;
+
+        // ✨ THE SMART RESOLVER: Turns whatever ID the frontend sends into a valid 'users' table ID
+        const resolveToUserId = async (incomingId) => {
+            if (!incomingId) return null;
+            // Check 1: Is it already a valid user ID?
+            const userCheck = await pool.query("SELECT id FROM users WHERE id = $1", [incomingId]);
+            if (userCheck.rows.length > 0) return userCheck.rows[0].id;
+            // Check 2: If it's a staff_profile ID, grab the user_id attached to it!
+            const staffCheck = await pool.query("SELECT user_id FROM staff_profiles WHERE id = $1", [incomingId]);
+            if (staffCheck.rows.length > 0) return staffCheck.rows[0].user_id;
+            
+            throw new Error(`ID ${incomingId} could not be resolved to a valid user.`);
+        };
+
+        const finalOapId = await resolveToUserId(oapId);
+        const finalWellnessId = await resolveToUserId(wellnessId);
+
+        // ✨ FIXED: Double 'L' to match your database!
+        await pool.query(
+            "UPDATE student_profiles SET oap_advisor_id = $1, wellness_counsellor_id = $2 WHERE user_id = $3",
+            [finalOapId, finalWellnessId, req.params.userId]
+        );
+        res.json({ success: true });
+    } catch (err) {
+        console.error("❌ Error updating advisors:", err.message);
+        res.status(500).json({ error: "Server Error" });
+    }
+});
+
+// 2. GET ADVISORS FOR STUDENT DASHBOARD (Student View)
+app.get('/api/student-advisors/:userId', async (req, res) => {
+    try {
+        const query = `
+            SELECT 
+                oap_u.full_name as oap_name,
+                well_u.full_name as wellness_name
+            FROM student_profiles sp
+            LEFT JOIN users oap_u ON sp.oap_advisor_id = oap_u.id
+            LEFT JOIN users well_u ON sp.wellness_counsellor_id = well_u.id 
+            WHERE sp.user_id = $1
+        `;
+        const result = await pool.query(query, [req.params.userId]);
+        
+        if (result.rows.length > 0) {
+            res.json({
+                oap: result.rows[0].oap_name || "Not Assigned",
+                wellness: result.rows[0].wellness_name || "Not Assigned"
+            });
+        } else {
+            res.json({ oap: "Not Assigned", wellness: "Not Assigned" });
+        }
+    } catch (err) {
+        console.error("❌ Error fetching advisors:", err.message);
         res.status(500).json({ error: "Server Error" });
     }
 });
@@ -1111,25 +1180,10 @@ app.patch('/api/sessions/:sessionId/status', async (req, res) => {
 // 1. GET ALL SUPPORT STAFF (For Student "Support" Tab)
 app.get('/api/support-staff', async (req, res) => {
     try {
-        // ✨ AUTO-HEAL: Safely translate the short roles into the strict names the DB demands
-        await pool.query(`
-            INSERT INTO staff_profiles (id, user_id, department, role)
-            SELECT gen_random_uuid(), id, 
-                CASE WHEN role = 'oap' THEN 'OAP' ELSE 'Wellness/Ehsas' END, 
-                CASE 
-                    WHEN role = 'wellness' THEN 'wellness-counsellor'
-                    WHEN role = 'ehsas' THEN 'ehsas-counsellor'
-                    ELSE role 
-                END
-            FROM users 
-            WHERE role IN ('oap', 'wellness', 'ehsas', 'wellness-counsellor', 'ehsas-counsellor')
-            AND NOT EXISTS (SELECT 1 FROM staff_profiles WHERE user_id = users.id)
-        `);
-
-        // Now fetch the directory safely
         const query = `
             SELECT 
                 sp.id as staff_id, 
+                u.id as user_id, 
                 u.full_name as name, 
                 u.email, 
                 sp.department, 

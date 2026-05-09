@@ -8,8 +8,9 @@ export function AuthProvider({ children }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
-    const savedUser = localStorage.getItem("nz_auth_user");
-    const token = localStorage.getItem("nz_token");
+    // ✨ CHANGED to sessionStorage
+    const savedUser = sessionStorage.getItem("nz_auth_user");
+    const token = sessionStorage.getItem("nz_token");
     
     if (savedUser && token) {
       try { 
@@ -30,8 +31,8 @@ export function AuthProvider({ children }) {
       const data = await response.json();
 
       if (response.ok && data.success) {
-        localStorage.setItem("nz_token", data.token);
-        localStorage.setItem("nz_auth_user", JSON.stringify(data.user));
+        sessionStorage.setItem("nz_token", data.token);
+        sessionStorage.setItem("nz_auth_user", JSON.stringify(data.user));
         setUser(data.user);
         setIsAuthenticated(true);
         window.location.href = '/';
@@ -46,8 +47,8 @@ export function AuthProvider({ children }) {
   };
 
   const signOut = () => {
-    localStorage.removeItem("nz_token");
-    localStorage.removeItem("nz_auth_user");
+    sessionStorage.removeItem("nz_token");
+    sessionStorage.removeItem("nz_auth_user");
     setIsAuthenticated(false);
     setUser(null);
     window.location.href = '/';
