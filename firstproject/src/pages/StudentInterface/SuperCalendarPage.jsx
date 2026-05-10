@@ -2,10 +2,8 @@ import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   ChevronLeft, ChevronRight, Calendar, Clock, TrendingUp,
-  Sparkles, X, Edit2, CheckCircle2, AlertCircle, Flame, Target,
-  Zap, ListTodo, Filter, ChevronDown, Check, SlidersHorizontal,
-  UserCheck, Heart, HeartHandshake, Shield, BookOpen, ClipboardList,
-  FileQuestion, Users, Eye, EyeOff,
+  Sparkles, X, Edit2, UserCheck, Heart, HeartHandshake, Shield, 
+  BookOpen, ClipboardList, FileQuestion, Users, ListTodo
 } from "lucide-react";
 import { useUser } from "../../styles/SignInLandingPage/usercontext.jsx";
 
@@ -23,9 +21,7 @@ const C = {
   white:     "#FFFFFF",
 };
 
-// ── Filter category definitions ───────────────────────────────────────────────
-// Each category has: id, label, icon, color, bg, description
-// "type" field is what we match against assignment.type in data
+// ── Category definitions (Used for styling and legend) ─────────────────────────
 const FILTER_CATEGORIES = [
   {
     group: "Appointments",
@@ -33,7 +29,7 @@ const FILTER_CATEGORIES = [
       { id: "oap",         label: "OAP Appointments",          icon: Shield,        color: "#6b9e9a", bg: "rgba(107,158,154,0.12)", border: "rgba(107,158,154,0.3)",  types: ["oap", "oap-appointment"]        },
       { id: "wellness",    label: "Wellness Appointments",      icon: Heart,         color: "#d4789a", bg: "rgba(212,120,154,0.12)", border: "rgba(212,120,154,0.3)",  types: ["wellness", "wellness-appointment"] },
       { id: "ehsas",       label: "Ehsas Appointments",         icon: HeartHandshake,color: "#9b7fbd", bg: "rgba(155,127,189,0.12)", border: "rgba(155,127,189,0.3)",  types: ["ehsas", "ehsas-appointment"]    },
-      { id: "focuspeer_apt", label: "Focus Peer Appointments",  icon: Users,         color: "#b39ddb", bg: "rgba(179,157,219,0.12)", border: "rgba(179,157,219,0.3)",  types: ["focuspeer-appointment", "focus-peer-appointment"] },
+      { id: "focuspeer_apt", label: "Focus Peer Appointments",  icon: Users,         color: "#b39ddb", bg: "rgba(179,157,219,0.12)", border: "rgba(24, 22, 29, 0.3)",  types: ["focuspeer-appointment", "focus-peer-appointment"] },
       { id: "checkin",     label: "Focus Peer Check-ins",       icon: UserCheck,     color: "#7ca5b8", bg: "rgba(124,165,184,0.12)", border: "rgba(124,165,184,0.3)",  types: ["checkin", "check-in", "focuspeer-checkin"] },
     ],
   },
@@ -94,25 +90,7 @@ function SuperCalendarPage() {
   const [assignments, setAssignments]         = useState([]);
   const [hoveredDate, setHoveredDate]         = useState(null);
   const [selectedAssignment, setSelectedAssignment] = useState(null);
-  const [showFilterPanel, setShowFilterPanel] = useState(false);
-  const [activeFilters, setActiveFilters]     = useState(
-    // All enabled by default
-    Object.fromEntries(ALL_FILTER_ITEMS.map(i => [i.id, true]))
-  );
-  const [filterSearch, setFilterSearch]       = useState("");
   const scrollRef  = useRef(null);
-  const filterRef  = useRef(null);
-
-  // Close filter panel on outside click
-  useEffect(() => {
-    const handler = (e) => {
-      if (filterRef.current && !filterRef.current.contains(e.target)) {
-        setShowFilterPanel(false);
-      }
-    };
-    if (showFilterPanel) document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, [showFilterPanel]);
 
   const load = async () => {
     if (!user || !user.id) return;
@@ -139,26 +117,6 @@ function SuperCalendarPage() {
       scrollRef.current.scrollTop = 60;
     }
   }, [viewMode]);
-
-  // ── Filter logic ──────────────────────────────────────────────────────────
-  const isVisible = (a) => {
-    const filterItem = getFilterForAssignment(a);
-    return filterItem ? activeFilters[filterItem.id] !== false : true;
-  };
-
-  const visibleAssignments = assignments.filter(isVisible);
-
-  const toggleFilter = (id) => {
-    setActiveFilters(prev => ({ ...prev, [id]: !prev[id] }));
-  };
-
-  const enableAll  = () => setActiveFilters(Object.fromEntries(ALL_FILTER_ITEMS.map(i => [i.id, true])));
-  const disableAll = () => setActiveFilters(Object.fromEntries(ALL_FILTER_ITEMS.map(i => [i.id, false])));
-
-  const activeCount   = Object.values(activeFilters).filter(Boolean).length;
-  const totalCount    = ALL_FILTER_ITEMS.length;
-  const allOn         = activeCount === totalCount;
-  const hiddenCount   = totalCount - activeCount;
 
   // ── Calendar helpers ──────────────────────────────────────────────────────
   const getWeekDays = (anchor) => {
@@ -192,14 +150,14 @@ function SuperCalendarPage() {
   const todayStr  = new Date().toISOString().split("T")[0];
   const dateStr   = (d) => d ? d.toISOString().split("T")[0] : "";
 
-  const assignmentsOnDate   = (d) => { if (!d) return []; const ds = dateStr(d); return visibleAssignments.filter(a => a.dueDate === ds); };
-  const assignmentsAtSlot   = (d, hour) => { const ds = dateStr(d); return visibleAssignments.filter(a => { if (a.dueDate !== ds || !a.time) return false; return parseInt(a.time.split(":")[0]) === hour; }); };
+  const assignmentsOnDate   = (d) => { if (!d) return []; const ds = dateStr(d); return assignments.filter(a => a.dueDate === ds); };
+  const assignmentsAtSlot   = (d, hour) => { const ds = dateStr(d); return assignments.filter(a => { if (a.dueDate !== ds || !a.time) return false; return parseInt(a.time.split(":")[0]) === hour; }); };
   const progressOnDate      = (d) => { const list = assignmentsOnDate(d).filter(a => a.progress !== undefined && !a.id?.toString().startsWith("apt-")); if (!list.length) return 0; return Math.round(list.reduce((s, a) => s + (a.progress || 0), 0) / list.length); };
   const weekProgress        = () => weekDays.map(d => ({ day: DAY_LABELS_MON[(d.getDay() + 6) % 7], value: progressOnDate(d) }));
   const monthName           = currentDate.toLocaleDateString("en-US", { month: "long", year: "numeric" });
   const priorityColor       = (p) => PRIORITY_COLORS[p] || PRIORITY_COLORS["Low Priority"];
 
-  // Assign a display color to an item based on its filter category
+  // Assign a display color to an item based on its category
   const itemStyle = (a) => {
     const fi = getFilterForAssignment(a);
     if (fi) return { bg: fi.bg, text: fi.color, dot: fi.color, border: fi.border };
@@ -223,123 +181,6 @@ function SuperCalendarPage() {
           </div>
 
           <div className="flex items-center gap-3">
-            {/* ── Filter button ── */}
-            <div style={{ position: "relative" }} ref={filterRef}>
-              <button onClick={() => setShowFilterPanel(!showFilterPanel)} style={{
-                display: "flex", alignItems: "center", gap: 8, padding: "9px 18px",
-                background: showFilterPanel ? C.purple500 : C.white,
-                border: `1.5px solid ${showFilterPanel ? C.purple500 : C.purple200}`,
-                borderRadius: 14, cursor: "pointer", transition: "all 0.2s",
-                color: showFilterPanel ? C.white : C.purple800,
-                fontWeight: 600, fontSize: 13,
-                boxShadow: showFilterPanel ? "0 4px 14px rgba(179,157,219,0.4)" : "0 1px 4px rgba(179,157,219,0.12)",
-              }}
-                onMouseEnter={e => { if (!showFilterPanel) { e.currentTarget.style.borderColor = C.purple500; e.currentTarget.style.background = C.purple50; }}}
-                onMouseLeave={e => { if (!showFilterPanel) { e.currentTarget.style.borderColor = C.purple200; e.currentTarget.style.background = C.white; }}}>
-                <SlidersHorizontal size={15} />
-                Filter
-                {hiddenCount > 0 && (
-                  <span style={{ background: showFilterPanel ? "rgba(255,255,255,0.25)" : "rgba(239,68,68,0.12)", color: showFilterPanel ? C.white : "#ef4444", fontSize: 10, fontWeight: 800, padding: "1px 7px", borderRadius: 999 }}>
-                    {hiddenCount} hidden
-                  </span>
-                )}
-                <ChevronDown size={13} style={{ transform: showFilterPanel ? "rotate(180deg)" : "none", transition: "transform 0.22s" }} />
-              </button>
-
-              {/* ── Filter dropdown panel ── */}
-              {showFilterPanel && (
-                <div style={{
-                  position: "absolute", top: "calc(100% + 10px)", right: 0, width: 320,
-                  background: C.white, borderRadius: 20,
-                  boxShadow: "0 20px 60px rgba(90,74,97,0.15), 0 4px 16px rgba(0,0,0,0.06)",
-                  border: `1px solid ${C.purple200}`, zIndex: 100, overflow: "hidden",
-                }}>
-                  {/* Panel header */}
-                  <div style={{ padding: "14px 18px 12px", background: `linear-gradient(135deg, ${C.purple100}, rgba(248,187,208,0.1))`, borderBottom: `1px solid ${C.purple200}` }}>
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-                        <Filter size={14} color={C.purple500} />
-                        <span style={{ fontWeight: 800, fontSize: 13, color: C.purple800 }}>Filter Calendar</span>
-                      </div>
-                      <button onClick={() => setShowFilterPanel(false)} style={{ background: "none", border: "none", cursor: "pointer", color: C.purple400, padding: 2, borderRadius: 6, display: "flex" }}
-                        onMouseEnter={e => e.currentTarget.style.color = C.purple800}
-                        onMouseLeave={e => e.currentTarget.style.color = C.purple400}>
-                        <X size={15} />
-                      </button>
-                    </div>
-
-                    {/* Show all / Hide all */}
-                    <div style={{ display: "flex", gap: 6 }}>
-                      <button onClick={enableAll} style={{ flex: 1, padding: "6px", borderRadius: 8, border: "none", cursor: "pointer", background: allOn ? C.purple500 : C.purple100, color: allOn ? C.white : C.purple600, fontSize: 11, fontWeight: 700, transition: "all 0.15s", display: "flex", alignItems: "center", justifyContent: "center", gap: 5 }}>
-                        <Eye size={11} /> Show All
-                      </button>
-                      <button onClick={disableAll} style={{ flex: 1, padding: "6px", borderRadius: 8, border: "none", cursor: "pointer", background: "rgba(239,68,68,0.08)", color: "#ef4444", fontSize: 11, fontWeight: 700, transition: "all 0.15s", display: "flex", alignItems: "center", justifyContent: "center", gap: 5 }}
-                        onMouseEnter={e => { e.currentTarget.style.background = "#ef4444"; e.currentTarget.style.color = C.white; }}
-                        onMouseLeave={e => { e.currentTarget.style.background = "rgba(239,68,68,0.08)"; e.currentTarget.style.color = "#ef4444"; }}>
-                        <EyeOff size={11} /> Hide All
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Category groups */}
-                  <div style={{ maxHeight: 420, overflowY: "auto", padding: "10px 12px 14px" }}>
-                    {FILTER_CATEGORIES.map(({ group, items }) => (
-                      <div key={group} style={{ marginBottom: 14 }}>
-                        {/* Group label */}
-                        <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 7, padding: "0 4px" }}>
-                          <div style={{ height: 1, flex: 1, background: C.purple200 }} />
-                          <span style={{ fontSize: 10, fontWeight: 800, color: C.purple400, letterSpacing: "0.1em", textTransform: "uppercase", whiteSpace: "nowrap" }}>{group}</span>
-                          <div style={{ height: 1, flex: 1, background: C.purple200 }} />
-                        </div>
-
-                        {/* Items */}
-                        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                          {items.map(item => {
-                            const Icon = item.icon;
-                            const on   = activeFilters[item.id] !== false;
-                            return (
-                              <button key={item.id} onClick={() => toggleFilter(item.id)} style={{
-                                display: "flex", alignItems: "center", gap: 10, padding: "9px 12px",
-                                borderRadius: 12, border: `1.5px solid ${on ? item.border : C.purple200}`,
-                                background: on ? item.bg : "rgba(179,157,219,0.04)",
-                                cursor: "pointer", textAlign: "left", transition: "all 0.18s",
-                                opacity: on ? 1 : 0.5,
-                              }}
-                                onMouseEnter={e => { e.currentTarget.style.opacity = "1"; e.currentTarget.style.borderColor = item.border; }}
-                                onMouseLeave={e => { e.currentTarget.style.opacity = on ? "1" : "0.5"; e.currentTarget.style.borderColor = on ? item.border : C.purple200; }}>
-                                {/* Colour dot / icon */}
-                                <div style={{ width: 30, height: 30, borderRadius: 9, background: on ? item.bg : C.purple50, border: `1px solid ${on ? item.border : C.purple200}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, transition: "all 0.18s" }}>
-                                  <Icon size={14} color={on ? item.color : C.purple400} />
-                                </div>
-                                {/* Label */}
-                                <span style={{ flex: 1, fontSize: 12.5, fontWeight: 600, color: on ? item.color : C.purple400, transition: "color 0.18s" }}>{item.label}</span>
-                                {/* Checkbox */}
-                                <div style={{ width: 18, height: 18, borderRadius: 5, border: `2px solid ${on ? item.color : C.purple300}`, background: on ? item.color : "transparent", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.18s", flexShrink: 0 }}>
-                                  {on && <Check size={10} color={C.white} strokeWidth={3} />}
-                                </div>
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Panel footer — summary */}
-                  <div style={{ padding: "10px 16px", borderTop: `1px solid ${C.purple200}`, background: C.purple50, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                    <span style={{ fontSize: 11, color: C.purple600, fontWeight: 500 }}>
-                      {activeCount} of {totalCount} categories visible
-                    </span>
-                    <div style={{ display: "flex", gap: 4 }}>
-                      {ALL_FILTER_ITEMS.filter(i => activeFilters[i.id] !== false).map(i => (
-                        <div key={i.id} style={{ width: 8, height: 8, borderRadius: "50%", background: i.color }} title={i.label} />
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-
             {/* ── View toggle ── */}
             <div className="flex gap-1 p-1 rounded-2xl" style={{ background: "#e1bee7" }}>
               {["week","month"].map(v => (
@@ -352,32 +193,6 @@ function SuperCalendarPage() {
             </div>
           </div>
         </div>
-
-        {/* ── Active filter chips (shown when some are hidden) ── */}
-        {hiddenCount > 0 && (
-          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-            <span style={{ fontSize: 11, color: C.purple400, fontWeight: 600 }}>Hidden:</span>
-            {ALL_FILTER_ITEMS.filter(i => !activeFilters[i.id]).map(i => {
-              const Icon = i.icon;
-              return (
-                <button key={i.id} onClick={() => toggleFilter(i.id)} style={{
-                  display: "flex", alignItems: "center", gap: 5, padding: "4px 10px 4px 7px",
-                  borderRadius: 999, background: "rgba(239,68,68,0.07)",
-                  border: "1px solid rgba(239,68,68,0.2)", cursor: "pointer", transition: "all 0.15s",
-                }}
-                  onMouseEnter={e => { e.currentTarget.style.background = "rgba(239,68,68,0.14)"; }}
-                  onMouseLeave={e => { e.currentTarget.style.background = "rgba(239,68,68,0.07)"; }}>
-                  <Icon size={10} color="#ef4444" />
-                  <span style={{ fontSize: 10.5, color: "#ef4444", fontWeight: 600 }}>{i.label}</span>
-                  <X size={9} color="#ef4444" style={{ marginLeft: 2 }} />
-                </button>
-              );
-            })}
-            <button onClick={enableAll} style={{ fontSize: 10.5, color: C.purple500, background: "none", border: "none", cursor: "pointer", fontWeight: 700, padding: "4px 8px", borderRadius: 999, textDecoration: "underline" }}>
-              Show all
-            </button>
-          </div>
-        )}
 
         {/* ── Week Progress Summary Bar ── */}
         {viewMode === "week" && (
@@ -595,38 +410,17 @@ function SuperCalendarPage() {
           )}
         </div>
 
-        {/* ── Category legend strip ── */}
-        <div style={{ background: C.white, borderRadius: 20, border: "1px solid rgba(179,157,219,0.15)", padding: "12px 20px", display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-          <span style={{ fontSize: 11, fontWeight: 700, color: C.purple400, marginRight: 4, textTransform: "uppercase", letterSpacing: "0.08em" }}>Legend</span>
-          {ALL_FILTER_ITEMS.filter(i => activeFilters[i.id] !== false).map(i => {
-            const Icon = i.icon;
-            return (
-              <div key={i.id} style={{ display: "flex", alignItems: "center", gap: 5, padding: "4px 10px", borderRadius: 999, background: i.bg, border: `1px solid ${i.border}`, cursor: "pointer" }}
-                onClick={() => toggleFilter(i.id)}
-                title={`Click to hide ${i.label}`}>
-                <Icon size={10} color={i.color} />
-                <span style={{ fontSize: 10.5, color: i.color, fontWeight: 600 }}>{i.label}</span>
-              </div>
-            );
-          })}
-          {hiddenCount > 0 && (
-            <button onClick={enableAll} style={{ fontSize: 10.5, color: C.purple500, background: "none", border: `1px dashed ${C.purple300}`, cursor: "pointer", fontWeight: 600, padding: "4px 10px", borderRadius: 999 }}>
-              + {hiddenCount} hidden
-            </button>
-          )}
-        </div>
-
         {/* ── Upcoming Tasks & Meetings ── */}
         <div className="rounded-3xl p-5 shadow-sm" style={{ background: "#fff", border: "1px solid rgba(179,157,219,0.2)" }}>
           <div className="flex items-center gap-2 mb-4">
             <Sparkles className="h-4 w-4" style={{ color: C.purple500 }} />
             <span className="font-semibold text-sm" style={{ color: C.purple800 }}>Upcoming Tasks & Meetings</span>
             <span className="ml-1 text-xs px-2 py-0.5 rounded-full" style={{ background: "#f3e5f5", color: C.purple500 }}>
-              {visibleAssignments.filter(a => (a.progress ?? 0) < 100 && a.status !== "Completed").length}
+              {assignments.filter(a => (a.progress ?? 0) < 100 && a.status !== "Completed").length}
             </span>
           </div>
           <div className="flex gap-3 overflow-x-auto pb-2">
-            {visibleAssignments
+            {assignments
               .filter(a => (a.progress ?? 0) < 100 && a.status !== "Completed")
               .sort((a,b) => new Date(a.dueDate||"9999") - new Date(b.dueDate||"9999"))
               .slice(0, 8)
@@ -641,7 +435,7 @@ function SuperCalendarPage() {
                     className="flex-shrink-0 rounded-2xl p-3 text-left hover:shadow-md transition-all w-44"
                     style={{ background: style.bg, border: `1px solid ${style.border}` }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 5 }}>
-                      {Icon && <div style={{ width: 20, height: 20, borderRadius: 6, background: "rgba(255,255,255,0.6)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                      {Icon && <div style={{ width: 20, height: 20, borderRadius: 6, background: "rgba(255,255,255,0.6)", display: "flex", alignItems: "center", justifyItems: "center", flexShrink: 0 }}>
                         <Icon size={11} color={style.text} />
                       </div>}
                       <span style={{ fontSize: 9, fontWeight: 700, color: style.text, textTransform: "uppercase", letterSpacing: "0.05em", opacity: 0.7 }}>{fi?.label}</span>
@@ -659,7 +453,7 @@ function SuperCalendarPage() {
                   </button>
                 );
               })}
-            {visibleAssignments.filter(a => (a.progress ?? 0) < 100 && a.status !== "Completed").length === 0 && (
+            {assignments.filter(a => (a.progress ?? 0) < 100 && a.status !== "Completed").length === 0 && (
               <div className="text-sm py-4 w-full text-center" style={{ color: C.purple600 }}>
                 🎉 All caught up! No upcoming assignments.
               </div>
@@ -682,7 +476,7 @@ function SuperCalendarPage() {
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex items-center gap-3 flex-1 pr-4">
                       {Icon && (
-                        <div style={{ width: 38, height: 38, borderRadius: 12, background: style.bg, border: `1.5px solid ${style.border}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                        <div style={{ width: 38, height: 38, borderRadius: 12, background: style.bg, border: `1.5px solid ${style.border}`, display: "flex", alignItems: "center", justifyItems: "center", flexShrink: 0 }}>
                           <Icon size={18} color={style.text} />
                         </div>
                       )}
