@@ -157,7 +157,7 @@ function Alerts() {
   useEffect(() => {
     const fetchAlerts = async () => {
       try {
-        const res = await fetch('http://127.0.0.1:5000/api/alerts');
+        const res = await fetch('https://fyp-neuro-zaaviya-server-01.vercel.app/api/alerts');
         if (res.ok) {
           const data = await res.json();
           setAlerts(data);

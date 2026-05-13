@@ -185,7 +185,7 @@ export default function Session() {
     const fetchSessions = async () => {
         try {
             setIsLoading(true);
-            const response = await fetch(`http://127.0.0.1:5000/api/peer-sessions/${user.id}`);
+            const response = await fetch(`https://fyp-neuro-zaaviya-server-01.vercel.app/api/peer-sessions/${user.id}`);
             if (!response.ok) throw new Error("Failed to fetch sessions");
             
             const data = await response.json();
@@ -226,7 +226,7 @@ export default function Session() {
         if (!window.confirm(`Did you finish your session with ${studentName}?`)) return;
 
         try {
-            const response = await fetch(`http://127.0.0.1:5000/api/sessions/${sessionId}/status`, {
+            const response = await fetch(`https://fyp-neuro-zaaviya-server-01.vercel.app/api/sessions/${sessionId}/status`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ status: 'completed' })
@@ -265,7 +265,7 @@ export default function Session() {
                 peerUserId: user.id 
             };
 
-            const response = await fetch('http://127.0.0.1:5000/api/checkups', {
+            const response = await fetch('https://fyp-neuro-zaaviya-server-01.vercel.app/api/checkups', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)

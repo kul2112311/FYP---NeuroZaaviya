@@ -8,7 +8,7 @@ export default function SessionFeedback() {
   useEffect(() => {
     const fetchFeedback = async () => {
       try {
-        const res = await fetch('http://127.0.0.1:5000/api/monitor/feedback');
+        const res = await fetch('https://fyp-neuro-zaaviya-server-01.vercel.app/api/monitor/feedback');
         if (res.ok) setFeedbacks(await res.json());
       } catch (err) { console.error(err); } finally { setIsLoading(false); }
     };

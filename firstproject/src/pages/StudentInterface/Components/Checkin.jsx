@@ -89,7 +89,7 @@ function CheckIn() {
         if (!user || !user.id) return;
         setIsLoading(true);
         // Using 127.0.0.1 to avoid local network routing delays
-        const response = await fetch(`http://127.0.0.1:5000/api/checkups/student/${user.id}`);
+        const response = await fetch(`https://fyp-neuro-zaaviya-server-01.vercel.app/api/checkups/student/${user.id}`);
         
         if (!response.ok) {
           throw new Error("Failed to load your upcoming check-ins.");

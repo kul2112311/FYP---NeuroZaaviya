@@ -66,7 +66,7 @@ function DetailedProgress() {
       
       // 1. Fetch all tasks from your real database (Using Ushna's ID)
       if (!user || !user.id) return;
-      const response = await fetch(`http://127.0.0.1:5000/api/tasks/upcoming/${user.id}`);
+      const response = await fetch(`https://fyp-neuro-zaaviya-server-01.vercel.app/api/tasks/upcoming/${user.id}`);
       const assignmentsFromDB = response.ok ? await response.json() : [];
 
       let mergedWeekData = { Mon: [], Tue: [], Wed: [], Thu: [], Fri: [], Sat: [], Sun: [] };

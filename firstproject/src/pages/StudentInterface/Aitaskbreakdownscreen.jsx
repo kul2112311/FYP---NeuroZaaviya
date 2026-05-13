@@ -73,7 +73,7 @@ export function AITaskBreakdownScreen({ onBack, onAnalyze, savedTaskData,initial
       console.log("🚀 Sending request to AI Agent...");
 
       // 3. API Call (Changed to 127.0.0.1 for stability)
-      const response = await fetch("http://127.0.0.1:5000/api/ai/generate", {
+      const response = await fetch("https://fyp-neuro-zaaviya-server-01.vercel.app/api/ai/generate", {
         method: "POST",
         body: formData,
       });

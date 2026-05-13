@@ -59,7 +59,7 @@ export default function UpcomingCheckups() {
     const fetchCheckins = async () => {
       if (!user || !user.id) return; // ✨ Wait for user to load
       try {
-        const response = await fetch(`http://127.0.0.1:5000/api/checkups/peer/${user.id}`);
+        const response = await fetch(`https://fyp-neuro-zaaviya-server-01.vercel.app/api/checkups/peer/${user.id}`);
         const data = await response.json();
         
         if (response.ok) {

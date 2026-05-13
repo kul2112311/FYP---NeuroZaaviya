@@ -53,7 +53,7 @@ function Schedule() {
   const fetchSchedule = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch(`http://127.0.0.1:5000/api/peer-schedule/${user.id}`);
+      const response = await fetch(`https://fyp-neuro-zaaviya-server-01.vercel.app/api/peer-schedule/${user.id}`);
       if (!response.ok) throw new Error("Failed to fetch");
       const data = await response.json();
       
@@ -90,7 +90,7 @@ function Schedule() {
     setIsSaving(true);
     
     try {
-      const response = await fetch('http://127.0.0.1:5000/api/peer-schedule', {
+      const response = await fetch('https://fyp-neuro-zaaviya-server-01.vercel.app/api/peer-schedule', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -133,7 +133,7 @@ function Schedule() {
     if (!confirm("Are you sure you want to remove this time slot?")) return;
     
     try {
-      const response = await fetch(`http://127.0.0.1:5000/api/peer-schedule/${slotId}`, {
+      const response = await fetch(`https://fyp-neuro-zaaviya-server-01.vercel.app/api/peer-schedule/${slotId}`, {
         method: 'DELETE'
       });
 

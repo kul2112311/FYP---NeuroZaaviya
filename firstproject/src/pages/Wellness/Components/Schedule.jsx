@@ -10,7 +10,7 @@ export default function Schedule() {
   useEffect(() => {
     const fetchSchedules = async () => {
       try {
-        const res = await fetch('http://127.0.0.1:5000/api/monitor/schedules');
+        const res = await fetch('https://fyp-neuro-zaaviya-server-01.vercel.app/api/monitor/schedules');
         if (res.ok) setSchedules(await res.json());
       } catch (err) { console.error(err); } finally { setIsLoading(false); }
     };

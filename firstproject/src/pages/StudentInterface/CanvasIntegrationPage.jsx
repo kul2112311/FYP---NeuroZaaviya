@@ -35,7 +35,7 @@ export default function CanvasIntegrationPage() {
     setErrorMsg("");
 
     try {
-      const response = await fetch("http://127.0.0.1:5000/api/canvas/sync", {
+      const response = await fetch("https://fyp-neuro-zaaviya-server-01.vercel.app/api/canvas/sync", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ token: password }) // Send the token

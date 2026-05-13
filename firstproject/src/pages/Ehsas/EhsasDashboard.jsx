@@ -1,4 +1,4 @@
-import { Users, FileText, Bell, AlertCircle, Calendar, UserPlus } from 'lucide-react';
+import { Users, FileText, Bell, AlertCircle, Calendar, UserPlus, Clock } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { useUser } from '../../styles/SignInLandingPage/usercontext.jsx';
@@ -8,6 +8,7 @@ function EhsasDashboard() {
   const { user } = useUser();
 
   const [pendingFPCount, setPendingFPCount] = useState(0);
+  const [upcomingMeetings, setUpcomingMeetings] = useState([]);
   const [stats, setStats] = useState({
     activeStudents: 0,
     activeAccommodations: 0,
@@ -19,16 +20,21 @@ function EhsasDashboard() {
     const fetchData = async () => {
       try {
         // Fetch FP Requests
-        const reqRes = await fetch('http://127.0.0.1:5000/api/requests');
+        const reqRes = await fetch('https://fyp-neuro-zaaviya-server-01.vercel.app/api/requests');
         if (reqRes.ok) {
           const data = await reqRes.json();
           setPendingFPCount(data.filter(r => (r.role === 'focuspeer' || r.role === 'focus-peer') && r.status === 'pending').length);
         }
         
         // Fetch Dashboard Stats
-        const statsRes = await fetch('http://127.0.0.1:5000/api/admin/dashboard-stats');
+        const statsRes = await fetch('https://fyp-neuro-zaaviya-server-01.vercel.app/api/admin/dashboard-stats');
         if (statsRes.ok) {
           setStats(await statsRes.json());
+        }
+        // ✨ ADD THIS FETCH:
+        const meetRes = await fetch(`https://fyp-neuro-zaaviya-server-01.vercel.app/api/appointments/staff/${user.id}`);
+        if (meetRes.ok) {
+          setUpcomingMeetings(await meetRes.json());
         }
       } catch (e) {
         console.error("Failed to fetch dashboard data", e);
@@ -163,16 +169,36 @@ function EhsasDashboard() {
               <h2 className="text-base font-semibold" style={{ color: '#2d2d3a' }}>Upcoming Meetings</h2>
             </div>
             <span className="text-xs font-semibold px-3 py-1 rounded-full" style={{ background: '#ede7f6', color: '#9575cd' }}>
-              0 Scheduled
+              {upcomingMeetings.length} Scheduled
             </span>
           </div>
 
-          <div className="flex flex-col items-center justify-center py-12">
-            <div className="w-16 h-16 rounded-full flex items-center justify-center mb-3" style={{ backgroundColor: '#ede7f6' }}>
-              <Calendar size={28} style={{ color: '#b39ddb' }} />
+          {upcomingMeetings.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12">
+              <div className="w-16 h-16 rounded-full flex items-center justify-center mb-3" style={{ backgroundColor: '#ede7f6' }}>
+                <Calendar size={28} style={{ color: '#b39ddb' }} />
+              </div>
+              <p className="text-sm font-medium" style={{ color: '#a0a0b0' }}>No upcoming meetings scheduled</p>
             </div>
-            <p className="text-sm font-medium" style={{ color: '#a0a0b0' }}>No upcoming meetings scheduled</p>
-          </div>
+          ) : (
+            <div className="space-y-3 max-h-[250px] overflow-y-auto pr-2">
+              {upcomingMeetings.map(meeting => (
+                <div key={meeting.id} className="flex gap-4 p-4 rounded-2xl border border-gray-100 bg-gray-50 hover:bg-gray-100 transition-colors">
+                  <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: '#ede7f6' }}>
+                    <Calendar size={18} style={{ color: '#9575cd' }} />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-sm text-gray-800">{meeting.student_name}</h3>
+                    <div className="flex items-center gap-3 text-xs text-gray-500 mt-1">
+                      {/* Just reading the exact output from your SQL query! */}
+                      <span className="flex items-center gap-1"><Calendar size={12}/> {meeting.date}</span>
+                      <span className="flex items-center gap-1"><Clock size={12}/> {meeting.time}</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
       </div>
