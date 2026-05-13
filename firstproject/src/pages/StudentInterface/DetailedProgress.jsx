@@ -64,9 +64,9 @@ function DetailedProgress() {
     try {
       setLoading(true);
       
-      // 1. Fetch all tasks from your real database (Using Ushna's ID)
+      // 1. Fetch all tasks from your real database (Using Student's ID)
       if (!user || !user.id) return;
-      const response = await fetch(`https://fyp-neuro-zaaviya-server-01.vercel.app/api/tasks/upcoming/${user.id}`);
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/tasks/upcoming/${user.id}`);
       const assignmentsFromDB = response.ok ? await response.json() : [];
 
       let mergedWeekData = { Mon: [], Tue: [], Wed: [], Thu: [], Fri: [], Sat: [], Sun: [] };

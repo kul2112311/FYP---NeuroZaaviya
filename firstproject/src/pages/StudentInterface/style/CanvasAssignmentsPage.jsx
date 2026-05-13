@@ -16,7 +16,7 @@ export default function CanvasAssignmentsPage() {
     if (assignment.fileEndpoint) {
         try {
             const token = localStorage.getItem("canvasToken");
-            const res = await fetch("https://fyp-neuro-zaaviya-server-01.vercel.app/api/canvas/download", {
+            const res = await fetch("${import.meta.env.VITE_API_URL}/api/canvas/download", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ fileEndpoint: assignment.fileEndpoint, token })

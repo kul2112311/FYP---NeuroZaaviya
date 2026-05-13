@@ -14,7 +14,7 @@ function Session() {
 
             try {
                 // ✨ FIXED: Using the real logged-in student's ID
-                const response = await fetch(`https://fyp-neuro-zaaviya-server-01.vercel.app/api/my-sessions/${user.id}`);
+                const response = await fetch(`${import.meta.env.VITE_API_URL}/api/my-sessions/${user.id}`);
                 const data = await response.json();
 
                 console.log('📅 Sessions from backend:', data);

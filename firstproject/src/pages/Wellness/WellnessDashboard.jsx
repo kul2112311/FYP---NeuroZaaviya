@@ -20,19 +20,19 @@ function WellnessDashboard() {
     const fetchData = async () => {
       try {
         // Fetch FP Requests
-        const reqRes = await fetch('https://fyp-neuro-zaaviya-server-01.vercel.app/api/requests');
+        const reqRes = await fetch('${import.meta.env.VITE_API_URL}/api/requests');
         if (reqRes.ok) {
           const data = await reqRes.json();
           setPendingFPCount(data.filter(r => (r.role === 'focuspeer' || r.role === 'focus-peer') && r.status === 'pending').length);
         }
         
         // Fetch Dashboard Stats
-        const statsRes = await fetch('https://fyp-neuro-zaaviya-server-01.vercel.app/api/admin/dashboard-stats');
+        const statsRes = await fetch('${import.meta.env.VITE_API_URL}/api/admin/dashboard-stats');
         if (statsRes.ok) {
           setStats(await statsRes.json());
         }
         // ✨ ADD THIS FETCH:
-        const meetRes = await fetch(`https://fyp-neuro-zaaviya-server-01.vercel.app/api/appointments/staff/${user.id}`);
+        const meetRes = await fetch(`${import.meta.env.VITE_API_URL}/api/appointments/staff/${user.id}`);
         if (meetRes.ok) {
           setUpcomingMeetings(await meetRes.json());
         }

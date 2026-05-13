@@ -23,7 +23,7 @@ export function AITaskResultsPage({ taskData, onBack, onEditPrompt }) {
 
   useEffect(() => {
       if (!user?.id) return;
-      fetch(`https://fyp-neuro-zaaviya-server-01.vercel.app/api/calendar/${user.id}`)
+      fetch(`${import.meta.env.VITE_API_URL}/api/calendar/${user.id}`)
         .then(res => res.json())
         .then(data => setExistingEvents(data))
         .catch(console.error);
@@ -144,7 +144,7 @@ export function AITaskResultsPage({ taskData, onBack, onEditPrompt }) {
       console.log("🟢 3. Payload built successfully:", payload);
       console.log("🟢 4. Sending fetch request to backend...");
 
-      const response = await fetch("https://fyp-neuro-zaaviya-server-01.vercel.app/api/tasks/ai-breakdown", {
+      const response = await fetch("${import.meta.env.VITE_API_URL}/api/tasks/ai-breakdown", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
