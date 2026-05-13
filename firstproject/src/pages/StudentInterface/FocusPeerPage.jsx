@@ -29,7 +29,7 @@ function FocusPeerPage() {
   const loadMyPeers = async () => {
     if (!user || !user.id) return;
     try {
-      const response = await fetch(`https://fyp-neuro-zaaviya-server-01.vercel.app/api/my-focus-peers/${user.id}`);
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/my-focus-peers/${user.id}`);
       if (response.ok) {
         const data = await response.json();
         const formattedSaved = data.map(peer => ({
@@ -92,7 +92,7 @@ function FocusPeerPage() {
 
     for (const peer of newPeers) {
       try {
-        await fetch('https://fyp-neuro-zaaviya-server-01.vercel.app/api/select-focus-peer', {
+        await fetch('${import.meta.env.VITE_API_URL}/api/select-focus-peer', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ userId: user.id, peerProfileId: peer.id })

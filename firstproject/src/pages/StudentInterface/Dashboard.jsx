@@ -34,7 +34,7 @@ function CanvasIntegrationCard({ onConnected }) {
     
     setIsSyncing(true);
     try {
-      const response = await fetch("https://fyp-neuro-zaaviya-server-01.vercel.app/api/canvas/sync", {
+      const response = await fetch("${import.meta.env.VITE_API_URL}/api/canvas/sync", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ token })
@@ -157,7 +157,7 @@ function UpcomingSubtasksCard({ calendarEvents = [], onUpdate }) {
     const realId = taskId.replace('sub-', '');
     
     try {
-      const res = await fetch(`https://fyp-neuro-zaaviya-server-01.vercel.app/api/subtasks/${realId}/complete`, { method: 'PUT' });
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/subtasks/${realId}/complete`, { method: 'PUT' });
       if (res.ok) {
         onUpdate(); // Trigger dashboard refresh to update progress bars!
       }
@@ -319,11 +319,11 @@ function Dashboard() {
     if (!user || !user.id) return;
     try {
       const userId = user.id;
-      const calRes = await fetch(`https://fyp-neuro-zaaviya-server-01.vercel.app/api/calendar/${userId}`);
+      const calRes = await fetch(`${import.meta.env.VITE_API_URL}/api/calendar/${userId}`);
       if (calRes.ok) setUpcomingAssignments(await calRes.json());
-      const taskRes = await fetch(`https://fyp-neuro-zaaviya-server-01.vercel.app/api/tasks/upcoming/${userId}`);
+      const taskRes = await fetch(`${import.meta.env.VITE_API_URL}/api/tasks/upcoming/${userId}`);
       if (taskRes.ok) setMainTasks(await taskRes.json());
-      const advRes = await fetch(`https://fyp-neuro-zaaviya-server-01.vercel.app/api/student-advisors/${userId}`);
+      const advRes = await fetch(`${import.meta.env.VITE_API_URL}/api/student-advisors/${userId}`);
       if (advRes.ok) setMyAdvisors(await advRes.json());
     } catch (error) {
       console.error("Failed to load dashboard data:", error);

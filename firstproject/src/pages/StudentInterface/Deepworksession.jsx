@@ -73,7 +73,7 @@ Your rules:
 - Help them see the big picture of the whole assignment while focusing on this step`;
 
       // 🚀 Now calling your local backend instead of the blocked external API
-      const response = await fetch("https://fyp-neuro-zaaviya-server-01.vercel.app/api/ai/chat", {
+      const response = await fetch("${import.meta.env.VITE_API_URL}/api/ai/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -179,7 +179,7 @@ export default function DeepWorkSession() {
     const fetchSessionData = async () => {
       try {
         // Fetch real data from your backend
-        const response = await fetch(`https://fyp-neuro-zaaviya-server-01.vercel.app/api/session/${clickedId}`);
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/session/${clickedId}`);
         if (!response.ok) throw new Error("Failed to fetch session");
         const data = await response.json();
 
@@ -219,7 +219,7 @@ export default function DeepWorkSession() {
 
     try {
       // Send completion status to the backend
-      await fetch(`https://fyp-neuro-zaaviya-server-01.vercel.app/api/subtasks/${stepId}/complete`, { method: 'PUT' });
+      await fetch(`${import.meta.env.VITE_API_URL}/api/subtasks/${stepId}/complete`, { method: 'PUT' });
       
       // Ping the rest of the app to refresh (like the Dashboard)
       window.dispatchEvent(new Event("eisenhowerSaved"));

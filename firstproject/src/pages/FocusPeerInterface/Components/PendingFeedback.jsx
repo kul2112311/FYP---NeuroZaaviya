@@ -18,7 +18,7 @@ function PendingFeedback() {
     try {
       setIsLoading(true);
       // ✅ FIXED: Changed localhost to 127.0.0.1
-      const response = await fetch(`https://fyp-neuro-zaaviya-server-01.vercel.app/api/pending-feedback/${user.id}`);
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/pending-feedback/${user.id}`);
       const data = await response.json();
       
       console.log('⏳ Pending feedback sessions:', data);
