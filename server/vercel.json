@@ -1,4 +1,4 @@
-json{
+{
   "version": 2,
   "builds": [
     {
@@ -9,7 +9,7 @@ json{
   "routes": [
     {
       "src": "/(.*)",
-      "dest": "index.js"
+      "dest": "/index.js"
     }
   ]
 }
