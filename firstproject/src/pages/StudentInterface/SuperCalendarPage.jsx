@@ -95,7 +95,7 @@ function SuperCalendarPage() {
   const load = async () => {
     if (!user || !user.id) return;
     try {
-      const response = await fetch(`http://127.0.0.1:5000/api/calendar/${user.id}`);
+      const response = await fetch(`https://fyp-neuro-zaaviya-server-01.vercel.app/api/calendar/${user.id}`);
       if (response.ok) {
         const data = await response.json();
         setAssignments(data);

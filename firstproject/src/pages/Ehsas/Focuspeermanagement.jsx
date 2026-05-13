@@ -25,7 +25,7 @@ export function FocusPeerManagement() {
   const fetchData = async () => {
     try {
       // Fetch Applications
-      const reqRes = await fetch("http://127.0.0.1:5000/api/requests");
+      const reqRes = await fetch("https://fyp-neuro-zaaviya-server-01.vercel.app/api/requests");
       if (reqRes.ok) {
         const data = await reqRes.json();
         // Filter for only focus peer requests
@@ -33,7 +33,7 @@ export function FocusPeerManagement() {
       }
       
       // Fetch Active Focus Peers
-      const peerRes = await fetch("http://127.0.0.1:5000/api/focus-peers");
+      const peerRes = await fetch("https://fyp-neuro-zaaviya-server-01.vercel.app/api/focus-peers");
       if (peerRes.ok) {
         setFocusPeers(await peerRes.json());
       }
@@ -109,7 +109,7 @@ export function FocusPeerManagement() {
   // ✨ FIXED: Send real Approval to Database
   const commitApprove = async (application) => {
     try {
-      const response = await fetch(`http://127.0.0.1:5000/api/requests/approve/${application.id}`, { method: 'POST' });
+      const response = await fetch(`https://fyp-neuro-zaaviya-server-01.vercel.app/api/requests/approve/${application.id}`, { method: 'POST' });
       if (response.ok) {
         setEmailModal(null);
         fetchData(); // Refresh the lists!
@@ -128,7 +128,7 @@ export function FocusPeerManagement() {
   // ✨ FIXED: Send real Rejection to Database
   const commitReject = async (appId) => {
     try {
-      const response = await fetch(`http://127.0.0.1:5000/api/requests/reject/${appId}`, { method: 'POST' });
+      const response = await fetch(`https://fyp-neuro-zaaviya-server-01.vercel.app/api/requests/reject/${appId}`, { method: 'POST' });
       if (response.ok) {
         setEmailModal(null);
         fetchData(); // Refresh the lists!

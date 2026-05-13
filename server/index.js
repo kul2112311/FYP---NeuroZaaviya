@@ -1749,6 +1749,28 @@ app.get('/api/weekly-progress/:studentId', async (req, res) => {
     }
 });
 
+// GET APPOINTMENTS FOR SPECIFIC STAFF MEMBER
+app.get('/api/appointments/staff/:staffId', async (req, res) => {
+    try {
+        const query = `
+            SELECT 
+                a.id, 
+                u.full_name as student_name, 
+                TO_CHAR(a.scheduled_date, 'Mon DD, YYYY') as date,
+                TO_CHAR(a.start_time, 'HH12:MI AM') as time
+            FROM appointments a
+            JOIN users u ON a.student_id = u.id
+            WHERE a.staff_id = $1
+            ORDER BY a.scheduled_date ASC, a.start_time ASC
+        `;
+        const result = await pool.query(query, [req.params.staffId]);
+        res.json(result.rows);
+    } catch (err) {
+        console.error("❌ Error fetching staff appointments:", err.message);
+        res.status(500).json({ error: "Server Error" });
+    }
+});
+
 // ==========================================
 // FOCUS PEER CHECK-INS
 // ==========================================

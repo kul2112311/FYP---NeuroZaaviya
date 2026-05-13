@@ -19,7 +19,7 @@ function OAPDashboard() {
     const fetchDashboardData = async () => {
       if (!user || !user.id) return;
       try {
-        const res = await fetch(`http://127.0.0.1:5000/api/oap/dashboard-stats/${user.id}`);
+        const res = await fetch(`https://fyp-neuro-zaaviya-server-01.vercel.app/api/oap/dashboard-stats/${user.id}`);
         if (res.ok) {
           const data = await res.json();
           setRecentAlerts(data.alerts || []);

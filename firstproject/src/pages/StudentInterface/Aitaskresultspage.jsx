@@ -23,7 +23,7 @@ export function AITaskResultsPage({ taskData, onBack, onEditPrompt }) {
 
   useEffect(() => {
       if (!user?.id) return;
-      fetch(`http://127.0.0.1:5000/api/calendar/${user.id}`)
+      fetch(`https://fyp-neuro-zaaviya-server-01.vercel.app/api/calendar/${user.id}`)
         .then(res => res.json())
         .then(data => setExistingEvents(data))
         .catch(console.error);
@@ -144,7 +144,7 @@ export function AITaskResultsPage({ taskData, onBack, onEditPrompt }) {
       console.log("🟢 3. Payload built successfully:", payload);
       console.log("🟢 4. Sending fetch request to backend...");
 
-      const response = await fetch("http://127.0.0.1:5000/api/tasks/ai-breakdown", {
+      const response = await fetch("https://fyp-neuro-zaaviya-server-01.vercel.app/api/tasks/ai-breakdown", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
@@ -459,7 +459,7 @@ export function AITaskResultsPage({ taskData, onBack, onEditPrompt }) {
               <CheckCircle className="h-12 w-12" />
               <div className="text-center">
                 <div className="text-lg font-semibold mb-1">Saved! ✨</div>
-                <div className="text-sm opacity-90">{aiSubtasks.length} tasks saved to your calendar</div>
+                <div className="text-sm opacity-90">{aiSubtasks.length} tasks saved to your Weekly Progress Box on Dashboard!</div>
                 <div className="text-xs opacity-75 mt-2">Redirecting...</div>
               </div>
             </div>
