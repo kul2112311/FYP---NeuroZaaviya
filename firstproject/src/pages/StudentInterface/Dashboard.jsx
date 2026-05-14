@@ -34,7 +34,7 @@ function CanvasIntegrationCard({ onConnected }) {
     
     setIsSyncing(true);
     try {
-      const response = await fetch("${import.meta.env.VITE_API_URL}/api/canvas/sync", {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/canvas/sync`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ token })

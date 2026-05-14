@@ -283,7 +283,7 @@ function PeerSlots({ peerId }) {
       setLoading(true);
       setError(false);
       try {
-        const res  = await fetch(`http://localhost:5000/api/peer-availability/${peerId}`);
+        const res  = await fetch(`${import.meta.env.VITE_API_URL}/api/peer-availability/${peerId}`);
         const data = await res.json();
         setSlots(generateSlotsFromDB(data.schedule, data.bookedSlots));
       } catch {
@@ -557,7 +557,7 @@ function BookingModal({ peer, onClose, onConfirm, isOpen }) {
       setIsLoading(true);
       setSelectedSlot(null);
       try {
-        const response = await fetch(`http://localhost:5000/api/peer-availability/${peer.id}`);
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/peer-availability/${peer.id}`);
         const data     = await response.json();
         console.log('Raw Data from Backend:', data);
         console.log('Booked Slots:', data.bookedSlots);

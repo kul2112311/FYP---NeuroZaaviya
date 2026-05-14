@@ -173,7 +173,7 @@ export function OAPRequestApproval() {
   // 🔥 1. THE ONLY CHANGE: Fetching from API instead of localStorage 🔥
   const loadRequests = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/requests');
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/requests`);
       if (response.ok) {
         const data = await response.json();
         setRequests(data);
@@ -188,7 +188,7 @@ export function OAPRequestApproval() {
   // 🔥 2. THE ONLY CHANGE: Approving via API instead of localStorage 🔥
   const commitApprove = async (req) => {
     try {
-      const response = await fetch(`http://localhost:5000/api/requests/approve/${req.id}`, { method: 'POST' });
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/requests/approve/${req.id}`, { method: 'POST' });
       if (response.ok) {
         loadRequests(); 
         setEmailModal(null);
@@ -203,7 +203,7 @@ export function OAPRequestApproval() {
   // 🔥 3. THE ONLY CHANGE: Rejecting via API instead of localStorage 🔥
   const commitReject = async (req) => {
     try {
-      const response = await fetch(`http://localhost:5000/api/requests/reject/${req.id}`, { method: 'POST' });
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/requests/reject/${req.id}`, { method: 'POST' });
       if (response.ok) {
         loadRequests(); 
         setEmailModal(null);

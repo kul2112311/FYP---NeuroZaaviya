@@ -26,7 +26,7 @@ function Student() {
 
     const fetchStudents = async () => {
         try {
-            const response = await fetch('http://localhost:5000/api/oap/all-students');
+            const response = await fetch(`${import.meta.env.VITE_API_URL}/api/oap/all-students`);
             if (response.ok) {
                 const data = await response.json();
                 const mappedStudents = data.map(s => ({
@@ -56,7 +56,7 @@ function Student() {
     useEffect(() => {
         fetchStudents();
         // Fetch the staff list for the dropdown menus!
-        fetch('http://localhost:5000/api/support-staff')
+        fetch(`${import.meta.env.VITE_API_URL}/api/support-staff`)
             .then(res => res.json())
             .then(data => setStaffList(data))
             .catch(console.error);
@@ -73,7 +73,7 @@ function Student() {
     const handleScheduleSubmit = async () => {
         if (!formData.subject || !formData.datetime) return;
         try {
-            const response = await fetch('http://localhost:5000/api/appointments/staff-to-student', {
+            const response = await fetch(`${import.meta.env.VITE_API_URL}/api/appointments/staff-to-student`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -101,7 +101,7 @@ function Student() {
     // ✨ NEW: Handle Advisors Save
     const handleAdvisorsSubmit = async () => {
         try {
-            const response = await fetch(`http://localhost:5000/api/student/${selectedStudent.id}/advisors`, {
+            const response = await fetch(`${import.meta.env.VITE_API_URL}/api/student/${selectedStudent.id}/advisors`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(advisorsForm)

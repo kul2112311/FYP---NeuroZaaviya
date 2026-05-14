@@ -118,7 +118,7 @@ function Accommodations() {
   // ]);
     useEffect(() => {
     // Now fetching from the specialized route
-    fetch('http://localhost:5000/api/student-accommodations')
+    fetch(`${import.meta.env.VITE_API_URL}/api/student-accommodations`)
       .then(res => res.json())
       .then(data => setStudents(data))
       .catch(err => console.error("Error:", err));

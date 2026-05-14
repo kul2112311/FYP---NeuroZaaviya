@@ -8,7 +8,7 @@ export default function Appointment() {
   useEffect(() => {
     const fetchApps = async () => {
       try {
-        const res = await fetch('${import.meta.env.VITE_API_URL}/api/monitor/appointments');
+        const res = await fetch(`${import.meta.env.VITE_API_URL}/api/monitor/appointments`);
         if (res.ok) setAppointments(await res.json());
       } catch (err) { console.error(err); } finally { setIsLoading(false); }
     };

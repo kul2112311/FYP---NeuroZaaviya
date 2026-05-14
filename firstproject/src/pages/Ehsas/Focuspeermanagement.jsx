@@ -25,7 +25,7 @@ export function FocusPeerManagement() {
   const fetchData = async () => {
     try {
       // Fetch Applications
-      const reqRes = await fetch("${import.meta.env.VITE_API_URL}/api/requests");
+      const reqRes = await fetch(`${import.meta.env.VITE_API_URL}/api/requests`);
       if (reqRes.ok) {
         const data = await reqRes.json();
         // Filter for only focus peer requests
@@ -33,7 +33,7 @@ export function FocusPeerManagement() {
       }
       
       // Fetch Active Focus Peers
-      const peerRes = await fetch("${import.meta.env.VITE_API_URL}/api/focus-peers");
+      const peerRes = await fetch(`${import.meta.env.VITE_API_URL}/api/focus-peers`);
       if (peerRes.ok) {
         setFocusPeers(await peerRes.json());
       }

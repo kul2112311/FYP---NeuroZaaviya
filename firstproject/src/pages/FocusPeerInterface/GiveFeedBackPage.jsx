@@ -24,7 +24,7 @@ function GiveFeedbackForm() {
 
   const fetchBadges = async () => {
     try {
-      const response = await fetch('${import.meta.env.VITE_API_URL}/api/badges');
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/badges`);
       const data = await response.json();
       setAvailableBadges(data);
       
@@ -78,7 +78,7 @@ function GiveFeedbackForm() {
 
     try {
       // ✅ FIXED: Changed localhost to 127.0.0.1
-      const response = await fetch('${import.meta.env.VITE_API_URL}/api/session-feedback', {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/session-feedback`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

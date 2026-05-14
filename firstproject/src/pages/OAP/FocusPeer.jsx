@@ -15,7 +15,7 @@ export default function FocusPeerDashboard() {
 const [sessions, setSessions] = useState([]);
 
 useEffect(() => {
-    fetch('http://localhost:5000/api/focus-peers-oap')
+    fetch(`${import.meta.env.VITE_API_URL}/api/focus-peers-oap`)
         .then(res => res.json())
         .then(data => {
             console.log('RAW DATA FROM API:', data); // ← add this

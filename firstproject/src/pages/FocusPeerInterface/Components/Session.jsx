@@ -265,7 +265,7 @@ export default function Session() {
                 peerUserId: user.id 
             };
 
-            const response = await fetch('${import.meta.env.VITE_API_URL}/api/checkups', {
+            const response = await fetch(`${import.meta.env.VITE_API_URL}/api/checkups`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)

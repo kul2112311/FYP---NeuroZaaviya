@@ -10,7 +10,7 @@ export default function Schedule() {
   useEffect(() => {
     const fetchSchedules = async () => {
       try {
-        const res = await fetch('${import.meta.env.VITE_API_URL}/api/monitor/schedules');
+        const res = await fetch(`${import.meta.env.VITE_API_URL}/api/monitor/schedules`);
         if (res.ok) setSchedules(await res.json());
       } catch (err) { console.error(err); } finally { setIsLoading(false); }
     };

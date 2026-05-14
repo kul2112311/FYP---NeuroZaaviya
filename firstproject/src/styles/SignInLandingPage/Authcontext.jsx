@@ -22,7 +22,7 @@ export function AuthProvider({ children }) {
 
   const signIn = async (email, password) => {
     try {
-      const response = await fetch('${import.meta.env.VITE_API_URL}/api/auth/login', {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: email.trim().toLowerCase(), password })
@@ -57,7 +57,7 @@ export function AuthProvider({ children }) {
   // ADDED: cgpa and reason to the payload so they actually reach the database!
   const registerUser = async ({ name, email, role, password, cgpa, reason }) => {
     try {
-      const response = await fetch('${import.meta.env.VITE_API_URL}/api/auth/register', {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
