@@ -157,7 +157,7 @@ function Alerts() {
   useEffect(() => {
     const fetchAlerts = async () => {
       try {
-        const res = await fetch('${import.meta.env.VITE_API_URL}/api/alerts');
+        const res = await fetch(`${import.meta.env.VITE_API_URL}/api/alerts`);
         if (res.ok) {
           const data = await res.json();
           setAlerts(data);

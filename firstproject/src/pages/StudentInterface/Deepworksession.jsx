@@ -73,7 +73,7 @@ Your rules:
 - Help them see the big picture of the whole assignment while focusing on this step`;
 
       // 🚀 Now calling your local backend instead of the blocked external API
-      const response = await fetch("${import.meta.env.VITE_API_URL}/api/ai/chat", {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/ai/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

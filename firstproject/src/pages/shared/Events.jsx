@@ -17,7 +17,7 @@ function EventsPage({ isAdmin = false }) {
   // ✨ FETCH EVENTS FROM DATABASE
   const fetchEvents = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/events');
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/events`);
       if (response.ok) {
         const data = await response.json();
         setEvents(data);
@@ -42,7 +42,7 @@ function EventsPage({ isAdmin = false }) {
       // Add the logged-in user's ID to the payload
       const payload = { ...newEvent, created_by: user?.id };
       
-      const response = await fetch('http://localhost:5000/api/events', {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/events`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
@@ -62,7 +62,7 @@ function EventsPage({ isAdmin = false }) {
   const handleDeleteEvent = async (id) => {
     if (window.confirm("Are you sure you want to cancel/remove this event?")) {
       try {
-        const response = await fetch(`http://localhost:5000/api/events/${id}`, {
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/events/${id}`, {
           method: 'DELETE'
         });
 

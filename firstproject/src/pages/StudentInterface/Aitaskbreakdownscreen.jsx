@@ -73,7 +73,7 @@ export function AITaskBreakdownScreen({ onBack, onAnalyze, savedTaskData,initial
       console.log("🚀 Sending request to AI Agent...");
 
       // 3. API Call (Changed to 127.0.0.1 for stability)
-      const response = await fetch("${import.meta.env.VITE_API_URL}/api/ai/generate", {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/ai/generate`, {
         method: "POST",
         body: formData,
       });

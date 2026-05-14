@@ -16,7 +16,7 @@ function Community() {
 
   const fetchPosts = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/community-posts');
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/community-posts`);
       const data = await response.json();
       
       const formattedPosts = data.map(post => ({
@@ -44,7 +44,7 @@ function Community() {
       // hard coded for right now , kuch to karna tha na jab tak ban jae login system
       const currentUserId = user.id; // Ushna's ID here (thank you for letting me use it :prayinghands:)
 
-      const response = await fetch('http://localhost:5000/api/community-posts', {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/community-posts`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

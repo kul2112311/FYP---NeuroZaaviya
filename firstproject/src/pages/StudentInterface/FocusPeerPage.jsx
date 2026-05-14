@@ -56,7 +56,7 @@ function FocusPeerPage() {
   useEffect(() => {
     const fetchPeers = async () => {
       try {
-        const response = await fetch("http://localhost:5000/api/focus-peers");
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/focus-peers`);
         const data = await response.json();
  
         const formattedPeers = data.map(peer => ({
@@ -92,7 +92,7 @@ function FocusPeerPage() {
 
     for (const peer of newPeers) {
       try {
-        await fetch('${import.meta.env.VITE_API_URL}/api/select-focus-peer', {
+        await fetch(`${import.meta.env.VITE_API_URL}/api/select-focus-peer`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ userId: user.id, peerProfileId: peer.id })
@@ -126,7 +126,7 @@ function FocusPeerPage() {
         student_notes:  "Booked via Web App",
       };
  
-      const response = await fetch("http://localhost:5000/api/book-session", {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/book-session`, {
         method:  "POST",
         headers: { "Content-Type": "application/json" },
         body:    JSON.stringify(bookingData),

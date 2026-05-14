@@ -3,7 +3,7 @@ import { ArrowLeft, CheckCircle2, Clock, Sparkles, Edit2, Save, X, Trash2, Plus,
 import { useNavigate, useLocation } from "react-router-dom";
 import { useUser } from "../../styles/SignInLandingPage/usercontext.jsx";
 
-const API = "http://127.0.0.1:8000/api";
+const API = `${import.meta.env.VITE_API_URL}/api`;
 
 function DetailedProgress() {
   const navigate = useNavigate();

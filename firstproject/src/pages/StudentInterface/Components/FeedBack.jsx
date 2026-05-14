@@ -21,7 +21,7 @@ function FeedBack() {
     try {
       setIsLoading(true);
       // ✨ FIXED 3: Use the real student's ID in the API call
-      const response = await fetch(`http://localhost:5000/api/student-feedback/${user.id}`);
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/student-feedback/${user.id}`);
       const data = await response.json();
       
       console.log('📬 Received feedback:', data);
