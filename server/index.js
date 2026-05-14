@@ -28,11 +28,10 @@ const contextService = require('./services/ai/contextService');
 const app = express();
 
 app.use(cors({
-  origin: 'https://fyp-neuro-zaaviya.vercel.app',
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  origin: 'https://fyp-neuro-zaaviya.vercel.app'
 }));
 app.use(express.json());
+
 
 const upload = multer({ storage: multer.memoryStorage() });
 const kulsoom_index = require('./kulsoom_index');
