@@ -28,7 +28,9 @@ const contextService = require('./services/ai/contextService');
 const app = express();
 
 app.use(cors({
-  origin: 'https://fyp-neuro-zaaviya.vercel.app'
+  origin: 'https://fyp-neuro-zaaviya.vercel.app',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
 app.use(express.json());
 
