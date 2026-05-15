@@ -99,10 +99,11 @@ function PendingFeedback() {
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 px-[20.8px] pt-[20.8px] pb-[0.8px]">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-semibold text-gray-800">
-            Sessions Awaiting Feedback
+            Session Feedback History
           </h2>
           <span className="px-3 py-1 bg-[#B39DDB] text-white rounded-full text-sm font-medium">
-            {pendingSessions.length} pending
+            {/* 🛡️ Filters the math, but leaves the visual list alone! */}
+            {pendingSessions.filter(session => session.status === 'pending').length} pending
           </span>
         </div>
 
