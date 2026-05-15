@@ -20,14 +20,14 @@ function EhsasDashboard() {
     const fetchData = async () => {
       try {
         // Fetch FP Requests
-        const reqRes = await fetch('${import.meta.env.VITE_API_URL}/api/requests');
+        const reqRes = await fetch(`${import.meta.env.VITE_API_URL}/api/requests`);
         if (reqRes.ok) {
           const data = await reqRes.json();
           setPendingFPCount(data.filter(r => (r.role === 'focuspeer' || r.role === 'focus-peer') && r.status === 'pending').length);
         }
         
         // Fetch Dashboard Stats
-        const statsRes = await fetch('${import.meta.env.VITE_API_URL}/api/admin/dashboard-stats');
+        const statsRes = await fetch(`${import.meta.env.VITE_API_URL}/api/admin/dashboard-stats`);
         if (statsRes.ok) {
           setStats(await statsRes.json());
         }
