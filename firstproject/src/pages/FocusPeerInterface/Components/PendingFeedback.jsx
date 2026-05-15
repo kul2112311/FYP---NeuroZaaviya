@@ -102,8 +102,8 @@ function PendingFeedback() {
             Session Feedback History
           </h2>
           <span className="px-3 py-1 bg-[#B39DDB] text-white rounded-full text-sm font-medium">
-            {/* 🛡️ Filters the math, but leaves the visual list alone! */}
-            {pendingSessions.filter(session => session.status === 'pending').length} pending
+            {/* 🛡️ FIXED: Checking the actual boolean flag your data uses */}
+            {pendingSessions.filter(session => !session.hasFeedback).length} pending
           </span>
         </div>
 
